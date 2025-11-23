@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { ref, watch, reactive, getCurrentInstance, nextTick } from 'vue'
+import { ref, watch, reactive } from 'vue'
 import { ElConfigProvider } from 'element-plus'
-import { en, zhCn } from 'element-plus/es/locale/index.mjs'
-
-const { proxy } = getCurrentInstance()
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import en from 'element-plus/dist/locale/en.mjs'
 
 // 控制语言的响应式变量
 const locale = ref(zhCn)
 
-const config = reactive({
-  max: 1
-})
+// const config = reactive({
+//   max: 1
+// })
 
 // 可以通过监听存储或其他方式来保持语言设置
 // 示例：从localStorage读取语言设置
