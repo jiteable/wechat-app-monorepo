@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, reactive } from 'vue'
+import { ref, watch } from 'vue'
 import { ElConfigProvider } from 'element-plus'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import en from 'element-plus/dist/locale/en.mjs'
+import '@/assets/cust-elementplus.scss'
+import '@/assets/icon/iconfont.css'
+import '@/assets/base.scss'
 
 // 控制语言的响应式变量
 const locale = ref(zhCn)

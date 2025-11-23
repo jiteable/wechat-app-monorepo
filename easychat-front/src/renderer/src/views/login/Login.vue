@@ -1,45 +1,79 @@
-<!-- eslint-disable prettier/prettier -->
-
 <template>
   <div class="login-container">
     <div class="login-form">
-      <h2>用户登录</h2>
-      <form @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label for="username">用户名:</label>
-          <input id="username" v-model="loginForm.username" type="text" required placeholder="请输入用户名" />
-        </div>
-        <div class="form-group">
-          <label for="password">密码:</label>
-          <input id="password" v-model="loginForm.password" type="password" required placeholder="请输入密码" />
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="login-button">登录</button>
-          <button type="button" class="register-button" @click="handleRegister">注册</button>
-        </div>
-      </form>
+      <el-button class="login-close" link>
+        <el-icon>
+          <Close />
+        </el-icon>
+      </el-button>
+      <h2>EasyChat</h2>
+      <el-form ref="formDataRef" :model="formData" :rules="rules" @submit.prevent>
+        <!--input输入-->
+        <el-form-item label="" prop="mail">
+          <el-input v-model.trim="formData.mail" clearable placeholder="请输入邮箱">
+            <template #prefix>
+              <el-icon>
+                <Message />
+              </el-icon>
+            </template>
+          </el-input>
+        </el-form-item>
+        <!--textarea输入-->
+        <el-form-item label="" prop="password">
+          <el-input v-model.trim="formData.password" clearable placeholder="请输入密码" type="password">
+            <template #prefix>
+              <el-icon>
+                <Lock />
+              </el-icon>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item>
+          <button class="login-button" @click="handleLogin">登录</button>
+        </el-form-item>
+      </el-form>
+      <el-button link style="float: right; color: blue" @click="handleRegister">没有账号?</el-button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const formDataRef = ref()
 
-const loginForm = reactive({
-  username: '',
+const formData = reactive({
+  mail: '',
   password: ''
+})
+
+const rules = reactive({
+  mail: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度至少为6位', trigger: 'blur' }
+  ]
 })
 
 const handleLogin = () => {
   // 简单验证
-  if (loginForm.username && loginForm.password) {
+  if (formData.mail && formData.password) {
     // 这里应该调用登录API
-    console.log('登录信息:', loginForm)
-    // 登录成功后跳转到主页
-    router.push('/home')
+    console.log('登录信息:', formData)
+    // 保存 token 到 localStorage
+    localStorage.setItem('TOKEN', 'your-generated-token')
+    // 通知主进程用户已登录
+    if (window.electronAPI && window.electronAPI.ipcRenderer) {
+      window.electronAPI.ipcRenderer.send('navigate-to-main')
+    }
+    // 跳转到主页
+    router.push('/')
   } else {
     alert('请填写完整信息')
   }
@@ -51,55 +85,54 @@ const handleRegister = () => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
   background-color: #f5f5f5;
-}
 
-.login-form {
-  width: 100%;
-  max-width: 400px;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
+  .login-form {
+    width: 100%;
+    position: relative;
+    max-width: 500px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 
-.login-form h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #333;
-}
+    .login-close {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+    }
 
-.form-group {
-  margin-bottom: 15px;
-}
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+  }
 
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #555;
-}
+  .form-group {
+    margin-bottom: 15px;
 
-.form-group input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-  box-sizing: border-box;
-}
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #555;
+    }
 
-.form-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-  margin-top: 20px;
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+  }
 }
 
 .login-button,

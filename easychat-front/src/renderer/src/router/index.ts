@@ -1,16 +1,15 @@
-import { createRouter, createWebHashHistory } from "vue-router";
+import { createRouter, createWebHashHistory } from 'vue-router'
 
-import { AppRoutes } from "./routes";
+import { AppRoutes } from './routes'
 
-import { beforeEach, afterEach } from "./guards";
+import { beforeEach, afterEach } from './guards'
 
 const AppRouter = createRouter({
   history: createWebHashHistory(),
-  routes: AppRoutes,
-});
+  routes: AppRoutes
+})
 
-AppRouter.beforeEach(beforeEach);
+AppRouter.beforeEach(beforeEach)
+AppRouter.afterEach(afterEach)
 
-AppRouter.afterEach(afterEach);
-
-export default AppRouter;
+export default AppRouter
