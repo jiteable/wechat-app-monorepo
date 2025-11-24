@@ -1,12 +1,16 @@
-import Home from "@/views/Home.vue";
+import Home from '@/views/Home.vue'
 
 export const AppRoutes = [
   {
-    path: "/",
-    component: Home,
+    path: '/',
+    component: Home
   },
   {
-    path: "/login",
-    component: () => import("../views/login/Login.vue"),
+    path: '/login',
+    component: () => import('../views/login/Login.vue')
   },
-];
+  {
+    path: '/check-token',
+    component: () => import('../components/checkToken.vue')
+  }
+]

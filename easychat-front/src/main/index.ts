@@ -149,12 +149,59 @@ app.whenReady().then(() => {
     }
   })
 
-  createWindow()
+  // 添加用于TOKEN检查的IPC处理器
+  let tokenCheckWindow: BrowserWindow | null = null
+  let tokenExists = false
+
+  const tokenCheckHandler = (_event, hasToken) => {
+    tokenExists = hasToken
+
+    // 移除监听器
+    ipcMain.removeListener('token-check-result', tokenCheckHandler)
+
+    // 关闭临时窗口
+    if (tokenCheckWindow) {
+      tokenCheckWindow.destroy()
+      tokenCheckWindow = null
+    }
+
+    // 根据TOKEN存在情况创建相应窗口
+    if (tokenExists) {
+      createWindow()
+    } else {
+      createLoginWindow()
+    }
+  }
+
+  // 创建用于检查TOKEN的隐藏窗口
+  tokenCheckWindow = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  // 监听TOKEN检查结果
+  ipcMain.on('token-check-result', tokenCheckHandler)
+
+  // 加载TOKEN检查页面
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    tokenCheckWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/check-token')
+  } else {
+    tokenCheckWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/check-token' })
+  }
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      if (tokenExists) {
+        createWindow()
+      } else {
+        createLoginWindow()
+      }
+    }
   })
 })
 
