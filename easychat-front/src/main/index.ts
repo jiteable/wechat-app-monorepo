@@ -57,6 +57,7 @@ function createLoginWindow(): void {
     frame: false,
     show: false,
     autoHideMenuBar: true,
+    resizable: false,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -96,6 +97,13 @@ app.whenReady().then(() => {
 
   // 获取 scaleFactor
   scaleFactor = screen.getPrimaryDisplay().scaleFactor
+
+  ipcMain.on('close-login-window', () => {
+    if (loginWindow) {
+      loginWindow.close()
+      loginWindow = null
+    }
+  })
 
   // IPC handlers
   ipcMain.on('check-token-and-switch-window', () => {

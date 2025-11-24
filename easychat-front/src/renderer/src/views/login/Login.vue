@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
-    <div class="login-form">
-      <el-button class="login-close" link>
+    <div class="login-form drag">
+      <el-button class="login-close no-drag" link @click="handleClose">
         <el-icon>
           <Close />
         </el-icon>
@@ -10,7 +10,7 @@
       <el-form ref="formDataRef" :model="formData" :rules="rules" @submit.prevent>
         <!--input输入-->
         <el-form-item label="" prop="mail">
-          <el-input v-model.trim="formData.mail" clearable placeholder="请输入邮箱">
+          <el-input class="no-drag" v-model.trim="formData.mail" clearable placeholder="请输入邮箱">
             <template #prefix>
               <el-icon>
                 <Message />
@@ -20,7 +20,7 @@
         </el-form-item>
         <!--textarea输入-->
         <el-form-item label="" prop="password">
-          <el-input v-model.trim="formData.password" clearable placeholder="请输入密码" type="password">
+          <el-input class="no-drag" v-model.trim="formData.password" clearable placeholder="请输入密码" type="password">
             <template #prefix>
               <el-icon>
                 <Lock />
@@ -30,10 +30,10 @@
         </el-form-item>
 
         <el-form-item>
-          <button class="login-button" @click="handleLogin">登录</button>
+          <button class="login-button no-drag" @click="handleLogin">登录</button>
         </el-form-item>
       </el-form>
-      <el-button link style="float: right; color: blue" @click="handleRegister">没有账号?</el-button>
+      <el-button link class="no-drag" style="float: right; color: blue" @click="handleRegister">没有账号?</el-button>
     </div>
   </div>
 </template>
@@ -60,6 +60,13 @@ const rules = reactive({
     { min: 6, message: '密码长度至少为6位', trigger: 'blur' }
   ]
 })
+
+const handleClose = () => {
+  // 通知主进程关闭窗口
+  if (window.electron && window.electron.ipcRenderer) {
+    window.electron.ipcRenderer.send('close-login-window')
+  }
+}
 
 const handleLogin = () => {
   // 简单验证
@@ -153,5 +160,13 @@ const handleRegister = () => {
 .register-button {
   background-color: #67c23a;
   color: white;
+}
+
+.drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
 }
 </style>

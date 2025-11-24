@@ -13,7 +13,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "utils/gen-res-data.js"  ],
   "exclude": [
     "node_modules"
   ]
