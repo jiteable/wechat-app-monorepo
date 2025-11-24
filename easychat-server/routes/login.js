@@ -1,7 +1,8 @@
 var express = require('express');
 var router = express.Router();
 const { Decrypt } = require('../utils/aes');
-const { db } = require('../db/db');
+const bcrypt = require('bcrypt');
+const db = require('../db/db');
 
 // 用户登录
 router.post('/login', async (req, res) => {
@@ -17,7 +18,6 @@ router.post('/login', async (req, res) => {
     const decryptedPassword = Decrypt(password);
 
     // 查找用户
-    // 注意：这里需要实际连接数据库查找
     const user = await db.user.findUnique({ where: { email } });
 
     if (!user) {

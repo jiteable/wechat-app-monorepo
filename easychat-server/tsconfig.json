@@ -12,8 +12,13 @@
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
-, "utils/gen-res-data.js"  ],
+    "**/*.tsx",
+    "utils/gen-res-data.js",
+    "config/pr",
+    "config/index.js",
+    "isma.config.js",
+    "db/db.js"
+, "config/prisma.config.js"  ],
   "exclude": [
     "node_modules"
   ]

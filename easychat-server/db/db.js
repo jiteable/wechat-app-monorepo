@@ -5,9 +5,8 @@ const createPrismaClient = () =>
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: ReturnType<typeof createPrismaClient> | undefined
-}
+// 移除了 TypeScript 类型断言，改为标准的 JavaScript 语法
+const globalForPrisma = globalThis
 
 export const db = globalForPrisma.prisma ?? createPrismaClient()
 
