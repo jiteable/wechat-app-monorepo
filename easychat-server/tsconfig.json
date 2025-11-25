@@ -18,7 +18,7 @@
     "config/index.js",
     "isma.config.js",
     "db/db.js"
-, "config/prisma.config.js"  ],
+, "config/prisma.config.js", "utils/mailer.js"  ],
   "exclude": [
     "node_modules"
   ]

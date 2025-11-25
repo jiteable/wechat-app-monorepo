@@ -3,6 +3,7 @@ var router = express.Router();
 const { Decrypt } = require('../utils/aes');
 const bcrypt = require('bcrypt');
 const { db } = require('../db/db');
+const { sendEmail } = require('../utils/mailer')
 
 // 发送验证码
 router.post('/send-verify-code', async (req, res) => {
@@ -25,6 +26,36 @@ router.post('/send-verify-code', async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ error: '该邮箱已被注册' });
     }
+
+    // 生成6位数字验证码
+    const code = Math.floor(100000 + Math.random() * 900000).toString()
+
+    // 存储验证码到数据库 (使用VerificationToken模型)
+    const expires = new Date()
+    expires.setMinutes(expires.getMinutes() + 10) // 10分钟后过期
+
+    // 删除旧的验证码
+    await db.verificationToken.deleteMany({
+      where: {
+        identifier: email,
+      },
+    })
+
+    // 创建新的验证码
+    await db.verificationToken.create({
+      data: {
+        identifier: email,
+        token: code,
+        expires,
+      },
+    })
+
+    // 发送邮件
+    await sendEmail({
+      toEmail: email,
+      subject: 'easyChat 验证码',
+      text: `您的验证码是: ${code}，10分钟内有效。如果不是您本人操作，请忽略此邮件。`,
+    })
 
     // 实际应用中，这里会发送验证码到用户邮箱
     // 但在演示环境中，我们直接返回成功消息
@@ -71,16 +102,12 @@ router.post('/', async (req, res) => {
     // 解密密码
     const decryptedPassword = Decrypt(password);
 
-    // 密码加密
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(decryptedPassword, saltRounds);
-
     // 创建用户
     const user = await db.user.create({
       data: {
         email,
         username,
-        password: hashedPassword
+        password: decryptedPassword
       }
     });
 

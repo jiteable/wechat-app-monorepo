@@ -24,18 +24,11 @@ model User {
   password      String
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  verificationCodes VerificationCode[]
 }
 
-model VerificationCode {
-  id        String   @id @default(cuid())
-  email     String
-  code      String
-  type      String   // 'registration' or 'login'
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    String?
-  
-  @@index([email])
+model VerificationToken {
+  identifier String    @id
+  token      String
+  expires    DateTime
+  createdAt  DateTime  @default(now())
 }

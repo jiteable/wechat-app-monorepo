@@ -29,8 +29,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: '用户不存在' });
     }
 
-    // 验证密码
-    const isValidPassword = await bcrypt.compare(decryptedPassword, user.password);
+    // 直接比较密码（因为数据库存储的是明文）
+    const isValidPassword = decryptedPassword === user.password;
     if (!isValidPassword) {
       console.log('密码错误')
       return res.status(400).json({ error: '密码错误' });
