@@ -11,8 +11,8 @@
 
       <!-- 登录表单 -->
       <el-form v-if="isLogin" ref="formDataRef" :model="loginFormData" :rules="loginRules" @submit.prevent>
-        <el-form-item label="" prop="mail">
-          <el-input class="no-drag" v-model.trim="loginFormData.mail" clearable placeholder="请输入邮箱">
+        <el-form-item label="" prop="email">
+          <el-input class="no-drag" v-model.trim="loginFormData.email" clearable placeholder="请输入邮箱">
             <template #prefix>
               <el-icon>
                 <Message />
@@ -38,8 +38,8 @@
 
       <!-- 注册表单 -->
       <el-form v-else ref="registerFormRef" :model="registerFormData" :rules="registerRules" @submit.prevent>
-        <el-form-item label="" prop="mail">
-          <el-input class="no-drag" v-model.trim="registerFormData.mail" clearable placeholder="请输入邮箱">
+        <el-form-item label="" prop="email">
+          <el-input class="no-drag" v-model.trim="registerFormData.email" clearable placeholder="请输入邮箱">
             <template #prefix>
               <el-icon>
                 <Message />
@@ -89,7 +89,7 @@
                 </el-icon>
               </template>
             </el-input>
-            <el-button class="no-drag" @click="sendVerifyCode" :disabled="isCountingDown">
+            <el-button class="no-drag" @click="sendVerifyCodeHandler" :disabled="isCountingDown">
               {{ countDownText }}
             </el-button>
           </div>
@@ -110,23 +110,24 @@
 <script setup>
 import { reactive, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { login, sendVerifyCode, register } from '@/api/login'
 
 const router = useRouter()
 const formDataRef = ref()
 const registerFormRef = ref()
-const isLogin = ref(true) // 添加 isLogin 状态，默认为登录状态
+const isLogin = ref(true)
 const isCountingDown = ref(false)
 const countDownTime = ref(60)
 
 // 登录表单数据
 const loginFormData = reactive({
-  mail: '',
+  email: '',
   password: ''
 })
 
 // 注册表单数据
 const registerFormData = reactive({
-  mail: '',
+  email: '',
   username: '',
   password: '',
   confirmPassword: '',
@@ -135,7 +136,7 @@ const registerFormData = reactive({
 
 // 登录表单规则
 const loginRules = reactive({
-  mail: [
+  email: [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
   ],
@@ -147,7 +148,7 @@ const loginRules = reactive({
 
 // 注册表单规则
 const registerRules = reactive({
-  mail: [
+  email: [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
   ],
@@ -191,43 +192,62 @@ const handleClose = () => {
   }
 }
 
-const handleLogin = () => {
-  // 简单验证
-  if (loginFormData.mail && loginFormData.password) {
-    // 这里应该调用登录API
-    console.log('登录信息:', loginFormData)
-    // 保存 token 到 localStorage
-    localStorage.setItem('TOKEN', 'your-generated-token')
-    // 通知主进程用户已登录
-    if (window.electronAPI && window.electronAPI.ipcRenderer) {
-      window.electronAPI.ipcRenderer.send('navigate-to-main')
+const handleLogin = async () => {
+  if (formDataRef.value) {
+    try {
+      await formDataRef.value.validate()
+
+      // 调用登录API
+      const response = await login({
+        email: loginFormData.email,
+        password: loginFormData.password
+      })
+
+      console.log('response: ', response)
+
+      // 保存 token 到 localStorage
+      localStorage.setItem('TOKEN', response.token)
+
+      // 通知主进程用户已登录
+      if (window.electronAPI && window.electronAPI.ipcRenderer) {
+        window.electronAPI.ipcRenderer.send('navigate-to-main')
+      }
+
+      // 跳转到主页
+      router.push('/')
+    } catch (error) {
+      console.error('登录失败:', error)
+      alert(error.response?.data?.message || '登录失败，请检查邮箱和密码')
     }
-    // 跳转到主页
-    router.push('/')
-  } else {
-    alert('请填写完整信息')
   }
 }
 
 // 发送验证码
-const sendVerifyCode = () => {
-  if (!registerFormData.mail) {
+const sendVerifyCodeHandler = async () => {
+  if (!registerFormData.email) {
     alert('请输入邮箱地址')
     return
   }
 
   // 验证邮箱格式
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(registerFormData.mail)) {
+  if (!emailRegex.test(registerFormData.email)) {
     alert('请输入正确的邮箱地址')
     return
   }
 
-  // 这里应该调用发送验证码的API
-  console.log('发送验证码到:', registerFormData.mail)
+  try {
+    // 调用发送验证码API
+    await sendVerifyCode({ email: registerFormData.email })
 
-  // 启动倒计时
-  startCountDown()
+    alert('验证码已发送，请查收邮箱')
+
+    // 启动倒计时
+    startCountDown()
+  } catch (error) {
+    console.error('发送验证码失败:', error)
+    alert(error.response?.data?.message || '发送验证码失败')
+  }
 }
 
 // 启动倒计时
@@ -251,8 +271,15 @@ const handleRegister = async () => {
     if (registerFormRef.value) {
       await registerFormRef.value.validate()
 
-      // 这里应该调用注册API
-      console.log('注册信息:', registerFormData)
+      // 调用注册API
+      const response = await register({
+        email: registerFormData.email,
+        username: registerFormData.username,
+        password: registerFormData.password,
+        verifyCode: registerFormData.verifyCode
+      })
+
+      alert(response.message || '注册成功，请登录')
 
       // 注册成功后切换到登录表单
       isLogin.value = true
@@ -261,11 +288,10 @@ const handleRegister = async () => {
       Object.keys(registerFormData).forEach(key => {
         registerFormData[key] = ''
       })
-
-      alert('注册成功，请登录')
     }
   } catch (error) {
-    console.error('注册验证失败:', error)
+    console.error('注册失败:', error)
+    alert(error.response?.data?.message || '注册失败')
   }
 }
 

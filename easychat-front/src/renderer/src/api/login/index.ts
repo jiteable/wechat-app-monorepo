@@ -1,20 +1,16 @@
 import axios from 'axios'
 import { Encrypt } from '../../utils/aes'
 import config from '../../config'
+import { LoginRequest, LoginResponse } from './type'
 
-// 登录接口
-export interface LoginRequest {
-  email: string
-  password: string
-}
-
-export interface LoginResponse {
-  message: string
-  token: string
-  user: {
-    id: number
-    email: string
-  }
+// 枚举地址
+enum API {
+  // 登录接口
+  LOGIN_URL = '/login',
+  // 发送验证码接口
+  SEND_VERIFY_CODE_URL = '/register/send-verify-code',
+  // 注册接口
+  REGISTER_URL = '/register'
 }
 
 /**
@@ -32,12 +28,8 @@ export const login = async (data: LoginRequest): Promise<LoginResponse> => {
     password: encryptedPassword
   }
 
-  // Deleted:  try {
-  const response = await axios.post<LoginResponse>(`${config.api}/login`, requestData)
+  const response = await axios.post<LoginResponse>(`${config.api}${API.LOGIN_URL}`, requestData)
   return response.data
-  // Deleted:  } catch (error) {
-  // Deleted:    throw error
-  // Deleted:  }
 }
 
 // 发送验证码接口
@@ -54,12 +46,11 @@ export interface SendVerifyCodeResponse {
  * @param data 邮箱信息
  */
 export const sendVerifyCode = async (data: SendVerifyCodeRequest) => {
-  // Deleted:  try {
-  const response = await axios.post<SendVerifyCodeResponse>(`${config.api}/send-verify-code`, data)
+  const response = await axios.post<SendVerifyCodeResponse>(
+    `${config.api}${API.SEND_VERIFY_CODE_URL}`,
+    data
+  )
   return response.data
-  // Deleted:  } catch (error) {
-  // Deleted:    throw error
-  // Deleted:  }
 }
 
 // 注册接口
@@ -91,10 +82,9 @@ export const register = async (data: RegisterRequest): Promise<RegisterResponse>
     verifyCode: data.verifyCode
   }
 
-  // Deleted:  try {
-  const response = await axios.post<RegisterResponse>(`${config.api}/register`, requestData)
+  const response = await axios.post<RegisterResponse>(
+    `${config.api}${API.REGISTER_URL}`,
+    requestData
+  )
   return response.data
-  // Deleted:  } catch (error) {
-  // Deleted:    throw error
-  // Deleted:  }
 }

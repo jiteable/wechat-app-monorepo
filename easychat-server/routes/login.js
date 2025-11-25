@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 const { Decrypt } = require('../utils/aes');
 const bcrypt = require('bcrypt');
-const db = require('../db/db');
+const { db } = require('../db/db');
 
 // 用户登录
 router.post('/', async (req, res) => {
@@ -14,19 +14,26 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: '缺少必要参数' });
     }
 
+    console.log('email,password: ', email, password)
+
     // 解密密码
     const decryptedPassword = Decrypt(password);
+
+    console.log('decryptedPassword:', decryptedPassword)
+    console.log('password length:', password.length)
 
     // 查找用户
     const user = await db.user.findUnique({ where: { email } });
 
     if (!user) {
+      console.log('用户不存在')
       return res.status(400).json({ error: '用户不存在' });
     }
 
     // 验证密码
     const isValidPassword = await bcrypt.compare(decryptedPassword, user.password);
     if (!isValidPassword) {
+      console.log('密码错误')
       return res.status(400).json({ error: '密码错误' });
     }
 
