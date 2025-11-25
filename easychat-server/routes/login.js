@@ -20,7 +20,6 @@ router.post('/', async (req, res) => {
     const decryptedPassword = Decrypt(password);
 
     console.log('decryptedPassword:', decryptedPassword)
-    console.log('password length:', password.length)
 
     // 查找用户
     const user = await db.user.findUnique({ where: { email } });

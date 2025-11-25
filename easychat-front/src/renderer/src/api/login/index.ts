@@ -22,6 +22,8 @@ export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   // 对密码进行AES加密
   const encryptedPassword = Encrypt(data.password)
 
+  console.log('encryptedPassword 1: ', encryptedPassword)
+
   // 构造请求数据
   const requestData = {
     email: data.email,

@@ -2,11 +2,10 @@
 import CryptoJS from 'crypto-js'
 import config from '../config'
 
-// 默认的KEY与IV如果没有给
-// 秘钥：bGvnMc62sh5RV6zP
-// 偏移量：1eZ43DLcYtV2xb3Y
-const key = CryptoJS.enc.Utf8.parse(config.AES_KEY) // 十六位十六进制数作为密钥
-const iv = CryptoJS.enc.Utf8.parse(config.AES_OFF) // 十六位十六进制数作为密钥偏移量
+const key = CryptoJS.enc.Utf8.parse(config.AES_KEY!) // 十六位十六进制数作为密钥
+const iv = CryptoJS.enc.Utf8.parse(config.AES_OFF!) // 十六位十六进制数作为密钥偏移量
+// const key = CryptoJS.enc.Utf8.parse("bGvnMc62sh5RV6zP")
+// const iv = CryptoJS.enc.Utf8.parse("1eZ43DLcYtV2xb3Y")
 
 // 解密方法
 export function Decrypt(word) {

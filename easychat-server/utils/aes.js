@@ -2,8 +2,8 @@
 const CryptoJS = require('crypto-js');
 const config = require('../config');
 
-const key = CryptoJS.enc.Utf8.parse(config.default.AES_KEY); // 十六位十六进制数作为密钥
-const iv = CryptoJS.enc.Utf8.parse(config.default.AES_OFF); // 十六位十六进制数作为密钥偏移量
+const key = CryptoJS.enc.Utf8.parse(config.AES_KEY); // 十六位十六进制数作为密钥
+const iv = CryptoJS.enc.Utf8.parse(config.AES_OFF); // 十六位十六进制数作为密钥偏移量
 
 // 解密方法
 function Decrypt(word) {
