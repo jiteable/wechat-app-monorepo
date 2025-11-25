@@ -102,6 +102,32 @@ app.whenReady().then(() => {
   // 获取 scaleFactor
   scaleFactor = screen.getPrimaryDisplay().scaleFactor
 
+  // 监听登录/注册表单切换事件并调整窗口大小
+  ipcMain.on('login-form-toggle', (event, isLogin) => {
+    console.log(isLogin)
+    if (loginWindow) {
+      const [currentWidth, currentHeight] = loginWindow.getSize()
+      const newHeight = isLogin ? Math.round(360 / scaleFactor) : Math.round(600 / scaleFactor)
+      console.log('newHeight: ', newHeight)
+      console.log('currentHeight: ', currentHeight)
+
+      // 强制设置窗口边界来确保窗口大小正确
+      const currentPosition = loginWindow.getPosition()
+      loginWindow.setBounds(
+        {
+          x: currentPosition[0],
+          y: currentPosition[1],
+          width: currentWidth,
+          height: newHeight
+        },
+        false
+      )
+
+      // 强制刷新窗口
+      loginWindow.setSize(currentWidth, newHeight, false)
+    }
+  })
+
   ipcMain.on('close-login-window', () => {
     if (loginWindow) {
       loginWindow.close()
@@ -165,7 +191,6 @@ app.whenReady().then(() => {
   let tokenCheckWindow: BrowserWindow | null = null
   let tokenExists = false
 
-
   const tokenCheckHandler = (_event, hasToken) => {
     tokenExists = hasToken
 
@@ -222,7 +247,7 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-  console.log("quit")
+  console.log('quit')
   if (process.platform !== 'darwin') {
     app.quit()
   }

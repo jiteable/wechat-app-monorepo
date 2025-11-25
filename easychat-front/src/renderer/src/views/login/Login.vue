@@ -7,6 +7,7 @@
         </el-icon>
       </el-button>
       <h2>EasyChat</h2>
+      <h3 v-if="!isLogin" class="form-title">注册</h3>
 
       <!-- 登录表单 -->
       <el-form v-if="isLogin" ref="formDataRef" :model="loginFormData" :rules="loginRules" @submit.prevent>
@@ -273,15 +274,12 @@ const toggleForm = () => {
   isLogin.value = !isLogin.value
 }
 
-// 监听密码变化，实时验证确认密码
-watch(
-  () => registerFormData.password,
-  () => {
-    if (registerFormData.confirmPassword) {
-      registerFormRef.value?.validateField('confirmPassword')
-    }
+// 监听isLogin的变化并通过IPC通知主进程调整窗口大小
+watch(isLogin, (newVal) => {
+  if (window.electron && window.electron.ipcRenderer) {
+    window.electron.ipcRenderer.send('login-form-toggle', newVal);
   }
-)
+})
 </script>
 
 <style scoped lang="scss">
