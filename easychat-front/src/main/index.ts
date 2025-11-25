@@ -29,6 +29,10 @@ function createWindow(): void {
     mainWindow!.show()
   })
 
+  mainWindow.on('closed', () => {
+    console.log('mainWindow Close')
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -161,23 +165,24 @@ app.whenReady().then(() => {
   let tokenCheckWindow: BrowserWindow | null = null
   let tokenExists = false
 
+
   const tokenCheckHandler = (_event, hasToken) => {
     tokenExists = hasToken
 
     // 移除监听器
     ipcMain.removeListener('token-check-result', tokenCheckHandler)
 
-    // 关闭临时窗口
-    if (tokenCheckWindow) {
-      tokenCheckWindow.destroy()
-      tokenCheckWindow = null
-    }
-
-    // 根据TOKEN存在情况创建相应窗口
+    // 先创建目标窗口
     if (tokenExists) {
       createWindow()
     } else {
       createLoginWindow()
+    }
+
+    // 然后关闭临时窗口
+    if (tokenCheckWindow) {
+      tokenCheckWindow.destroy()
+      tokenCheckWindow = null
     }
   }
 
@@ -217,6 +222,7 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  console.log("quit")
   if (process.platform !== 'darwin') {
     app.quit()
   }

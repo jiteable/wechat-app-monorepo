@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const beforeEach = (to: any, _from, next) => {
+  // localStorage.clear();
   // 检查是否是从主窗口跳转到登录窗口
   if (to.path === '/login') {
     // 通知主进程需要切换到登录窗口
@@ -17,6 +18,8 @@ export const beforeEach = (to: any, _from, next) => {
     })
     return
   }
+
+  next()
 
   return
 }
