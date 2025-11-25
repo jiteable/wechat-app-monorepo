@@ -52,7 +52,7 @@ function createLoginWindow(): void {
 
   // Create the login window.
   loginWindow = new BrowserWindow({
-    width: Math.round(500 / scaleFactor),
+    width: Math.round(400 / scaleFactor),
     height: Math.round(360 / scaleFactor),
     frame: false,
     show: false,
