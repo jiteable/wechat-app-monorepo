@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const db = require('../db/db');
 
 // 用户登录
-router.post('/login', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { email, password } = req.body;
 
