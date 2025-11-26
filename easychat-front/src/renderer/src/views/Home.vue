@@ -22,7 +22,22 @@
   </div>
 </template>
 
-<script setup></script>
+<script setup>
+import { onMounted } from 'vue'
+import { useUserStore } from '@/store/userStore'
+import { getUserInfo } from '@/api/user'
+
+const userStore = useUserStore()
+
+onMounted(async () => {
+  // 获取用户信息并存储到userStore中
+  const userInfo = await getUserInfo()
+  console.log('userInfo: ', userInfo)
+  if (userInfo) {
+    userStore.initialUserInfo(userInfo.username, userInfo.avatar, userInfo.chatId)
+  }
+})
+</script>
 
 <style scoped lang="scss">
 .full-height {
@@ -45,5 +60,6 @@
   width: 42px;
   height: 42px;
   margin: 10px 10px;
+  border-radius: 5px;
 }
 </style>

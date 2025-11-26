@@ -1,6 +1,7 @@
-import http from '@renderer/utils/http'
+import http from '../../utils/http'
 import { UserInfo, ApiResponse } from './type'
 import config from '../../config'
+
 export async function getUserInfo(): Promise<UserInfo | null> {
   try {
     // 从localStorage中获取token
@@ -10,13 +11,8 @@ export async function getUserInfo(): Promise<UserInfo | null> {
       return null
     }
 
-    // 设置认证头
-    const headers = {
-      Authorization: `Bearer ${token}`
-    }
-
-    // 调用后端API获取用户信息
-    const response = await http.get<ApiResponse>(`${config.api}/user/info`, { headers })
+    // 调用后端API获取用户信息（Authorization头由拦截器自动添加）
+    const response = await http.get<ApiResponse>(`${config.api}/user/info`)
 
     const { username, avatar, chatId } = response.data.user
 

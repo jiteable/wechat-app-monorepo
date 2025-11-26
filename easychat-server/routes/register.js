@@ -112,7 +112,7 @@ router.post('/', async (req, res) => {
         chatId: chatId,
         email,
         username,
-        password: decryptedPassword
+        password: decryptedPassword,
         avatar: '/images/默认头像.jpg'
       }
     });

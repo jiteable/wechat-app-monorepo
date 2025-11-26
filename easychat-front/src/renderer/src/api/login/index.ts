@@ -1,7 +1,7 @@
 import { Encrypt } from '../../utils/aes'
 import config from '../../config'
 import { LoginRequest, LoginResponse } from './type'
-import http from '@renderer/utils/http'
+import http from '../../utils/http'
 
 // 枚举地址
 enum API {
