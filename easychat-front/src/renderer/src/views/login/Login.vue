@@ -191,6 +191,21 @@ const handleClose = () => {
   }
 }
 
+// 启动倒计时
+const startCountDown = () => {
+  isCountingDown.value = true
+  countDownTime.value = 60
+
+  const timer = setInterval(() => {
+    countDownTime.value--
+    if (countDownTime.value <= 0) {
+      clearInterval(timer)
+      isCountingDown.value = false
+      countDownTime.value = 60
+    }
+  }, 1000)
+}
+
 //登录
 const handleLogin = async () => {
   if (formDataRef.value) {
@@ -203,16 +218,24 @@ const handleLogin = async () => {
         password: loginFormData.password
       })
 
+      console.log('response', response)
+
       // 保存 token 到 localStorage
       localStorage.setItem('TOKEN', response.token)
 
       // 通知主进程用户已登录
-      if (window.electronAPI && window.electronAPI.ipcRenderer) {
-        window.electronAPI.ipcRenderer.send('navigate-to-main')
+      console.log('About to send navigate-to-main IPC message')
+      if (window.electron && window.electron.ipcRenderer) {
+        console.log('Sending navigate-to-main IPC message')
+        window.electron.ipcRenderer.send('navigate-to-main')
+      } else {
+        console.log('electron ipcRenderer not available, fallback to router navigation')
+        // 如果IPC通信不可用，则尝试直接跳转到主页
+        router.push('/')
       }
 
-      // 跳转到主页
-      router.push('/')
+      console.log('Message sent')
+      // 注意：这里不再进行页面跳转，而是完全依赖IPC通信切换窗口
     } catch (error) {
       console.error('登录失败:', error)
       ElMessage({
