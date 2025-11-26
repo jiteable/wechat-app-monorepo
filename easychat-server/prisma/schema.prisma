@@ -17,13 +17,15 @@ datasource db {
 
 model User {
   id            String     @id @default(cuid())
-  name          String?
+  chatId        String     @unique
+  username          String?
   email         String     @unique
   emailVerified DateTime?
   image         String?
   password      String
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+  sessions      Session[]
 }
 
 model VerificationToken {
@@ -31,4 +33,12 @@ model VerificationToken {
   token      String
   expires    DateTime
   createdAt  DateTime  @default(now())
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id])
 }

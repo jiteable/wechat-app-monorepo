@@ -30,3 +30,37 @@ export function Encrypt(word) {
   })
   return encrypted.ciphertext.toString().toUpperCase()
 }
+
+// 解析JWT令牌
+export function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        })
+        .join('')
+    )
+
+    return JSON.parse(jsonPayload)
+  } catch (error) {
+    return null
+  }
+}
+
+// 验证JWT令牌是否过期
+export function isTokenExpired(token: string): boolean {
+  const parsedToken = parseJwt(token)
+  if (!parsedToken || !parsedToken.exp) {
+    return true
+  }
+
+  // 获取当前时间戳（秒）
+  const currentTime = Math.floor(Date.now() / 1000)
+
+  // 检查是否过期
+  return parsedToken.exp < currentTime
+}

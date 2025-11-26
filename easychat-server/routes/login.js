@@ -3,6 +3,7 @@ var router = express.Router();
 const { Decrypt } = require('../utils/aes');
 const bcrypt = require('bcrypt');
 const { db } = require('../db/db');
+const { generateToken } = require('../utils/JWT');
 
 // 用户登录
 router.post('/', async (req, res) => {
@@ -14,35 +15,52 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: '缺少必要参数' });
     }
 
-    console.log('email,password: ', email, password)
-
     // 解密密码
     const decryptedPassword = Decrypt(password);
-
-    console.log('decryptedPassword:', decryptedPassword)
 
     // 查找用户
     const user = await db.user.findUnique({ where: { email } });
 
     if (!user) {
-      console.log('用户不存在')
       return res.status(400).json({ error: '用户不存在' });
     }
 
     // 直接比较密码（因为数据库存储的是明文）
     const isValidPassword = decryptedPassword === user.password;
     if (!isValidPassword) {
-      console.log('密码错误')
       return res.status(400).json({ error: '密码错误' });
     }
 
-    // 生成token（这里简化处理，实际应使用JWT等）
-    const token = 'generated_token_' + Date.now();
+    // 清理用户之前的会话
+    await db.session.deleteMany({
+      where: { userId: user.id }
+    });
+
+    // 生成JWT令牌
+    const payload = {
+      id: user.id,
+      email: user.email,
+      username: user.username
+    };
+
+    const token = generateToken(payload);
+
+    // 将JWT令牌存储到数据库中确保唯一性
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 1); // 24小时后过期
+
+    await db.session.create({
+      data: {
+        sessionToken: token,
+        userId: user.id,
+        expires: expires
+      }
+    });
 
     res.json({
       message: '登录成功',
       token,
-      user: { id: user.id, email: user.email }
+      user: { id: user.id, email: user.email, username: user.username }
     });
   } catch (error) {
     console.error(error);

@@ -81,7 +81,7 @@
         </el-form-item>
 
         <el-form-item label="" prop="verifyCode">
-          <div style="display: flex; gap: 10px;">
+          <div style="display: flex; gap: 10px">
             <el-input class="no-drag" v-model.trim="registerFormData.verifyCode" clearable placeholder="请输入验证码">
               <template #prefix>
                 <el-icon>
@@ -110,6 +110,7 @@
 <script setup>
 import { reactive, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { login, sendVerifyCode, register } from '@/api/login'
 
 const router = useRouter()
@@ -164,9 +165,7 @@ const registerRules = reactive({
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' }
   ],
-  verifyCode: [
-    { required: true, message: '请输入验证码', trigger: 'blur' }
-  ]
+  verifyCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
 })
 
 // 验证确认密码
@@ -192,6 +191,7 @@ const handleClose = () => {
   }
 }
 
+//登录
 const handleLogin = async () => {
   if (formDataRef.value) {
     try {
@@ -202,8 +202,6 @@ const handleLogin = async () => {
         email: loginFormData.email,
         password: loginFormData.password
       })
-
-      console.log('response: ', response)
 
       // 保存 token 到 localStorage
       localStorage.setItem('TOKEN', response.token)
@@ -217,7 +215,10 @@ const handleLogin = async () => {
       router.push('/')
     } catch (error) {
       console.error('登录失败:', error)
-      alert(error.response?.data?.message || '登录失败，请检查邮箱和密码')
+      ElMessage({
+        message: error.response?.data?.message || '登录失败，请检查邮箱和密码',
+        type: 'error'
+      })
     }
   }
 }
@@ -225,14 +226,20 @@ const handleLogin = async () => {
 // 发送验证码
 const sendVerifyCodeHandler = async () => {
   if (!registerFormData.email) {
-    alert('请输入邮箱地址')
+    ElMessage({
+      message: '请输入邮箱地址',
+      type: 'warning'
+    })
     return
   }
 
   // 验证邮箱格式
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(registerFormData.email)) {
-    alert('请输入正确的邮箱地址')
+    ElMessage({
+      message: '请输入正确的邮箱地址',
+      type: 'warning'
+    })
     return
   }
 
@@ -240,29 +247,20 @@ const sendVerifyCodeHandler = async () => {
     // 调用发送验证码API
     await sendVerifyCode({ email: registerFormData.email })
 
-    alert('验证码已发送，请查收邮箱')
+    ElMessage({
+      message: '验证码已发送，请查收邮箱',
+      type: 'success'
+    })
 
     // 启动倒计时
     startCountDown()
   } catch (error) {
     console.error('发送验证码失败:', error)
-    alert(error.response?.data?.message || '发送验证码失败')
+    ElMessage({
+      message: error.response?.data?.message || '发送验证码失败',
+      type: 'error'
+    })
   }
-}
-
-// 启动倒计时
-const startCountDown = () => {
-  isCountingDown.value = true
-  countDownTime.value = 60
-
-  const timer = setInterval(() => {
-    countDownTime.value--
-    if (countDownTime.value <= 0) {
-      clearInterval(timer)
-      isCountingDown.value = false
-      countDownTime.value = 60
-    }
-  }, 1000)
 }
 
 // 处理注册
@@ -279,19 +277,25 @@ const handleRegister = async () => {
         verifyCode: registerFormData.verifyCode
       })
 
-      alert(response.message || '注册成功，请登录')
+      ElMessage({
+        message: response.message || '注册成功，请登录',
+        type: 'success'
+      })
 
       // 注册成功后切换到登录表单
       isLogin.value = true
 
       // 清空注册表单
-      Object.keys(registerFormData).forEach(key => {
+      Object.keys(registerFormData).forEach((key) => {
         registerFormData[key] = ''
       })
     }
   } catch (error) {
     console.error('注册失败:', error)
-    alert(error.response?.data?.message || '注册失败')
+    ElMessage({
+      message: error.response?.data?.message || '注册失败',
+      type: 'error'
+    })
   }
 }
 
@@ -303,7 +307,7 @@ const toggleForm = () => {
 // 监听isLogin的变化并通过IPC通知主进程调整窗口大小
 watch(isLogin, (newVal) => {
   if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('login-form-toggle', newVal);
+    window.electron.ipcRenderer.send('login-form-toggle', newVal)
   }
 })
 </script>
