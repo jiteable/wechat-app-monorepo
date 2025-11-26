@@ -32,7 +32,33 @@ async function authenticateToken(req, res, next) {
       await db.session.delete({
         where: { sessionToken: token }
       });
-      return res.status(403).json({ error: '访问令牌已过期' });
+
+      // 生成新的令牌
+      const payload = {
+        id: session.userId,
+        email: verificationResult.data.email,
+        username: verificationResult.data.username
+      };
+
+      const newToken = generateToken(payload);
+
+      // 将新的JWT令牌存储到数据库中
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 1); // 24小时后过期
+
+      await db.session.create({
+        data: {
+          sessionToken: newToken,
+          userId: session.userId,
+          expires: expires
+        }
+      });
+
+      // 返回新的令牌给前端
+      return res.status(403).json({
+        error: '访问令牌已过期',
+        newToken: newToken
+      });
     }
 
     // 将用户信息添加到请求对象中

@@ -1,7 +1,7 @@
-import axios from 'axios'
 import { Encrypt } from '../../utils/aes'
 import config from '../../config'
 import { LoginRequest, LoginResponse } from './type'
+import http from '@renderer/utils/http'
 
 // 枚举地址
 enum API {
@@ -30,7 +30,7 @@ export const login = async (data: LoginRequest): Promise<LoginResponse> => {
     password: encryptedPassword
   }
 
-  const response = await axios.post<LoginResponse>(`${config.api}${API.LOGIN_URL}`, requestData)
+  const response = await http.post<LoginResponse>(`${config.api}${API.LOGIN_URL}`, requestData)
   return response.data
 }
 
@@ -48,7 +48,7 @@ export interface SendVerifyCodeResponse {
  * @param data 邮箱信息
  */
 export const sendVerifyCode = async (data: SendVerifyCodeRequest) => {
-  const response = await axios.post<SendVerifyCodeResponse>(
+  const response = await http.post<SendVerifyCodeResponse>(
     `${config.api}${API.SEND_VERIFY_CODE_URL}`,
     data
   )
@@ -84,7 +84,7 @@ export const register = async (data: RegisterRequest): Promise<RegisterResponse>
     verifyCode: data.verifyCode
   }
 
-  const response = await axios.post<RegisterResponse>(
+  const response = await http.post<RegisterResponse>(
     `${config.api}${API.REGISTER_URL}`,
     requestData
   )
