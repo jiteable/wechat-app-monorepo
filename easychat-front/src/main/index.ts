@@ -10,8 +10,9 @@ let scaleFactor = 1.0
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: Math.round(900 / scaleFactor),
-    height: Math.round(670 / scaleFactor),
+    width: Math.round(1200 / scaleFactor),
+    height: Math.round(900 / scaleFactor),
+    frame: false,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -20,10 +21,6 @@ function createWindow(): void {
       sandbox: false
     }
   })
-
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.webContents.openDevTools()
-  }
 
   mainWindow.on('ready-to-show', () => {
     mainWindow!.show()

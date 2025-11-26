@@ -113,6 +113,7 @@ router.post('/', async (req, res) => {
         email,
         username,
         password: decryptedPassword
+        avatar: '/images/默认头像.jpg'
       }
     });
 
