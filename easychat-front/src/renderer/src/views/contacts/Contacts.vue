@@ -21,7 +21,7 @@
                 <!-- 添加的朋友权限列表 -->
                 <div v-show="iconStates.friend" class="friend-authority-list">
                   <el-button v-for="item in friendAuthorityList" :key="item.id" class="button authority-item-button"
-                    @click="selectAuthority(item)">
+                    :class="{ active: activeButton === 'authority-' + item.id }" @click="selectAuthority(item)">
                     <span class="button-text2">{{ item.name }}</span>
                   </el-button>
                 </div>
@@ -36,7 +36,7 @@
                 <!-- 添加的标签列表 -->
                 <div v-show="iconStates.tag" class="label-list">
                   <el-button v-for="item in labelList" :key="item.id" class="button label-item-button"
-                    @click="selectLabel(item)">
+                    :class="{ active: activeButton === 'label-' + item.id }" @click="selectLabel(item)">
                     <span class="button-text2">{{ item.name }}</span>
                   </el-button>
                 </div>
@@ -51,7 +51,7 @@
                 <!-- 添加的群聊列表 -->
                 <div v-show="iconStates.group" class="chat-group-list">
                   <el-button v-for="item in chatGroupList" :key="item.id" class="button group-item-button"
-                    @click="selectGroup(item)">
+                    :class="{ active: activeButton === 'group-' + item.id }" @click="selectGroup(item)">
                     <img :src="item.avatar" :alt="item.name" class="group-avatar button-text2" />
                     <span class="button-text1 group-name">{{ item.name }}</span>
                   </el-button>
@@ -63,7 +63,16 @@
         <el-splitter-panel :min="380" class="content-right">
           <div class="panel-content">
             <div class="right-header drag">
-              <div class="header-text">详细信息</div>
+              <div class="header-search">
+                <el-input v-model="searchKeyword" placeholder="搜索联系人" clearable class="no-drag"
+                  style="width: 200px; height: 30px; margin-left: 10px; margin-top: 5px">
+                  <template #prefix>
+                    <el-icon>
+                      <Search />
+                    </el-icon>
+                  </template>
+                </el-input>
+              </div>
               <div class="window-controls">
                 <button class="control-button minimize no-drag" @click="minimizeWindow">
                   <el-icon>
@@ -77,7 +86,29 @@
                 </button>
               </div>
             </div>
-            <div class="right-content">右侧内容区域</div>
+            <div class="right-content">
+              <el-table v-if="
+                activeButton === 'all' ||
+                activeButton.startsWith('authority-') ||
+                activeButton.startsWith('label-') ||
+                activeButton.startsWith('group-')
+              " :data="filteredTableData" style="width: 100%">
+                <el-table-column type="selection" width="40" />
+                <el-table-column label="名称" width="120" show-overflow-tooltip>
+                  <template #default="scope">
+                    <div style="display: flex; align-items: center">
+                      <img :src="scope.row.avatar"
+                        style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px" />
+                      <span>{{ scope.row.name }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="remark" label="备注" width="100" show-overflow-tooltip />
+                <el-table-column prop="tag" label="标签" width="100" show-overflow-tooltip />
+                <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
+              </el-table>
+              <div v-else>右侧内容区域</div>
+            </div>
           </div>
         </el-splitter-panel>
       </el-splitter>
@@ -86,10 +117,52 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { Minus, Close } from '@element-plus/icons-vue'
 
 const activeButton = ref('all')
+
+const searchKeyword = ref('')
+
+// 表格数据
+const tableData = ref([
+  {
+    id: 1,
+    name: '张三',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+    remark: '同事',
+    tag: '工作',
+    permission: '仅聊天'
+  },
+  {
+    id: 2,
+    name: '李四',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+    remark: '同学',
+    tag: '学习,朋友',
+    permission: '不看他(她)'
+  },
+  {
+    id: 3,
+    name: '王五',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+    remark: '朋友',
+    tag: '重要',
+    permission: '正常'
+  },
+  {
+    id: 4,
+    name: '王',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+    remark: '朋友',
+    tag: '',
+    permission: '正常'
+  }
+])
 
 const iconStates = reactive({
   friend: false,
@@ -132,6 +205,54 @@ const chatGroupList = ref([
   }
 ])
 
+// 计算属性：根据选中的按钮类型和ID筛选表格数据
+const filteredTableData = computed(() => {
+  let data = tableData.value
+
+  // 应用按钮筛选
+  if (activeButton.value !== 'all') {
+    // 解析按钮类型和ID
+    const [type, idStr] = activeButton.value.split('-')
+    const id = parseInt(idStr)
+
+    if (type === 'authority') {
+      // 根据朋友权限筛选
+      const authority = friendAuthorityList.value.find((item) => item.id === id)
+      if (authority) {
+        data = data.filter((item) => item.permission === authority.name)
+      }
+    } else if (type === 'label') {
+      // 根据标签筛选
+      const label = labelList.value.find((item) => item.id === id)
+      if (label) {
+        if (label.name === '无标签') {
+          // 筛选无标签的数据（即tag字段为空或不存在）
+          data = data.filter((item) => !item.tag || item.tag.trim() === '')
+        } else {
+          // 筛选包含指定标签的数据
+          data = data.filter((item) => item.tag && item.tag.includes(label.name))
+        }
+      }
+    } else if (type === 'group') {
+      // 根据群聊筛选（这里简化处理）
+      // data保持不变
+    }
+  }
+
+  // 应用搜索关键词筛选
+  if (searchKeyword.value) {
+    const keyword = searchKeyword.value.toLowerCase()
+    data = data.filter(
+      (item) =>
+        (item.name && item.name.toLowerCase().includes(keyword)) ||
+        (item.remark && item.remark.toLowerCase().includes(keyword)) ||
+        (item.tag && item.tag.toLowerCase().includes(keyword))
+    )
+  }
+
+  return data
+})
+
 const minimizeWindow = () => {
   window.electron.ipcRenderer.send('minimize-contact-window')
 }
@@ -151,18 +272,19 @@ const toggleIcon = (buttonType) => {
 // 选择权限处理函数
 const selectAuthority = (item) => {
   console.log('选择了权限:', item.name)
+  activeButton.value = 'authority-' + item.id
   // 这里可以添加实际的业务逻辑
 }
-
-// 选择标签处理函数
 const selectLabel = (item) => {
   console.log('选择了标签:', item.name)
+  activeButton.value = 'label-' + item.id
   // 这里可以添加实际的业务逻辑
 }
 
 // 选择群聊处理函数
 const selectGroup = (item) => {
   console.log('选择了群聊:', item.name)
+  activeButton.value = 'group-' + item.id
   // 这里可以添加实际的业务逻辑
 }
 </script>
