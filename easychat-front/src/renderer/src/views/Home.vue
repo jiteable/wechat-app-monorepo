@@ -9,7 +9,7 @@
         </div>
       </el-aside>
       <el-container>
-        <el-splitter :key="splitterKey">
+        <el-splitter :key="splitterKey" class="no-drag">
           <el-splitter-panel class="drag" size="30%" :min="200">
             <Chat />
           </el-splitter-panel>

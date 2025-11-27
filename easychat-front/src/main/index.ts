@@ -227,6 +227,35 @@ app.whenReady().then(() => {
     tokenCheckWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/check-token' })
   }
 
+  ipcMain.on('close-main-window', () => {
+    if (mainWindow) {
+      mainWindow.close()
+      mainWindow = null
+    }
+  })
+
+  ipcMain.on('toggle-always-on-top', (event, isAlwaysOnTop) => {
+    if (mainWindow) {
+      mainWindow.setAlwaysOnTop(isAlwaysOnTop)
+    }
+  })
+
+  ipcMain.on('minimize-main-window', () => {
+    if (mainWindow) {
+      mainWindow.minimize()
+    }
+  })
+
+  ipcMain.on('toggle-maximize-window', (event, maximize) => {
+    if (mainWindow) {
+      if (maximize) {
+        mainWindow.maximize()
+      } else {
+        mainWindow.unmaximize()
+      }
+    }
+  })
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
