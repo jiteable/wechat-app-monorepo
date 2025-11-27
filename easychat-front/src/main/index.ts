@@ -10,8 +10,8 @@ let scaleFactor = 1.0
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: Math.round(1200 / scaleFactor),
-    height: Math.round(900 / scaleFactor),
+    width: Math.round(1250 / scaleFactor),
+    height: Math.round(750 / scaleFactor),
     frame: false,
     show: false,
     autoHideMenuBar: true,

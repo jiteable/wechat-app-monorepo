@@ -1,5 +1,5 @@
 <template>
-  <div>contact</div>
+  <div>ChatContant</div>
 </template>
 
 <script setup></script>
