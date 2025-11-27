@@ -67,25 +67,20 @@ const handleAddFriend = () => {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 5px;
   background-color: #ffffff;
 }
 
 .search-box {
   width: 100%;
-  max-width: 300px;
 }
 
 .search-input {
-  border-radius: 20px;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  border-radius: 20px;
+  border-radius: 10px;
 }
 
 .add-button {
-  margin-left: 15px;
+  margin-left: 8px;
 }
 
 .add-btn {

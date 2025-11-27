@@ -3,23 +3,31 @@
     <el-container class="full-height">
       <el-aside width="64px" class="aside-full-height">
         <div class="home-left">
-          <el-avatar style="margin-left: 5px;" shape="square" :size="50" :src="squareUrl" @error="handleAvatarError" />
-          <el-button class="box no-drag" @click="goToChat"
-            :style="{ backgroundColor: activeButton === 'chat' ? 'green' : '' }">
+          <el-avatar style="margin-left: 12px; margin-top: 10px" shape="square" :size="40" :src="squareUrl"
+            @error="handleAvatarError" />
+          <el-button class="box no-drag first-box" :style="{ backgroundColor: activeButton === 'chat' ? 'green' : '' }"
+            @click="goToChat">
             <i class="iconfont icon-chat2"></i>
           </el-button>
-          <el-button class="box no-drag" @click="goToContact"
-            :style="{ backgroundColor: activeButton === 'contact' ? 'green' : '' }">
+          <el-button class="box no-drag" :style="{ backgroundColor: activeButton === 'contact' ? 'green' : '' }"
+            @click="goToContact">
             <i class="iconfont icon-user"></i>
           </el-button>
+          <div class="drawer-toggle-wrapper">
+            <el-button class="box no-drag" @click="toggleDrawer">
+              <el-icon :size="25">
+                <Grid />
+              </el-icon>
+            </el-button>
+          </div>
         </div>
       </el-aside>
       <el-container>
         <el-splitter :key="splitterKey" class="no-drag">
-          <el-splitter-panel class="drag" size="30%" :min="200">
+          <el-splitter-panel class="drag" size="20%" :min="150">
             <router-view name="left"></router-view>
           </el-splitter-panel>
-          <el-splitter-panel class="drag" :min="400">
+          <el-splitter-panel class="drag" :min="350">
             <slot>
               <router-view name="right"></router-view>
             </slot>
@@ -33,6 +41,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { Grid } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/userStore'
 import { getUserInfo } from '@/api/user'
 
@@ -61,6 +70,12 @@ const goToChat = () => {
 // 导航到联系人页面
 const goToContact = () => {
   router.push('/contact')
+}
+
+// 抽屉切换功能
+const toggleDrawer = () => {
+  // 这里可以添加实际的抽屉切换逻辑
+  console.log('Toggle drawer button clicked')
 }
 
 onMounted(async () => {
@@ -96,17 +111,28 @@ const handleAvatarError = () => {
   border: 1px solid rgb(189, 190, 193);
   height: 100%;
   padding: 10px 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .box {
   border: 1px solid;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   margin: 10px 10px;
   border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.first-box {
+  margin-top: 20px;
+}
+
+.drawer-toggle-wrapper {
+  margin-top: auto;
+  margin-left: 2px;
 }
 
 .icon-chat2 {
