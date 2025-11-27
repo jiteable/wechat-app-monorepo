@@ -22,44 +22,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import {
+  windowState,
+  toggleAlwaysOnTop,
+  toggleMaximize,
+  minimizeWindow,
+  closeWindow
+} from '@/utils/windowState'
 
-const isAlwaysOnTop = ref(false)
-const isMaximized = ref(false)
-
-const toggleAlwaysOnTop = () => {
-  // 切换状态
-  isAlwaysOnTop.value = !isAlwaysOnTop.value
-
-  // 通过 IPC 向主进程发送切换窗口置顶状态的消息
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('toggle-always-on-top', isAlwaysOnTop.value)
-  }
-}
-
-const closeWindow = () => {
-  // 通过 IPC 向主进程发送关闭窗口的消息
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('close-main-window')
-  }
-}
-
-const minimizeWindow = () => {
-  // 通过 IPC 向主进程发送最小化窗口的消息
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('minimize-main-window')
-  }
-}
-
-const toggleMaximize = () => {
-  // 切换最大化状态
-  isMaximized.value = !isMaximized.value
-
-  // 通过 IPC 向主进程发送切换最大化状态的消息
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('toggle-maximize-window', isMaximized.value)
-  }
-}
+// 使用共享状态
+const isAlwaysOnTop = windowState.isAlwaysOnTop
+const isMaximized = windowState.isMaximized
 </script>
 
 <style scoped>
