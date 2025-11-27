@@ -6,7 +6,7 @@
       </div>
     </div>
     <div class="chat-left-content no-drag">
-      <button class="contact-button">
+      <button class="contact-button" @click="openContactManagement">
         <i class="iconfont icon-user"></i>
         通讯录管理
       </button>
@@ -75,6 +75,10 @@ import { ref, reactive, computed } from 'vue'
 import convertToPinyinInitials from '@/utils/changeChinese'
 
 const searchText = ref('')
+
+const openContactManagement = () => {
+  window.electron.ipcRenderer.send('open-contact-window')
+}
 
 // 按钮状态管理，false表示ArrowRight，true表示ArrowDown
 const buttonStates = reactive([false, false, false])

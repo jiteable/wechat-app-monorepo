@@ -5,6 +5,7 @@ import icon from '../../resources/icon.png?asset'
 
 let mainWindow: BrowserWindow | null = null
 let loginWindow: BrowserWindow | null = null
+let contactWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 
 function createWindow(): void {
@@ -41,6 +42,44 @@ function createWindow(): void {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
+function createContactWindow(): void {
+  // 如果通讯录窗口已存在，直接显示并获得焦点
+  if (contactWindow) {
+    contactWindow.show()
+    contactWindow.focus()
+    return
+  }
+
+  // Create the contact management window.
+  contactWindow = new BrowserWindow({
+    width: Math.round(875 / scaleFactor),
+    height: Math.round(575 / scaleFactor),
+    frame: false,
+    show: false,
+    autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  contactWindow.on('ready-to-show', () => {
+    contactWindow!.show()
+  })
+
+  contactWindow.on('closed', () => {
+    contactWindow = null
+  })
+
+  // Load the remote URL for development or the local html file for production.
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    contactWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/contacts')
+  } else {
+    contactWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/contacts' })
   }
 }
 
@@ -252,6 +291,50 @@ app.whenReady().then(() => {
         mainWindow.maximize()
       } else {
         mainWindow.unmaximize()
+      }
+    }
+  })
+
+  //通讯录窗口
+  ipcMain.on('toggle-maximize-window', (event, maximize) => {
+    if (mainWindow) {
+      if (maximize) {
+        mainWindow.maximize()
+      } else {
+        mainWindow.unmaximize()
+      }
+    }
+  })
+
+  ipcMain.on('open-contact-window', () => {
+    createContactWindow()
+  })
+
+  ipcMain.on('open-contact-window', () => {
+    createContactWindow()
+  })
+
+  ipcMain.on('minimize-contact-window', () => {
+    if (contactWindow) {
+      contactWindow.minimize()
+    }
+  })
+
+  ipcMain.on('close-contact-window', () => {
+    if (contactWindow) {
+      contactWindow.close()
+      contactWindow = null
+    }
+  })
+
+  app.on('activate', function () {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (BrowserWindow.getAllWindows().length === 0) {
+      if (tokenExists) {
+        createWindow()
+      } else {
+        createLoginWindow()
       }
     }
   })

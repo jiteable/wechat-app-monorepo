@@ -3,6 +3,7 @@ import Chat from '@/views/chat/Chat.vue'
 import ChatContant from '@/views/chatContant/ChatContant.vue'
 import Contact from '@/views/contact/Contact.vue'
 import ContactContent from '@/views/contactContent/ContactContent.vue'
+import Contacts from '@/views/contacts/Contacts.vue'
 
 export const AppRoutes = [
   {
@@ -36,5 +37,9 @@ export const AppRoutes = [
   {
     path: '/check-token',
     component: () => import('../components/checkToken.vue')
+  },
+  {
+    path: '/contacts',
+    component: Contacts
   }
 ]
