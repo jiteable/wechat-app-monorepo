@@ -107,8 +107,10 @@ const handleAvatarError = () => {
 }
 
 .home-left {
-  background-color: rgb(198, 199, 202);
-  border: 1px solid rgb(189, 190, 193);
+  background-color: rgb(247, 247, 247);
+  border: 1px solid rgb(219,
+      219,
+      219);
   height: 100%;
   padding: 10px 0;
   display: flex;

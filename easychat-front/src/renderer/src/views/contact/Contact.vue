@@ -128,7 +128,7 @@ const sortedContactsWithHeaders = computed(() => {
   const result = []
   const addedHeaders = new Set()
 
-  sorted.forEach(contact => {
+  sorted.forEach((contact) => {
     // 使用拼音首字母作为标题
     const firstChar = convertToPinyinInitials(contact.name).charAt(0).toLowerCase()
     const header = firstChar.match(/\d/) ? firstChar : firstChar.toUpperCase()
@@ -161,6 +161,7 @@ const toggleButton = (index) => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background-color: rgb(247, 247, 247);
 }
 
 .contact-left-title {
@@ -185,6 +186,15 @@ const toggleButton = (index) => {
   width: calc(100% - 11px);
   margin: 5px;
   height: 42px;
+  background-color: rgb(255, 255, 255);
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.contact-button:hover {
+  background-color: rgb(228, 228, 228);
 }
 
 .section {
@@ -194,7 +204,7 @@ const toggleButton = (index) => {
 .drop-button {
   width: 100%;
   border: none;
-  background-color: white;
+  background-color: rgb(247, 247, 247);
   text-align: left;
   padding-left: 15px;
   height: 40px;
@@ -202,6 +212,12 @@ const toggleButton = (index) => {
 
 .drop-button:hover {
   background-color: #f5f5f5;
+}
+
+.contact-button:active {
+  background-color: rgb(200, 200, 200);
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .sub-list {
