@@ -50,7 +50,8 @@ const handleCreateGroup = () => {
 
 const handleAddFriend = () => {
   console.log('添加好友')
-  // 这里可以添加添加好友的具体逻辑
+  // 创建新窗口用于添加好友
+  window.electron.ipcRenderer.send('open-add-friend-window')
 }
 </script>
 

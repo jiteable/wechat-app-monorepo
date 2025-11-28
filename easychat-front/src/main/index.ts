@@ -6,6 +6,7 @@ import icon from '../../resources/icon.png?asset'
 let mainWindow: BrowserWindow | null = null
 let loginWindow: BrowserWindow | null = null
 let contactWindow: BrowserWindow | null = null
+let addFriendWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 
 function createWindow(): void {
@@ -80,6 +81,43 @@ function createContactWindow(): void {
     contactWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/contacts')
   } else {
     contactWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/contacts' })
+  }
+}
+
+function createAddFriendWindow(): void {
+  // 如果添加好友窗口已存在，直接显示并获得焦点
+  if (addFriendWindow) {
+    addFriendWindow.show()
+    addFriendWindow.focus()
+    return
+  }
+
+  addFriendWindow = new BrowserWindow({
+    width: Math.round(410 / scaleFactor),
+    height: Math.round(568 / scaleFactor),
+    frame: false,
+    show: false,
+    autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  addFriendWindow.on('ready-to-show', () => {
+    addFriendWindow!.show()
+  })
+
+  addFriendWindow.on('closed', () => {
+    addFriendWindow = null
+  })
+
+  // Load the remote URL for development or the local html file for production.
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    addFriendWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/chat/addfriend')
+  } else {
+    addFriendWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/chat/addfriend' })
   }
 }
 
@@ -324,6 +362,36 @@ app.whenReady().then(() => {
     if (contactWindow) {
       contactWindow.close()
       contactWindow = null
+    }
+  })
+
+  ipcMain.on('minimize-contact-window', () => {
+    if (contactWindow) {
+      contactWindow.minimize()
+    }
+  })
+
+  ipcMain.on('close-contact-window', () => {
+    if (contactWindow) {
+      contactWindow.close()
+      contactWindow = null
+    }
+  })
+
+  ipcMain.on('open-add-friend-window', () => {
+    createAddFriendWindow()
+  })
+
+  ipcMain.on('minimize-add-friend-window', () => {
+    if (addFriendWindow) {
+      addFriendWindow.minimize()
+    }
+  })
+
+  ipcMain.on('close-add-friend-window', () => {
+    if (addFriendWindow) {
+      addFriendWindow.close()
+      addFriendWindow = null
     }
   })
 
