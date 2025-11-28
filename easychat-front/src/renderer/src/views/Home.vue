@@ -5,20 +5,28 @@
         <div class="home-left">
           <el-avatar style="margin-left: 12px; margin-top: 10px" shape="square" :size="40" :src="squareUrl"
             @error="handleAvatarError" />
-          <el-button class="box no-drag first-box" :style="{ backgroundColor: activeButton === 'chat' ? 'green' : '' }"
-            @click="goToChat">
+          <el-button class="box no-drag first-box" :class="{ 'active': activeButton === 'chat' }" @click="goToChat">
             <i class="iconfont icon-chat2"></i>
           </el-button>
-          <el-button class="box no-drag" :style="{ backgroundColor: activeButton === 'contact' ? 'green' : '' }"
-            @click="goToContact">
+          <el-button class="box no-drag" :class="{ 'active': activeButton === 'contact' }" @click="goToContact">
             <i class="iconfont icon-user"></i>
           </el-button>
           <div class="drawer-toggle-wrapper">
-            <el-button class="box no-drag" @click="toggleDrawer">
-              <el-icon :size="25">
-                <Grid />
-              </el-icon>
-            </el-button>
+            <el-popover ref="popoverRef" placement="right-end" :width="200" trigger="click" popper-class="grid-popover">
+              <div class="popover-menu no-drag">
+                <el-button class="menu-button" @click="handleChatFiles">聊天文件</el-button>
+                <el-button class="menu-button" @click="handleChatHistory">聊天记录管理</el-button>
+                <el-button class="menu-button" @click="handleSettings">设置</el-button>
+              </div>
+
+              <template #reference>
+                <el-button class="box no-drag">
+                  <el-icon :size="25">
+                    <Grid />
+                  </el-icon>
+                </el-button>
+              </template>
+            </el-popover>
           </div>
         </div>
       </el-aside>
@@ -51,6 +59,7 @@ const defaultAvatar = ref('')
 const splitterKey = ref(0)
 const router = useRouter()
 const route = useRoute()
+const popoverRef = ref(null)
 
 // 计算当前激活的按钮
 const activeButton = computed(() => {
@@ -72,10 +81,30 @@ const goToContact = () => {
   router.push('/contact')
 }
 
-// 抽屉切换功能
-const toggleDrawer = () => {
-  // 这里可以添加实际的抽屉切换逻辑
-  console.log('Toggle drawer button clicked')
+// 处理聊天文件按钮点击
+const handleChatFiles = () => {
+  console.log('聊天文件按钮被点击')
+  // 关闭popover
+  popoverRef.value?.hide()
+  // 这里可以添加实际的功能逻辑
+}
+
+// 处理聊天记录管理按钮点击
+const handleChatHistory = () => {
+  console.log('聊天记录管理按钮被点击')
+  // 关闭popover
+  popoverRef.value?.hide()
+  // 这里可以添加实际的功能逻辑
+}
+
+// 处理设置按钮点击
+const handleSettings = () => {
+  console.log('设置按钮被点击')
+  // 关闭popover
+  popoverRef.value?.hide()
+
+  // 发送消息到主进程打开设置窗口
+  window.electron.ipcRenderer.send('open-set-window')
 }
 
 onMounted(async () => {
@@ -126,6 +155,23 @@ const handleAvatarError = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s ease;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.box:hover {
+  background-color: #e0e0e0;
+  transform: scale(1.05);
+}
+
+.box:active {
+  transform: scale(0.95);
+}
+
+.box.active {
+  background-color: #409eff;
+  color: white;
 }
 
 .first-box {
@@ -144,5 +190,32 @@ const handleAvatarError = () => {
 .icon-user {
   font-size: 24px;
   color: #333;
+}
+
+.popover-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-button {
+  margin-left: 0px;
+  border: none;
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 15px;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.menu-button:hover {
+  background-color: rgb(7, 193, 96);
+  color: white;
+}
+
+.menu-button:active {
+  background-color: rgb(6, 174, 86);
+  color: white;
+  transform: scale(0.98);
 }
 </style>

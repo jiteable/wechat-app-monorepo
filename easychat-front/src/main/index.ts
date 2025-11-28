@@ -7,6 +7,7 @@ let mainWindow: BrowserWindow | null = null
 let loginWindow: BrowserWindow | null = null
 let contactWindow: BrowserWindow | null = null
 let addFriendWindow: BrowserWindow | null = null
+let setWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 
 function createWindow(): void {
@@ -121,8 +122,45 @@ function createAddFriendWindow(): void {
   }
 }
 
+function createSetWindow(): void {
+  // 如果设置窗口已存在，直接显示并获得焦点
+  if (setWindow) {
+    setWindow.show()
+    setWindow.focus()
+    return
+  }
+
+  setWindow = new BrowserWindow({
+    width: Math.round(688 / scaleFactor),
+    height: Math.round(850 / scaleFactor),
+    frame: false,
+    show: false,
+    autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  setWindow.on('ready-to-show', () => {
+    setWindow!.show()
+  })
+
+  setWindow.on('closed', () => {
+    setWindow = null
+  })
+
+  // Load the remote URL for development or the local html file for production.
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    setWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/settings')
+  } else {
+    setWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/settings' })
+  }
+}
+
 function createLoginWindow(): void {
-  // 如果登录窗口已存在，直接返回
+  // 如果登录窗口已存在，直接显示
   if (loginWindow) {
     loginWindow.show()
     return
@@ -395,15 +433,21 @@ app.whenReady().then(() => {
     }
   })
 
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) {
-      if (tokenExists) {
-        createWindow()
-      } else {
-        createLoginWindow()
-      }
+  // 打开设置窗口
+  ipcMain.on('open-set-window', () => {
+    createSetWindow()
+  })
+
+  ipcMain.on('minimize-set-window', () => {
+    if (setWindow) {
+      setWindow.minimize()
+    }
+  })
+
+  ipcMain.on('close-set-window', () => {
+    if (setWindow) {
+      setWindow.close()
+      setWindow = null
     }
   })
 

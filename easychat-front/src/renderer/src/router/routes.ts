@@ -45,5 +45,9 @@ export const AppRoutes = [
   {
     path: '/contacts',
     component: Contacts
+  },
+  {
+    path: '/settings',
+    component: () => import('../views/setting/Setting.vue')
   }
 ]
