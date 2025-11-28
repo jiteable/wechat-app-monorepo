@@ -1,6 +1,7 @@
 <template>
-  <div class="chat-contant-container">
-    <div class="chat-contant-title">
+  <div class="chat-contant-container" @click="handleContainerClick">
+    <!-- 窗口控制按钮 -->
+    <div class="chat-contant-title drag">
       <div class="window-button no-drag">
         <el-button link class="button" @click="toggleAlwaysOnTop">
           <i class="iconfont icon-top" :style="{ color: isAlwaysOnTop ? '#87CEEB' : '' }"></i>
@@ -17,7 +18,64 @@
         </el-button>
       </div>
     </div>
-    <div class="chat-contant">123</div>
+
+    <!-- 主要内容区 -->
+    <div class="chat-contant">
+      <!-- 头像与昵称 -->
+      <div class="chat-contant-info">
+        <el-avatar shape="square" :size="60" :src="Friends.avatar" />
+        <div class="chat-contant-info-name">
+          <div class="name">{{ Friends.name }}</div>
+          <div class="info-names">
+            <div class="info-name">昵称: {{ Friends.name }}</div>
+            <div class="info-name">微信ID: {{ Friends.wxid }}</div>
+          </div>
+        </div>
+        <div class="popover-container">
+          <el-popover ref="popoverRef" placement="bottom-end" :width="200" trigger="click"
+            popper-class="contact-popover" :hide-after="0">
+            <template #reference>
+              <button class="chat-contant-button no-drag" @click.stop>...</button>
+            </template>
+            <div class="popover-menu">
+              <div class="popover-menu-item">设置备注和标签</div>
+              <div class="popover-menu-item">设置朋友权限</div>
+              <div class="popover-menu-item">删除联系人</div>
+              <div class="popover-menu-item">加入黑名单</div>
+            </div>
+          </el-popover>
+        </div>
+      </div>
+
+      <!-- 备注信息 -->
+      <div class="remark-section">
+        <span class="label">备注</span>
+        <span class="value">{{ Friends.remarks }}</span>
+      </div>
+
+      <!-- 共同群聊 & 个性签名 & 来源 -->
+      <div class="common-group-section">
+        <div class="item">
+          <span class="label">共同群聊</span>
+          <span class="value">{{ Friends.groupCount }}个</span>
+        </div>
+        <div class="item">
+          <span class="label">个性签名</span>
+          <span class="value">{{ Friends.label }}</span>
+        </div>
+        <div class="item">
+          <span class="label">来源</span>
+          <span class="value">{{ Friends.source }}</span>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="action-buttons">
+        <div class="action-btn" @click="sendMessage">
+          <span>发消息</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -29,10 +87,44 @@ import {
   minimizeWindow,
   closeWindow
 } from '@/utils/windowState'
+import { ref } from 'vue'
 
 // 使用共享状态
 const isAlwaysOnTop = windowState.isAlwaysOnTop
 const isMaximized = windowState.isMaximized
+
+const popoverRef = ref(null)
+
+const handleContainerClick = () => {
+  if (popoverRef.value) {
+    popoverRef.value.hide()
+  }
+}
+
+const Friends = ref({
+  id: 1,
+  name: '阿涛',
+  avatar:
+    'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+  remarks: '阿涛',
+  label: '不甘平凡',
+  source: '通过群聊添加',
+  wxid: 'ATaoLoveQiqi',
+  groupCount: 11,
+  circleImages: [
+    'https://example.com/img1.jpg',
+    'https://example.com/img2.jpg',
+    'https://example.com/img3.jpg',
+    'https://example.com/img4.jpg',
+    'https://example.com/img5.jpg'
+  ]
+})
+
+// 添加操作按钮的点击事件
+const sendMessage = () => {
+  console.log('发送消息')
+}
+
 </script>
 
 <style scoped>
@@ -61,7 +153,182 @@ const isMaximized = windowState.isMaximized
 }
 
 .chat-contant {
+  width: 400px;
+  height: 500px;
   flex: 1;
   overflow: auto;
+  padding: 20px;
+  margin: 0 auto;
+}
+
+.chat-contant-info {
+  position: relative;
+  display: flex;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgb(224, 224, 224);
+}
+
+.chat-contant-info-name {
+  margin-left: 10px;
+}
+
+.info-names {
+  margin-top: 5px;
+}
+
+.info-name {
+  font-size: 12px;
+  color: rgb(175, 175, 175);
+}
+
+.chat-contant-button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background-color: transparent;
+  transition: background-color 0.3s ease;
+  font-size: 18px;
+  padding-bottom: 10px;
+  cursor: pointer;
+}
+
+.chat-contant-button:hover {
+  background-color: rgb(225, 225, 225);
+}
+
+.chat-contant-button:active {
+  background-color: rgb(213, 213, 213);
+}
+
+.popover-container {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+}
+
+.popover-menu {
+  padding: 5px 0;
+}
+
+.popover-menu-item {
+  padding: 8px 15px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.popover-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.contact-popover {
+  min-width: 150px !important;
+  padding: 0 !important;
+}
+
+/* 备注 */
+.remark-section {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.remark-section .label {
+  font-size: 14px;
+  color: #999;
+  margin-right: 10px;
+}
+
+.remark-section .value {
+  font-size: 16px;
+  color: #333;
+}
+
+/* 朋友圈 */
+.friend-circle-section {
+  margin-bottom: 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.friend-circle-section .label {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.circle-images {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.circle-images img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+/* 共同群聊 & 个性签名 */
+.common-group-section {
+  margin-bottom: 30px;
+  border-bottom: 1px solid rgb(225, 225, 225);
+}
+
+.common-group-section .item {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.common-group-section .label {
+  font-size: 14px;
+  color: #999;
+  width: 80px;
+}
+
+.common-group-section .value {
+  font-size: 16px;
+  color: #333;
+  flex: 1;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 30px;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  padding: 10px 20px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.action-btn:hover {
+  background-color: rgb(225, 225, 225);
+}
+
+.action-btn:active {
+  background-color: rgb(213, 213, 213);
+  transform: scale(0.98);
+}
+
+.action-btn i {
+  font-size: 24px;
+  margin-bottom: 5px;
 }
 </style>

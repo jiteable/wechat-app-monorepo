@@ -20,10 +20,13 @@
           新的朋友
         </button>
         <div v-show="buttonStates[0]" class="sub-list">
-          <div v-for="friend in newFriends" :key="friend.id" class="contact-item">
-            <img :src="friend.avatar" :alt="friend.name" class="avatar" />
+          <button v-for="friend in newFriends" :key="friend.id" class="contact-item no-drag"
+            :style="{ marginLeft: '0px' }" @click="selectNewFriend(friend)"
+            :class="{ 'contact-item-selected': isItemSelected(friend.id, 'newFriend') }"
+            @mouseenter="hoveredContact = friend.id" @mouseleave="hoveredContact = null">
+            <el-avatar shape="square" class="avatar-left" :size="30" :src="friend.avatar" />
             <span class="contact-name">{{ friend.name }}</span>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -36,10 +39,12 @@
           群聊
         </button>
         <div v-show="buttonStates[1]" class="sub-list">
-          <div v-for="group in groups" :key="group.id" class="contact-item">
-            <img :src="group.avatar" :alt="group.name" class="avatar" />
+          <button v-for="group in groups" :key="group.id" class="contact-item no-drag" :style="{ marginLeft: '0px' }"
+            @click="selectGroup(group)" :class="{ 'contact-item-selected': isItemSelected(group.id, 'group') }"
+            @mouseenter="hoveredGroup = group.id" @mouseleave="hoveredGroup = null">
+            <el-avatar shape="square" class="avatar-left" :size="30" :src="group.avatar" />
             <span class="contact-name">{{ group.name }}</span>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -52,17 +57,19 @@
           联系人
         </button>
         <div v-show="buttonStates[2]" class="sub-list">
-          <div v-for="(item, index) in sortedContactsWithHeaders" :key="item.id || item.header"
-            class="contact-item-wrapper">
+          <div v-for="(item, index) in sortedContactsWithHeaders" :style="{ marginLeft: '0px' }"
+            :key="item.id || item.header" class="contact-item-wrapper">
             <!-- 字母或数字标题 -->
             <div v-if="item.isHeader" class="contact-header">
               {{ item.header }}
             </div>
             <!-- 联系人项 -->
-            <div v-else class="contact-item">
-              <img :src="item.avatar" :alt="item.name" class="avatar" />
+            <button v-else class="contact-item no-drag" @click="selectContact(item)"
+              :class="{ 'contact-item-selected': isItemSelected(item.id, 'contact') }"
+              @mouseenter="hoveredContact = item.id" @mouseleave="hoveredContact = null">
+              <el-avatar shape="square" class="avatar-left" :size="30" :src="item.avatar" />
               <span class="contact-name">{{ item.name }}</span>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -75,6 +82,10 @@ import { ref, reactive, computed } from 'vue'
 import convertToPinyinInitials from '@/utils/changeChinese'
 
 const searchText = ref('')
+const hoveredContact = ref(null)
+const hoveredGroup = ref(null)
+const selectedItemId = ref(null)
+const selectedItemType = ref(null) // 'contact', 'group', 或 'newFriend'
 
 const openContactManagement = () => {
   window.electron.ipcRenderer.send('open-contact-window')
@@ -85,27 +96,92 @@ const buttonStates = reactive([false, false, false])
 
 // 新的朋友数据
 const newFriends = ref([
-  { id: 1, name: '张三', avatar: 'https://via.placeholder.com/40x40/FF6B6B/FFFFFF?text=ZS' },
-  { id: 2, name: '李四', avatar: 'https://via.placeholder.com/40x40/4ECDC4/FFFFFF?text=LS' }
+  {
+    id: 1,
+    name: '张三',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 2,
+    name: '李四',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  }
 ])
 
 // 群聊数据
 const groups = ref([
-  { id: 1, name: '技术交流群', avatar: 'https://via.placeholder.com/40x40/45B7D1/FFFFFF?text=JS' },
-  { id: 2, name: '家庭群', avatar: 'https://via.placeholder.com/40x40/F9CA24/FFFFFF?text=JQ' },
-  { id: 3, name: '同学群', avatar: 'https://via.placeholder.com/40x40/6C5CE7/FFFFFF?text=TX' }
+  {
+    id: 1,
+    name: '技术交流群aaaaaaaaa',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 2,
+    name: '家庭群',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 3,
+    name: '同学群',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  }
 ])
 
 // 联系人数据
 const contacts = ref([
-  { id: 1, name: '王五', avatar: 'https://via.placeholder.com/40x40/A29BFE/FFFFFF?text=WW' },
-  { id: 2, name: '孙十', avatar: 'https://via.placeholder.com/40x40/FD79A8/FFFFFF?text=ZL' },
-  { id: 3, name: '孙七', avatar: 'https://via.placeholder.com/40x40/FD9644/FFFFFF?text=SQ' },
-  { id: 4, name: '周八', avatar: 'https://via.placeholder.com/40x40/1DD1A1/FFFFFF?text=ZB' },
-  { id: 5, name: '1号客户', avatar: 'https://via.placeholder.com/40x40/FEA47F/FFFFFF?text=1K' },
-  { id: 6, name: '9号客户', avatar: 'https://via.placeholder.com/40x40/25CCF7/FFFFFF?text=9K' },
-  { id: 7, name: 'Alex', avatar: 'https://via.placeholder.com/40x40/54A0FF/FFFFFF?text=A' },
-  { id: 8, name: 'Bob', avatar: 'https://via.placeholder.com/40x40/58B19F/FFFFFF?text=B' }
+  {
+    id: 1,
+    name: '王五',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 2,
+    name: '孙十',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 3,
+    name: '孙七',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 4,
+    name: '周八',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 5,
+    name: '1号客户',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 6,
+    name: '9号客户',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 7,
+    name: 'Alex',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  },
+  {
+    id: 8,
+    name: 'Bob',
+    avatar:
+      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+  }
 ])
 
 // 计算属性：按名称首字符排序的联系人列表（带标题）
@@ -158,6 +234,31 @@ const sortedContactsWithHeaders = computed(() => {
 const toggleButton = (index) => {
   buttonStates[index] = !buttonStates[index]
 }
+
+// 通用选择函数
+const selectItem = (item, type) => {
+  selectedItemId.value = item.id
+  selectedItemType.value = type
+  console.log(`Selected ${type}:`, item)
+  // 可以在这里添加处理选择项目的逻辑
+}
+
+// 检查项目是否被选中
+const isItemSelected = (itemId, type) => {
+  return selectedItemId.value === itemId && selectedItemType.value === type
+}
+
+const selectContact = (contact) => {
+  selectItem(contact, 'contact')
+}
+
+const selectGroup = (group) => {
+  selectItem(group, 'group')
+}
+
+const selectNewFriend = (friend) => {
+  selectItem(friend, 'newFriend')
+}
 </script>
 
 <style scoped>
@@ -176,6 +277,13 @@ const toggleButton = (index) => {
   align-items: center;
   padding: 0 5px;
   background-color: #ffffff;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
 }
 
 .search-box {
@@ -225,7 +333,7 @@ const toggleButton = (index) => {
 }
 
 .sub-list {
-  padding-left: 30px;
+  width: 100%;
 }
 
 .contact-item-wrapper {
@@ -237,13 +345,33 @@ const toggleButton = (index) => {
   font-size: 12px;
   color: #666;
   padding: 10px 0 5px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid rgb(228, 228, 228);
+  /* 修复了多行写法 */
+  background-color: rgb(247, 247, 247);
+  /* 添加背景色 */
 }
 
 .contact-item {
   display: flex;
+  position: relative;
   align-items: center;
-  padding: 8px 0;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+  border: none;
+  background-color: rgb(245, 245, 245);
+}
+
+.contact-item:hover {
+  background-color: rgb(234, 234, 234);
+}
+
+.contact-item-selected {
+  background-color: rgb(222, 222, 222);
+}
+
+.contact-item-selected:hover {
+  background-color: rgb(211, 211, 211);
 }
 
 .avatar {
@@ -253,8 +381,30 @@ const toggleButton = (index) => {
   margin-right: 10px;
 }
 
+.avatar-left {
+  position: absolute;
+  left: 40px;
+}
+
 .contact-name {
+  position: absolute;
+  left: 80px;
   font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: calc(100% - 100px);
+}
+
+/* 添加省略号样式 */
+.ellipsis {
+  position: absolute;
+  right: 10px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .search-input :deep(.el-input__wrapper) {

@@ -27,7 +27,7 @@
           <el-splitter-panel class="drag" size="20%" :min="150">
             <router-view name="left"></router-view>
           </el-splitter-panel>
-          <el-splitter-panel class="drag" :min="350">
+          <el-splitter-panel :min="350">
             <slot>
               <router-view name="right"></router-view>
             </slot>
