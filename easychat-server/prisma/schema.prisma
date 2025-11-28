@@ -16,29 +16,97 @@ datasource db {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  chatId        String     @unique
-  username      String?
-  email         String     @unique
-  emailVerified DateTime?
-  avatar        String?
-  password      String
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  sessions      Session[]
+  id            String        @id @default(cuid())       // 用户唯一标识符
+  chatId        String        @unique                    // 用户聊天ID，全局唯一
+  username      String?                                // 用户名，可选
+  email         String        @unique                    // 邮箱地址，全局唯一
+  emailVerified DateTime?                              // 邮箱验证时间，可选
+  avatar        String?                                // 头像图片链接，可选
+  password      String                                 // 密码
+  gender        String                                 // 性别
+  signature     String                                 // 个性签名
+  region        String                                 // 地区
+  createdAt     DateTime      @default(now())           // 账户创建时间
+  updatedAt     DateTime      @updatedAt                // 最后更新时间
+  sessions      Session[]                              // 用户会话列表（一对多关系）
+  settings      UserSetting?                           // 用户设置（一对一关系）
 }
 
 model VerificationToken {
-  identifier String    @id
-  token      String
-  expires    DateTime
-  createdAt  DateTime  @default(now())
+  identifier String    @id                             // 标识符
+  token      String                                   // 验证令牌
+  expires    DateTime                                 // 过期时间
+  createdAt  DateTime  @default(now())                // 创建时间
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id])
+  id           String   @id @default(cuid())          // 会话唯一标识符
+  sessionToken String   @unique                       // 会话令牌，全局唯一
+  userId       String                                 // 关联的用户ID
+  expires      DateTime                               // 过期时间
+  user         User     @relation(fields: [userId], references: [id])  // 关联的用户对象
+}
+
+model UserWithFriend{
+  id        String   @id @default(cuid())            // 好友关系唯一标识符
+  userId    String                                   // 用户ID
+  friendId  String                                   // 朋友ID
+  remark    String?                                  // 备注名，可选
+  tag       String?                                  // 标签，可选
+  source    String?                                  // 添加来源，可选
+  createdAt DateTime @default(now())                 // 创建时间（成为好友的时间）
+  
+  @@unique([userId, friendId])                       // 用户和朋友ID组合唯一索引
+}
+
+model Group{
+  id          String   @id @default(cuid())          // 群组唯一标识符
+  ownerId     String                                 // 群主ID
+  adminIds    String[]                               // 管理员ID数组
+  memberIds   String[]                               // 成员ID数组
+  name        String                                 // 群名称
+  announcement String?                                // 群公告，可选
+  createdAt   DateTime @default(now())               // 创建时间
+  updatedAt   DateTime @updatedAt                    // 更新时间
+}
+
+model UserWithGroup{
+  id                  String   @id @default(cuid()) // 用户与群组关系唯一标识符
+  userId              String                        // 用户ID
+  groupId             String                        // 群组ID
+  nickname            String?                       // 用户在群内的昵称，可选
+  remark              String?                       // 群备注，可选
+  muteNotification    Boolean  @default(false)      // 是否消息免打扰，默认否
+  stickyTopChat       Boolean  @default(false)      // 是否置顶聊天，默认否
+  saveToContact       Boolean  @default(false)      // 是否保存到通讯录，默认否
+  showMemberNameCard  Boolean  @default(false)      // 是否显示群成员名称，默认否
+  createdAt           DateTime @default(now())      // 加入群组时间
+  updatedAt           DateTime @updatedAt           // 更新时间
+  background          String?                       // 聊天背景，可选
+  
+  @@unique([userId, groupId])                       // 用户和群组ID组合唯一索引
+}
+
+model UserSetting{
+  id                            String   @id @default(cuid())  // 设置唯一标识符
+  userId                        String   @unique                // 关联的用户ID
+  newMessageSound               Boolean  @default(true)         // 新消息通知是否有声音
+
+  // 添加好友设置
+  needVerificationToAddFriend   Boolean  @default(true)         // 加我为朋友时是否需要验证
+  canBeSearchedByChatId         Boolean  @default(true)         // 是否能够通过chatId搜索到我
+  canBeSearchedByEmail          Boolean  @default(true)         // 是否能够通过邮箱搜索到我
+  canAddFromGroup               Boolean  @default(true)         // 是否能通过群聊添加我
+  
+  // 通用设置
+  language                      String   @default("zh")         // 语言设置 (zh: 中文, en: 英文)
+  fontSize                      Int      @default(14)           // 字体大小设置
+  openFileInReadonlyMode        Boolean  @default(false)        // 是否以只读的方式打开聊天中的文件
+  showWebSearchHistory          Boolean  @default(true)         // 是否显示网络搜索历史
+  autoConvertVoiceToText        Boolean  @default(true)         // 是否将聊天语音自动转成文字
+  
+  createdAt                     DateTime @default(now())        // 设置创建时间
+  updatedAt                     DateTime @updatedAt             // 设置更新时间
+  
+  user                          User     @relation(fields: [userId], references: [id])  // 关联的用户对象
 }

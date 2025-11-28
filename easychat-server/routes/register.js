@@ -90,15 +90,6 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: '该邮箱已被注册' });
     }
 
-    // 检查用户名是否已存在
-    // const existingUsername = await db.user.findUnique({ where: { username } });
-    // if (existingUsername) {
-    //   return res.status(400).json({ error: '该用户名已被使用' });
-    // }
-
-    // 在实际应用中，这里需要验证验证码是否正确
-    // 由于这是演示环境，我们跳过验证码验证
-
     // 解密密码
     const decryptedPassword = Decrypt(password);
 
