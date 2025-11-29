@@ -4,7 +4,7 @@ import { SearchUserRequest, SearchUserResponse } from './type'
 
 // 枚举地址
 enum API {
-  SEARCH_USER_URL = '/user/search'
+  SEARCH_USER_URL = '/search/userSearch'
 }
 
 /**
@@ -13,6 +13,8 @@ enum API {
  * @returns 搜索结果
  */
 export const searchUser = async (data: SearchUserRequest): Promise<SearchUserResponse> => {
-  const response = await http.post<SearchUserResponse>(`${config.api}${API.SEARCH_USER_URL}`, data)
+  const response = await http.get<SearchUserResponse>(`${config.api}${API.SEARCH_USER_URL}`, {
+    params: data
+  })
   return response.data
 }

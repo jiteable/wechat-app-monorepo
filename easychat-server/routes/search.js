@@ -4,10 +4,13 @@ const { authenticateToken } = require('../middleware');
 const { db } = require('../db/db');
 
 // 用户搜索接口 - 根据chatId或email搜索用户
-router.post('/user/search', authenticateToken, async function (req, res, next) {
+router.get('/userSearch', authenticateToken, async function (req, res, next) {
   try {
-    const { query } = req.body;
+    // 修改这里：正确地从 req.query 获取 query 参数
+    const { query } = req.query;
     const currentUserId = req.user.id;
+
+    console.log('Query parameter: ', query);
 
     // 验证参数
     if (!query || typeof query !== 'string') {
@@ -16,6 +19,9 @@ router.post('/user/search', authenticateToken, async function (req, res, next) {
 
     // 去除首尾空格并转换为小写进行模糊匹配
     const trimmedQuery = query.trim();
+
+    console.log('trimmedQuery: ', trimmedQuery);
+
 
     // 在数据库中搜索用户 (根据chatId或email)
     const users = await db.user.findMany({
@@ -42,7 +48,7 @@ router.post('/user/search', authenticateToken, async function (req, res, next) {
     });
 
     // 检查这些用户是否已经是当前用户的好友
-    const friendships = await db.friendship.findMany({
+    const friendships = await db.UserWithFriend.findMany({
       where: {
         OR: [
           { userId: currentUserId },

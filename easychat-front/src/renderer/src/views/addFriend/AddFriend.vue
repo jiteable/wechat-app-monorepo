@@ -24,8 +24,8 @@
         <el-skeleton :rows="3" animated />
       </div>
 
-      <div class="search-results" v-else-if="searchResults.length > 0">
-        <div class="result-item" v-for="user in searchResults" :key="user.id" @click="selectUser(user)">
+      <div v-else-if="searchResults.length > 0" class="search-results">
+        <div v-for="user in searchResults" class="result-item" :key="user.id" @click="selectUser(user)">
           <el-avatar :size="40" :src="user.avatar || ''" shape="square" />
           <div class="user-info">
             <div class="user-name">{{ user.username }}</div>
@@ -33,14 +33,14 @@
           </div>
           <div class="action-button">
             <el-button size="small" :type="user.isFriend ? 'success' : 'primary'" :disabled="user.isFriend" round
-              @click.stop="addFriend(user)">
+              @click.stop="addFriendHandler(user)">
               {{ user.isFriend ? '已添加' : '添加' }}
             </el-button>
           </div>
         </div>
       </div>
 
-      <div class="no-results" v-else-if="searched && searchResults.length === 0 && !loading">
+      <div v-else-if="searched && searchResults.length === 0 && !loading" class="no-results">
         未找到相关用户
       </div>
     </div>
@@ -51,6 +51,7 @@
 import { ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { searchUser } from '@/api/search'
+import { addFriend } from '@/api/add'
 
 const searchText = ref('')
 const searchResults = ref([])
@@ -80,11 +81,20 @@ const selectUser = (user) => {
   // 这里可以添加选中用户的逻辑
 }
 
-const addFriend = (user) => {
+const addFriendHandler = async (user) => {
   if (!user.isFriend) {
     console.log('添加好友:', user)
-    // 这里可以添加添加好友的逻辑
-    user.isFriend = true
+    try {
+      const response = await addFriend({ userId: user.id })
+      if (response.success) {
+        user.isFriend = true
+        console.log('添加好友成功')
+      } else {
+        console.error('添加好友失败:', response.message)
+      }
+    } catch (error) {
+      console.error('添加好友失败:', error)
+    }
   }
 }
 
