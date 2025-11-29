@@ -3,9 +3,6 @@
     <div class="window-header drag">
       <div class="header-title">设置</div>
       <div class="window-controls no-drag">
-        <button class="control-button minimize" @click="minimizeWindow">
-          <i class="iconfont icon-minimize"></i>
-        </button>
         <button class="control-button close" @click="closeWindow">
           <i class="iconfont icon-close"></i>
         </button>
@@ -148,29 +145,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
+import { getUserSettingInfo } from '@/api/user'
 
 const activeTab = ref('account') // 默认选中账户与存储标签页
 const userStore = useUserStore()
 const userSetStore = useUserSetStore()
 
-// 初始化设置项，与数据库中的UserSetting模型对应
-const settings = reactive({
-  // 好友设置
-  needVerificationToAddFriend: true,
-  canBeSearchedByChatId: true,
-  canBeSearchedByEmail: true,
-  canAddFromGroup: true,
-
-  // 通用设置
-  language: 'zh',
-  fontSize: 14,
-  openFileInReadonlyMode: false,
-  showWebSearchHistory: true,
-  autoConvertVoiceToText: true,
-
-  // 通知设置
-  newMessageSound: true
-})
+// 使用 userSetStore 中的数据作为设置值的来源
+const settings = reactive(userSetStore.$state)
 
 const username = ref('')
 const chatId = ref('')
@@ -180,27 +162,31 @@ onMounted(() => {
   username.value = userStore.username
   chatId.value = userStore.chatId
 
-  // 从userSetStore中加载用户设置
+  // 从服务器加载最新的用户设置并更新 userSetStore
   loadUserSettings()
 })
 
-// 从userSetStore加载用户设置
+// 从服务器加载用户设置并更新 userSetStore
 const loadUserSettings = async () => {
   try {
-    // 将userSetStore中的设置赋值给本地settings对象
-    Object.assign(settings, userSetStore.$state)
+    // 从服务器获取最新的用户设置
+    const serverSettings = await getUserSettingInfo()
+    if (serverSettings) {
+      // 更新 userSetStore，这也会更新 settings 对象，因为它们引用的是同一状态
+      userSetStore.updateSettings(serverSettings)
+    }
   } catch (error) {
     console.error('加载用户设置失败:', error)
   }
 }
 
-// 保存设置到userSetStore
+// 保存设置到 userSetStore 和服务器
 const saveSettings = async () => {
   try {
-    // 将设置保存到userSetStore
+    // 将设置保存到 userSetStore
     userSetStore.updateSettings({ ...settings })
 
-    // 这里应该调用API将设置保存到服务器
+    // 这里应该调用 API 将设置保存到服务器
     console.log('保存设置:', settings)
 
     // 显示保存成功的提示
@@ -214,12 +200,6 @@ const saveSettings = async () => {
 const changePassword = () => {
   console.log('修改密码')
   // 这里可以添加修改密码的逻辑
-}
-
-const minimizeWindow = () => {
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('minimize-set-window')
-  }
 }
 
 const closeWindow = () => {

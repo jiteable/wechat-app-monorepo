@@ -438,12 +438,6 @@ app.whenReady().then(() => {
     createSetWindow()
   })
 
-  ipcMain.on('minimize-set-window', () => {
-    if (setWindow) {
-      setWindow.minimize()
-    }
-  })
-
   ipcMain.on('close-set-window', () => {
     if (setWindow) {
       setWindow.close()

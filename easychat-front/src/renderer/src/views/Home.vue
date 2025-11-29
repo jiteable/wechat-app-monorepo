@@ -51,6 +51,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Grid } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/userStore'
+import { useUserSetStore } from '@/store/userSetStore'
 import { getUserInfo } from '@/api/user'
 import { getUserSettingInfo } from '@/api/user'
 
@@ -112,6 +113,7 @@ onMounted(async () => {
   // 获取用户信息并存储到userStore中
   const userInfo = await getUserInfo()
   const userSettings = await getUserSettingInfo()
+  console.log('userSetting: ', userSettings)
   if (userInfo) {
     squareUrl.value = userInfo.avatar
     userStore.initialUserInfo(userInfo.username, userInfo.avatar, userInfo.chatId)
@@ -131,7 +133,6 @@ const handleAvatarError = () => {
   return true
 }
 </script>
-
 <style scoped lang="scss">
 .full-height {
   height: 100vh;
