@@ -50,3 +50,25 @@ export async function getUserSettingInfo() {
     return null
   }
 }
+
+export async function setSetting(settingInfo: UserSetState): Promise<boolean> {
+  try {
+    // 从localStorage中获取token
+    const token = localStorage.getItem('TOKEN')
+
+    if (!token) {
+      return false
+    }
+
+    // 调用后端API获取用户设置信息（Authorization头由拦截器自动添加）
+    const response = await http.post<{ success: boolean }>(
+      `${config.api}/user/setSetting`,
+      settingInfo
+    )
+
+    return response.data.success
+  } catch (error) {
+    console.error('设置用户信息失败:', error)
+    return false
+  }
+}

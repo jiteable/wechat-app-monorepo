@@ -73,5 +73,64 @@ router.get('/settingInfo', authenticateToken, async function (req, res, next) {
   }
 });
 
+router.post('/setSetting', authenticateToken, async function (req, res, next) {
+  try {
+    // 从认证中间件中获取用户信息
+    const userId = req.user.id;
+
+    // 从请求体中获取用户设置信息
+    const {
+      newMessageSound,
+      needVerificationToAddFriend,
+      canBeSearchedByChatId,
+      canBeSearchedByEmail,
+      canAddFromGroup,
+      language,
+      fontSize,
+      openFileInReadonlyMode,
+      showWebSearchHistory,
+      autoConvertVoiceToText
+    } = req.body;
+
+    // 更新或创建用户设置
+    const updatedSettings = await db.userSetting.upsert({
+      where: { userId: userId },
+      update: {
+        newMessageSound,
+        needVerificationToAddFriend,
+        canBeSearchedByChatId,
+        canBeSearchedByEmail,
+        canAddFromGroup,
+        language,
+        fontSize,
+        openFileInReadonlyMode,
+        showWebSearchHistory,
+        autoConvertVoiceToText,
+        updatedAt: new Date()
+      },
+      create: {
+        userId,
+        newMessageSound: newMessageSound !== undefined ? newMessageSound : true,
+        needVerificationToAddFriend: needVerificationToAddFriend !== undefined ? needVerificationToAddFriend : true,
+        canBeSearchedByChatId: canBeSearchedByChatId !== undefined ? canBeSearchedByChatId : true,
+        canBeSearchedByEmail: canBeSearchedByEmail !== undefined ? canBeSearchedByEmail : true,
+        canAddFromGroup: canAddFromGroup !== undefined ? canAddFromGroup : true,
+        language: language || 'zh',
+        fontSize: fontSize || 14,
+        openFileInReadonlyMode: openFileInReadonlyMode !== undefined ? openFileInReadonlyMode : false,
+        showWebSearchHistory: showWebSearchHistory !== undefined ? showWebSearchHistory : true,
+        autoConvertVoiceToText: autoConvertVoiceToText !== undefined ? autoConvertVoiceToText : true
+      }
+    });
+
+    // 返回成功响应
+    res.json({
+      success: true
+    });
+  } catch (error) {
+    console.error('设置用户信息失败:', error);
+    res.status(500).json({ error: '服务器内部错误', success: false });
+  }
+});
 
 module.exports = router;

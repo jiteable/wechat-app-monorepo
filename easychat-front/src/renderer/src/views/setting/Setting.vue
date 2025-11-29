@@ -150,7 +150,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
-import { getUserSettingInfo } from '@/api/user'
+import { getUserSettingInfo, setSetting } from '@/api/user'
 import { ElMessage } from 'element-plus'
 
 const activeTab = ref('account') // 默认选中账户与存储标签页
@@ -210,7 +210,9 @@ const saveSettings = async () => {
     userSetStore.updateSettings({ ...settings })
 
     // 这里应该调用 API 将设置保存到服务器
-    console.log('保存设置:', settings)
+    const response = await setSetting(settings)
+
+    console.log('response: ', response)
 
     // 显示保存成功的提示
     ElMessage.success('设置已保存')

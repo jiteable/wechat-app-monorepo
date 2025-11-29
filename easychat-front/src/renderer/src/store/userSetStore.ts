@@ -57,7 +57,10 @@ export const useUserSetStore = defineStore('userSet', {
      * 批量更新设置项
      */
     updateSettings(settings: Partial<UserSetState>) {
-      Object.assign(this, settings)
+      // 遍历设置对象并逐个更新属性，确保触发响应式更新
+      for (const [key, value] of Object.entries(settings)) {
+        (this as unknown as UserSetState)[key] = value
+      }
     }
   }
 })

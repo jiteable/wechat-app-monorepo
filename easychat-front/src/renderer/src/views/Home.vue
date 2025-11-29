@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Grid } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/userStore'
@@ -56,12 +56,22 @@ import { getUserInfo } from '@/api/user'
 import { getUserSettingInfo } from '@/api/user'
 
 const userStore = useUserStore()
+const userSetStore = useUserSetStore()
 const squareUrl = ref('')
 const defaultAvatar = ref('')
 const splitterKey = ref(0)
 const router = useRouter()
 const route = useRoute()
 const popoverRef = ref(null)
+
+// 监听 userSetStore 的变化
+watch(
+  () => userSetStore.$state,
+  (newState) => {
+    console.log('userSetStore 状态已更新:', newState)
+  },
+  { deep: true }
+)
 
 // 计算当前激活的按钮
 const activeButton = computed(() => {
@@ -122,7 +132,6 @@ onMounted(async () => {
   }
   // 将用户设置信息存储到userSetStore中
   if (userSettings) {
-    const userSetStore = useUserSetStore()
     userSetStore.updateSettings(userSettings)
   }
 })
