@@ -147,9 +147,11 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/store/userStore'
+import { useUserSetStore } from '@/store/userSetStore'
 
 const activeTab = ref('account') // 默认选中账户与存储标签页
 const userStore = useUserStore()
+const userSetStore = useUserSetStore()
 
 // 初始化设置项，与数据库中的UserSetting模型对应
 const settings = reactive({
@@ -178,24 +180,26 @@ onMounted(() => {
   username.value = userStore.username
   chatId.value = userStore.chatId
 
-  // TODO: 从服务器获取用户设置
+  // 从userSetStore中加载用户设置
   loadUserSettings()
 })
 
-// 模拟从服务器加载用户设置
+// 从userSetStore加载用户设置
 const loadUserSettings = async () => {
   try {
-    // 这里应该调用API从服务器获取用户设置
-    // 暂时使用默认值
-    console.log('加载用户设置...')
+    // 将userSetStore中的设置赋值给本地settings对象
+    Object.assign(settings, userSetStore.$state)
   } catch (error) {
     console.error('加载用户设置失败:', error)
   }
 }
 
-// 保存设置
+// 保存设置到userSetStore
 const saveSettings = async () => {
   try {
+    // 将设置保存到userSetStore
+    userSetStore.updateSettings({ ...settings })
+
     // 这里应该调用API将设置保存到服务器
     console.log('保存设置:', settings)
 

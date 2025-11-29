@@ -52,6 +52,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { Grid } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/userStore'
 import { getUserInfo } from '@/api/user'
+import { getUserSettingInfo } from '@/api/user'
 
 const userStore = useUserStore()
 const squareUrl = ref('')
@@ -110,12 +111,17 @@ const handleSettings = () => {
 onMounted(async () => {
   // 获取用户信息并存储到userStore中
   const userInfo = await getUserInfo()
-  console.log('userInfo: ', userInfo)
+  const userSettings = await getUserSettingInfo()
   if (userInfo) {
     squareUrl.value = userInfo.avatar
     userStore.initialUserInfo(userInfo.username, userInfo.avatar, userInfo.chatId)
     // 强制重新渲染 splitter 组件以避免初始化问题
     splitterKey.value += 1
+  }
+  // 将用户设置信息存储到userSetStore中
+  if (userSettings) {
+    const userSetStore = useUserSetStore()
+    userSetStore.updateSettings(userSettings)
   }
 })
 
