@@ -9,7 +9,7 @@ const { db } = require('../db/db');
  */
 router.post('/addFriend', authenticateToken, async function (req, res, next) {
   try {
-    const { userId } = req.body; // 要添加为好友的用户ID
+    const { userId, source } = req.body; // 要添加为好友的用户ID
     const currentUserId = req.user.id; // 当前登录用户ID
 
     // 检查目标用户是否设置了需要验证才能添加好友
@@ -23,11 +23,22 @@ router.post('/addFriend', authenticateToken, async function (req, res, next) {
     //   // 在实际应用中，这里可能需要创建一个好友请求记录等待对方确认
     // }
 
+    let method = ''
+
+    if (source == 'chatId') {
+      method = '通过搜索微信号添加'
+    } else if (source == "email") {
+      method = '通过搜索邮箱添加'
+    } else if (source == "username") {
+      method = '通过搜索用户名添加'
+    }
+
     // 添加好友关系（双向添加）
     await db.userWithFriend.create({
       data: {
         userId: currentUserId,
         friendId: userId,
+        source: method,
         createdAt: new Date()
       }
     });
@@ -36,6 +47,7 @@ router.post('/addFriend', authenticateToken, async function (req, res, next) {
       data: {
         userId: userId,
         friendId: currentUserId,
+        source: method,
         createdAt: new Date()
       }
     });

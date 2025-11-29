@@ -8,6 +8,7 @@ export interface SearchUserResponse {
     username: string
     avatar: string
     chatId: string
+    searchMethod
     isFriend: boolean
   }>
 }

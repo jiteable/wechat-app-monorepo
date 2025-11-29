@@ -23,16 +23,12 @@ router.get('/userSearch', authenticateToken, async function (req, res, next) {
     console.log('trimmedQuery: ', trimmedQuery);
 
 
-    // 在数据库中搜索用户 (根据chatId或email)
-    const users = await db.user.findMany({
+    // 分别根据chatId、email和username搜索用户
+    const usersByChatId = await db.User.findMany({
       where: {
         AND: [
           {
-            OR: [
-              { chatId: { contains: trimmedQuery, mode: 'insensitive' } },
-              { email: { contains: trimmedQuery, mode: 'insensitive' } },
-              { username: { contains: trimmedQuery, mode: 'insensitive' } }
-            ]
+            chatId: { contains: trimmedQuery, mode: 'insensitive' }
           },
           // 排除当前用户自己
           { NOT: { id: currentUserId } }
@@ -46,6 +42,75 @@ router.get('/userSearch', authenticateToken, async function (req, res, next) {
         email: true
       }
     });
+
+    const usersByEmail = await db.User.findMany({
+      where: {
+        AND: [
+          {
+            email: { contains: trimmedQuery, mode: 'insensitive' }
+          },
+          // 排除当前用户自己
+          { NOT: { id: currentUserId } }
+        ]
+      },
+      select: {
+        id: true,
+        username: true,
+        avatar: true,
+        chatId: true,
+        email: true
+      }
+    });
+
+    const usersByUsername = await db.User.findMany({
+      where: {
+        AND: [
+          {
+            username: { contains: trimmedQuery, mode: 'insensitive' }
+          },
+          // 排除当前用户自己
+          { NOT: { id: currentUserId } }
+        ]
+      },
+      select: {
+        id: true,
+        username: true,
+        avatar: true,
+        chatId: true,
+        email: true
+      }
+    });
+
+    // 合并所有搜索结果并去重，按照 email > chatId > username 的优先级设置搜索方式
+    const userMap = new Map();
+
+    // 按照优先级顺序处理搜索结果：email > chatId > username
+    // 先处理username搜索结果（最低优先级）
+    usersByUsername.forEach(user => {
+      userMap.set(user.id, {
+        ...user,
+        searchMethod: 'username'
+      });
+    });
+
+    // 再处理chatId搜索结果（中等优先级）
+    usersByChatId.forEach(user => {
+      userMap.set(user.id, {
+        ...user,
+        searchMethod: 'chatId'
+      });
+    });
+
+    // 最后处理email搜索结果（最高优先级）
+    usersByEmail.forEach(user => {
+      userMap.set(user.id, {
+        ...user,
+        searchMethod: 'email'
+      });
+    });
+
+    // 转换为数组格式
+    let users = Array.from(userMap.values());
 
     // 检查这些用户是否已经是当前用户的好友
     const friendships = await db.UserWithFriend.findMany({
@@ -72,6 +137,7 @@ router.get('/userSearch', authenticateToken, async function (req, res, next) {
       avatar: user.avatar || '',
       chatId: user.chatId,
       email: user.email,
+      searchMethod: user.searchMethod,
       isFriend: friendIds.includes(user.id)
     }));
 

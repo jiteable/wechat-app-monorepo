@@ -85,7 +85,7 @@ const addFriendHandler = async (user) => {
   if (!user.isFriend) {
     console.log('添加好友:', user)
     try {
-      const response = await addFriend({ userId: user.id })
+      const response = await addFriend({ userId: user.id, source: user.searchMethod })
       if (response.success) {
         user.isFriend = true
         console.log('添加好友成功')
