@@ -20,15 +20,15 @@
     </div>
 
     <!-- 主要内容区 -->
-    <div class="chat-contant">
+    <div class="chat-contant" v-if="currentContact">
       <!-- 头像与昵称 -->
       <div class="chat-contant-info">
-        <el-avatar shape="square" :size="60" :src="Friends.avatar" />
+        <el-avatar shape="square" :size="60" :src="currentContact.avatar" />
         <div class="chat-contant-info-name">
-          <div class="name">{{ Friends.name }}</div>
+          <div class="name">{{ currentContact.name }}</div>
           <div class="info-names">
-            <div class="info-name">昵称: {{ Friends.name }}</div>
-            <div class="info-name">微信ID: {{ Friends.wxid }}</div>
+            <div class="info-name">昵称: {{ currentContact.name }}</div>
+            <div class="info-name">微信ID: {{ currentContact.chatId || 'N/A' }}</div>
           </div>
         </div>
         <div class="popover-container">
@@ -50,22 +50,22 @@
       <!-- 备注信息 -->
       <div class="remark-section">
         <span class="label">备注</span>
-        <span class="value">{{ Friends.remarks }}</span>
+        <span class="value">{{ currentContact.remark || currentContact.name }}</span>
       </div>
 
       <!-- 共同群聊 & 个性签名 & 来源 -->
       <div class="common-group-section">
         <div class="item">
           <span class="label">共同群聊</span>
-          <span class="value">{{ Friends.groupCount }}个</span>
+          <span class="value">{{ currentContact.groupCount || 0 }}个</span>
         </div>
         <div class="item">
           <span class="label">个性签名</span>
-          <span class="value">{{ Friends.label }}</span>
+          <span class="value">{{ currentContact.signature || '暂无签名' }}</span>
         </div>
         <div class="item">
           <span class="label">来源</span>
-          <span class="value">{{ Friends.source }}</span>
+          <span class="value">{{ currentContact.source || '未知' }}</span>
         </div>
       </div>
 
@@ -75,6 +75,11 @@
           <span>发消息</span>
         </div>
       </div>
+    </div>
+
+    <!-- 未选择联系人时的提示 -->
+    <div class="no-contact-selected" v-else>
+      <div class="placeholder-text">请选择一个联系人</div>
     </div>
   </div>
 </template>
@@ -87,13 +92,18 @@ import {
   minimizeWindow,
   closeWindow
 } from '@/utils/windowState'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { userContactStore } from '@/store/userContactStore'
 
 // 使用共享状态
 const isAlwaysOnTop = windowState.isAlwaysOnTop
 const isMaximized = windowState.isMaximized
 
 const popoverRef = ref(null)
+const contactStore = userContactStore()
+
+// 计算属性：当前选中的联系人
+const currentContact = computed(() => contactStore.selectedContact)
 
 const handleContainerClick = () => {
   if (popoverRef.value) {
@@ -101,30 +111,10 @@ const handleContainerClick = () => {
   }
 }
 
-const Friends = ref({
-  id: 1,
-  name: '阿涛',
-  avatar:
-    'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-  remarks: '阿涛',
-  label: '不甘平凡',
-  source: '通过群聊添加',
-  wxid: 'ATaoLoveQiqi',
-  groupCount: 11,
-  circleImages: [
-    'https://example.com/img1.jpg',
-    'https://example.com/img2.jpg',
-    'https://example.com/img3.jpg',
-    'https://example.com/img4.jpg',
-    'https://example.com/img5.jpg'
-  ]
-})
-
 // 添加操作按钮的点击事件
 const sendMessage = () => {
-  console.log('发送消息')
+  console.log('发送消息给:', currentContact.value?.name)
 }
-
 </script>
 
 <style scoped>
@@ -330,5 +320,17 @@ const sendMessage = () => {
 .action-btn i {
   font-size: 24px;
   margin-bottom: 5px;
+}
+
+.no-contact-selected {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #999;
+}
+
+.placeholder-text {
+  font-size: 16px;
 }
 </style>

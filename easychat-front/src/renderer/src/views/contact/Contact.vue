@@ -78,14 +78,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import convertToPinyinInitials from '@/utils/changeChinese'
+import { getContact } from '@/api/getRelationship'
+import { userContactStore } from '@/store/userContactStore'
 
 const searchText = ref('')
 const hoveredContact = ref(null)
 const hoveredGroup = ref(null)
 const selectedItemId = ref(null)
 const selectedItemType = ref(null) // 'contact', 'group', 或 'newFriend'
+const contactStore = userContactStore()
 
 const openContactManagement = () => {
   window.electron.ipcRenderer.send('open-contact-window')
@@ -133,56 +136,29 @@ const groups = ref([
 ])
 
 // 联系人数据
-const contacts = ref([
-  {
-    id: 1,
-    name: '王五',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 2,
-    name: '孙十',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 3,
-    name: '孙七',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 4,
-    name: '周八',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 5,
-    name: '1号客户',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 6,
-    name: '9号客户',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 7,
-    name: 'Alex',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 8,
-    name: 'Bob',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+const contacts = ref([])
+
+// 组件挂载时获取联系人数据
+onMounted(async () => {
+  await fetchContacts()
+})
+
+// 获取联系人数据
+const fetchContacts = async () => {
+  try {
+    const response = await getContact()
+    if (response && response.contacts) {
+      // 将后端返回的数据转换为前端需要的格式
+      contacts.value = response.contacts.map(contact => ({
+        id: contact.id,
+        name: contact.username || contact.chatId,
+        avatar: contact.avatar || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+      }))
+    }
+  } catch (error) {
+    console.error('获取联系人失败:', error)
   }
-])
+}
 
 // 计算属性：按名称首字符排序的联系人列表（带标题）
 const sortedContactsWithHeaders = computed(() => {
@@ -250,6 +226,8 @@ const isItemSelected = (itemId, type) => {
 
 const selectContact = (contact) => {
   selectItem(contact, 'contact')
+  // 设置选中的联系人信息到store中
+  contactStore.setSelectedContact(contact)
 }
 
 const selectGroup = (group) => {
@@ -344,7 +322,7 @@ const selectNewFriend = (friend) => {
   font-weight: bold;
   font-size: 12px;
   color: #666;
-  padding: 10px 0 5px 0;
+  padding: 10px 0 5px 10px;
   border-bottom: 1px solid rgb(228, 228, 228);
   /* 修复了多行写法 */
   background-color: rgb(247, 247, 247);

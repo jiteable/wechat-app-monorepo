@@ -14,3 +14,14 @@ export const useUserStore = defineStore('user', {
     }
   }
 })
+
+export const useContactStore = defineStore('contact', {
+  state: () => ({
+    selectedContact: null
+  }),
+  actions: {
+    setSelectedContact(contact) {
+      this.selectedContact = contact
+    }
+  }
+})

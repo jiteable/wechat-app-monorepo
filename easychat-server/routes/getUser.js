@@ -38,6 +38,7 @@ router.get('/getContact', authenticateToken, async function (req, res, next) {
     const contacts = userFriends.map(userFriend => {
       const friendInfo = friendInfoMap[userFriend.friendId];
       return {
+        id: friendInfo.id,
         chatId: friendInfo.chatId,
         username: friendInfo.username,
         avatar: friendInfo.avatar,

@@ -7,7 +7,7 @@
             <div class="left-header drag">通讯录管理</div>
             <div class="left-content">
               <el-button class="button" :class="{ active: activeButton === 'all' }" @click="handleButtonClick('all')">
-                <span class="button-text1">全部()</span>
+                <span class="button-text1">全部({{ tableData.length }})</span>
               </el-button>
               <div class="filter-section">
                 <div class="filter-label">筛选</div>
@@ -117,52 +117,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Minus, Close } from '@element-plus/icons-vue'
+import { getContact } from '@/api/getRelationship'
 
 const activeButton = ref('all')
-
 const searchKeyword = ref('')
 
 // 表格数据
-const tableData = ref([
-  {
-    id: 1,
-    name: '张三',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-    remark: '同事',
-    tag: '工作',
-    permission: '仅聊天'
-  },
-  {
-    id: 2,
-    name: '李四',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-    remark: '同学',
-    tag: '学习,朋友',
-    permission: '不看他(她)'
-  },
-  {
-    id: 3,
-    name: '王五',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-    remark: '朋友',
-    tag: '重要',
-    permission: '正常'
-  },
-  {
-    id: 4,
-    name: '王',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-    remark: '朋友',
-    tag: '',
-    permission: '正常'
-  }
-])
+const tableData = ref([])
 
 const iconStates = reactive({
   friend: false,
@@ -204,6 +167,31 @@ const chatGroupList = ref([
       'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
   }
 ])
+
+// 组件挂载时获取联系人数据
+onMounted(async () => {
+  await fetchContacts()
+})
+
+// 获取联系人数据
+const fetchContacts = async () => {
+  try {
+    const response = await getContact()
+    if (response && response.contacts) {
+      // 将后端返回的数据转换为前端需要的格式
+      tableData.value = response.contacts.map(contact => ({
+        id: contact.id,
+        name: contact.username || contact.chatId,
+        avatar: contact.avatar || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+        remark: contact.remark || '',
+        tag: contact.tag || '',
+        permission: '仅聊天' // 默认权限
+      }))
+    }
+  } catch (error) {
+    console.error('获取联系人失败:', error)
+  }
+}
 
 // 计算属性：根据选中的按钮类型和ID筛选表格数据
 const filteredTableData = computed(() => {
@@ -275,6 +263,7 @@ const selectAuthority = (item) => {
   activeButton.value = 'authority-' + item.id
   // 这里可以添加实际的业务逻辑
 }
+
 const selectLabel = (item) => {
   console.log('选择了标签:', item.name)
   activeButton.value = 'label-' + item.id
