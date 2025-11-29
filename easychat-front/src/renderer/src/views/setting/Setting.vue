@@ -33,7 +33,7 @@
               <div class="setting-label">
                 <span>语言设置</span>
               </div>
-              <el-select v-model="settings.language" size="small" @change="saveSettings" class="setting-select">
+              <el-select v-model="settings.language" size="small" @change="onSettingChange" class="setting-select">
                 <el-option label="中文" value="zh" />
                 <el-option label="English" value="en" />
               </el-select>
@@ -43,7 +43,7 @@
               <div class="setting-label">
                 <span>字体大小</span>
               </div>
-              <el-select v-model="settings.fontSize" size="small" @change="saveSettings" class="setting-select">
+              <el-select v-model="settings.fontSize" size="small" @change="onSettingChange" class="setting-select">
                 <el-option label="小 (12px)" :value="12" />
                 <el-option label="中 (14px)" :value="14" />
                 <el-option label="大 (16px)" :value="16" />
@@ -57,21 +57,21 @@
                   <i class="iconfont icon-question"></i>
                 </el-tooltip>
               </div>
-              <el-switch v-model="settings.openFileInReadonlyMode" @change="saveSettings" />
+              <el-switch v-model="settings.openFileInReadonlyMode" @change="onSettingChange" />
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
                 <span>是否显示网络搜索历史</span>
               </div>
-              <el-switch v-model="settings.showWebSearchHistory" @change="saveSettings" />
+              <el-switch v-model="settings.showWebSearchHistory" @change="onSettingChange" />
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
                 <span>是否将聊天语音自动转成文字</span>
               </div>
-              <el-switch v-model="settings.autoConvertVoiceToText" @change="saveSettings" />
+              <el-switch v-model="settings.autoConvertVoiceToText" @change="onSettingChange" />
             </div>
           </div>
         </el-tab-pane>
@@ -85,28 +85,28 @@
               <div class="setting-label">
                 <span>加我为朋友时是否需要验证</span>
               </div>
-              <el-switch v-model="settings.needVerificationToAddFriend" @change="saveSettings" />
+              <el-switch v-model="settings.needVerificationToAddFriend" @change="onSettingChange" />
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
                 <span>是否能够通过chatId搜索到我</span>
               </div>
-              <el-switch v-model="settings.canBeSearchedByChatId" @change="saveSettings" />
+              <el-switch v-model="settings.canBeSearchedByChatId" @change="onSettingChange" />
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
                 <span>是否能够通过邮箱搜索到我</span>
               </div>
-              <el-switch v-model="settings.canBeSearchedByEmail" @change="saveSettings" />
+              <el-switch v-model="settings.canBeSearchedByEmail" @change="onSettingChange" />
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
                 <span>是否能通过群聊添加我</span>
               </div>
-              <el-switch v-model="settings.canAddFromGroup" @change="saveSettings" />
+              <el-switch v-model="settings.canAddFromGroup" @change="onSettingChange" />
             </div>
           </div>
         </el-tab-pane>
@@ -120,7 +120,7 @@
               <div class="setting-label">
                 <span>新消息通知是否有声音</span>
               </div>
-              <el-switch v-model="settings.newMessageSound" @change="saveSettings" />
+              <el-switch v-model="settings.newMessageSound" @change="onSettingChange" />
             </div>
           </div>
         </el-tab-pane>
@@ -137,6 +137,11 @@
           </div>
         </el-tab-pane>
       </el-tabs>
+
+      <!-- 确定修改按钮 -->
+      <div v-if="hasChanges" class="apply-changes-bar">
+        <el-button type="primary" @click="applyChanges">确定修改</el-button>
+      </div>
     </div>
   </div>
 </template>
@@ -146,13 +151,16 @@ import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
 import { getUserSettingInfo } from '@/api/user'
+import { ElMessage } from 'element-plus'
 
 const activeTab = ref('account') // 默认选中账户与存储标签页
 const userStore = useUserStore()
 const userSetStore = useUserSetStore()
 
 // 使用 userSetStore 中的数据作为设置值的来源
-const settings = reactive(userSetStore.$state)
+const settings = reactive({ ...userSetStore.$state })
+const originalSettings = ref(null)
+const hasChanges = ref(false)
 
 const username = ref('')
 const chatId = ref('')
@@ -161,6 +169,9 @@ onMounted(() => {
   // 从用户存储中获取用户信息
   username.value = userStore.username
   chatId.value = userStore.chatId
+
+  // 保存原始设置用于比较
+  originalSettings.value = { ...userSetStore.$state }
 
   // 从服务器加载最新的用户设置并更新 userSetStore
   loadUserSettings()
@@ -172,12 +183,24 @@ const loadUserSettings = async () => {
     // 从服务器获取最新的用户设置
     const serverSettings = await getUserSettingInfo()
     if (serverSettings) {
-      // 更新 userSetStore，这也会更新 settings 对象，因为它们引用的是同一状态
-      userSetStore.updateSettings(serverSettings)
+      // 更新本地设置
+      Object.assign(settings, serverSettings)
+      originalSettings.value = { ...serverSettings }
+      checkForChanges()
     }
   } catch (error) {
     console.error('加载用户设置失败:', error)
   }
+}
+
+// 检查设置是否有变更
+const checkForChanges = () => {
+  hasChanges.value = JSON.stringify(settings) !== JSON.stringify(originalSettings.value)
+}
+
+// 当设置改变时调用
+const onSettingChange = () => {
+  checkForChanges()
 }
 
 // 保存设置到 userSetStore 和服务器
@@ -190,10 +213,10 @@ const saveSettings = async () => {
     console.log('保存设置:', settings)
 
     // 显示保存成功的提示
-    // ElMessage.success('设置已保存')
+    ElMessage.success('设置已保存')
   } catch (error) {
     console.error('保存设置失败:', error)
-    // ElMessage.error('保存设置失败')
+    ElMessage.error('保存设置失败')
   }
 }
 
@@ -206,6 +229,13 @@ const closeWindow = () => {
   if (window.electron && window.electron.ipcRenderer) {
     window.electron.ipcRenderer.send('close-set-window')
   }
+}
+
+// 应用修改
+const applyChanges = async () => {
+  await saveSettings()
+  originalSettings.value = { ...settings }
+  hasChanges.value = false
 }
 </script>
 
@@ -261,6 +291,7 @@ const closeWindow = () => {
   flex: 1;
   overflow: auto;
   padding: 20px;
+  position: relative;
 }
 
 .setting-tabs {
@@ -314,5 +345,15 @@ const closeWindow = () => {
     margin: 10px 0;
     color: #666;
   }
+}
+
+.apply-changes-bar {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 15px 0 10px;
+  text-align: center;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
 }
 </style>
