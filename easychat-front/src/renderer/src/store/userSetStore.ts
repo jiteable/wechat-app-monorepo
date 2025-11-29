@@ -18,6 +18,9 @@ interface UserSetState {
   autoConvertVoiceToText: boolean // 是否将聊天语音自动转成文字
 }
 
+// 定义事件名称常量
+const STORE_UPDATE_EVENT = 'userSetStoreUpdated'
+
 export const useUserSetStore = defineStore('userSet', {
   state: (): UserSetState => ({
     // 新消息通知是否有声音
@@ -51,6 +54,9 @@ export const useUserSetStore = defineStore('userSet', {
     updateSetting<K extends keyof UserSetState>(key: K, value: UserSetState[K]) {
       // 使用类型断言解决 TypeScript 类型检查问题
       ; (this.$state as UserSetState)[key] = value
+
+      // 同步到其他窗口
+      this.syncToOtherWindows()
     },
 
     /**
@@ -59,8 +65,35 @@ export const useUserSetStore = defineStore('userSet', {
     updateSettings(settings: Partial<UserSetState>) {
       // 遍历设置对象并逐个更新属性，确保触发响应式更新
       for (const [key, value] of Object.entries(settings)) {
-        (this as unknown as UserSetState)[key] = value
+        ; (this as unknown as UserSetState)[key] = value
       }
+
+      // 同步到其他窗口
+      this.syncToOtherWindows()
+    },
+
+    /**
+     * 同步状态到其他窗口
+     */
+    syncToOtherWindows() {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        // 将当前状态保存到localStorage
+        localStorage.setItem(STORE_UPDATE_EVENT, JSON.stringify(this.$state))
+
+        // 派发自定义事件，通知同域下的其他窗口
+        window.dispatchEvent(
+          new CustomEvent(STORE_UPDATE_EVENT, {
+            detail: this.$state
+          })
+        )
+      }
+    },
+
+    /**
+     * 从其他窗口同步状态
+     */
+    syncFromOtherWindows(state: UserSetState) {
+      Object.assign(this, state)
     }
   }
 })

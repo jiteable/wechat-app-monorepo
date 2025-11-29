@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, ref, computed, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Grid } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/userStore'
@@ -64,14 +64,25 @@ const router = useRouter()
 const route = useRoute()
 const popoverRef = ref(null)
 
-// 监听 userSetStore 的变化
-watch(
-  () => userSetStore.$state,
-  (newState) => {
-    console.log('userSetStore 状态已更新:', newState)
-  },
-  { deep: true }
-)
+// 监听来自其他窗口的store更新事件
+const handleStoreUpdate = (event) => {
+  console.log('userSetStore 状态已更新:', event.detail)
+  // 更新当前窗口的store状态
+  userSetStore.syncFromOtherWindows(event.detail)
+}
+
+// 监听localStorage变化（备用方案）
+const handleStorageChange = (event) => {
+  if (event.key === 'userSetStoreUpdated') {
+    try {
+      const state = JSON.parse(event.newValue)
+      console.log('userSetStore 状态已更新:', state)
+      userSetStore.syncFromOtherWindows(state)
+    } catch (e) {
+      console.error('解析store状态失败:', e)
+    }
+  }
+}
 
 // 计算当前激活的按钮
 const activeButton = computed(() => {
@@ -123,6 +134,9 @@ onMounted(async () => {
   // 获取用户信息并存储到userStore中
   const userInfo = await getUserInfo()
   const userSettings = await getUserSettingInfo()
+  window.addEventListener('userSetStoreUpdated', handleStoreUpdate)
+  window.addEventListener('storage', handleStorageChange)
+
   console.log('userSetting: ', userSettings)
   if (userInfo) {
     squareUrl.value = userInfo.avatar
@@ -134,6 +148,10 @@ onMounted(async () => {
   if (userSettings) {
     userSetStore.updateSettings(userSettings)
   }
+  onUnmounted(() => {
+    window.removeEventListener('userSetStoreUpdated', handleStoreUpdate)
+    window.removeEventListener('storage', handleStorageChange)
+  })
 })
 
 const handleAvatarError = () => {
