@@ -47,6 +47,9 @@
           <span class="title">发起群聊</span>
           <span class="count">已选择{{ selectedContacts.length }}个联系人</span>
         </div>
+        <div class="group-name-input">
+          <input v-model="groupName" placeholder="请输入群聊名称" class="group-name-field" />
+        </div>
         <div class="selected-list">
           <div v-for="contact in selectedContacts" :key="contact.id" class="selected-contact-item">
             <div class="contact-avatar">
@@ -76,6 +79,8 @@ import { defineComponent, ref, computed, onMounted } from 'vue'
 import { Search, Check, Close } from '@element-plus/icons-vue'
 import convertToPinyinInitials from '@/utils/changeChinese'
 import { getContact } from '@/api/getRelationship'
+import { createGroup } from '@/api/create'
+import { ElMessage } from 'element-plus'
 
 // 定义联系人类型
 interface Contact {
@@ -84,12 +89,6 @@ interface Contact {
   avatar: string
   tag: string
   selected: boolean
-}
-
-// 定义联系人分组类型
-interface ContactGroup {
-  letter: string
-  contacts: Contact[]
 }
 
 export default defineComponent({
@@ -101,6 +100,7 @@ export default defineComponent({
   },
   setup() {
     const searchText = ref('')
+    const groupName = ref('')
     const loading = ref(false)
 
     // 联系人数据
@@ -216,15 +216,34 @@ export default defineComponent({
     }
 
     // 完成群组创建
-    const completeGroupCreation = () => {
-      window.electron.ipcRenderer.send(
-        'create-group',
-        selectedContacts.value.map((contact) => ({
-          id: contact.id,
-          name: contact.name,
-          avatar: contact.avatar
-        }))
-      )
+    const completeGroupCreation = async () => {
+      if (!groupName.value.trim()) {
+        ElMessage.warning('请输入群聊名称')
+        return
+      }
+
+      if (selectedContacts.value.length < 2) {
+        ElMessage.warning('至少需要选择2个联系人')
+        return
+      }
+
+      try {
+        const memberIds = selectedContacts.value.map(contact => contact.id)
+        const response = await createGroup({
+          groupName: groupName.value,
+          memberIds: memberIds
+        })
+
+        if (response.success) {
+          ElMessage.success('群聊创建成功')
+          window.electron.ipcRenderer.send('close-create-group-window')
+        } else {
+          ElMessage.error(response.message || '创建群聊失败')
+        }
+      } catch (error) {
+        ElMessage.error('创建群聊失败')
+        console.error('创建群聊失败:', error)
+      }
     }
 
     // 取消群组创建
@@ -239,6 +258,7 @@ export default defineComponent({
 
     return {
       searchText,
+      groupName,
       contacts,
       contactGroups,
       selectedContacts,
@@ -464,6 +484,19 @@ export default defineComponent({
 .count {
   font-size: 12px;
   color: #999;
+}
+
+.group-name-input {
+  margin-bottom: 20px;
+}
+
+.group-name-field {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
 }
 
 .selected-list {
