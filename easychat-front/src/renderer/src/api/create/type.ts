@@ -1,7 +1,7 @@
 // 创建群聊请求类型
 export interface CreateGroupRequest {
   groupName: string // 群聊名称
-  memberIds: number[] // 成员ID列表
+  memberIds: string[] // 成员ID列表
   avatar?: string // 群聊头像（可选）
 }
 

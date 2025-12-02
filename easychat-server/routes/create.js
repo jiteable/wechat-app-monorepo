@@ -21,8 +21,8 @@ router.post('/createGroup', authenticateToken, async function (req, res, next) {
     }
 
     // 确保创建者也在成员列表中
-    if (!memberIds.includes(parseInt(currentUserId))) {
-      memberIds.push(parseInt(currentUserId));
+    if (!memberIds.includes(currentUserId)) {
+      memberIds.push(currentUserId);
     }
 
     // 验证所有成员ID是否存在
@@ -32,7 +32,7 @@ router.post('/createGroup', authenticateToken, async function (req, res, next) {
       }
     });
 
-    const existingMemberIds = members.map(member => parseInt(member.id));
+    const existingMemberIds = members.map(member => member.id);
     const missingMemberIds = memberIds.filter(id => !existingMemberIds.includes(id));
 
     if (missingMemberIds.length > 0) {
@@ -58,7 +58,7 @@ router.post('/createGroup', authenticateToken, async function (req, res, next) {
     const userWithGroupRecords = memberIds.map(userId => ({
       userId: userId.toString(),
       groupId: group.id,
-      identity: userId === parseInt(currentUserId) ? 'owner' : 'member',
+      identity: userId === currentUserId ? 'owner' : 'member',
       createdAt: new Date()
     }));
 

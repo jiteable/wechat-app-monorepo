@@ -3,7 +3,7 @@ import http from '../../utils/http'
 import { CreateGroupRequest, CreateGroupResponse } from './type'
 
 enum API {
-  CREATE_GROUP_URL = '/add/createGroup'
+  CREATE_GROUP_URL = '/create/createGroup'
 }
 
 /**
