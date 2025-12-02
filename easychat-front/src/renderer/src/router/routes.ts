@@ -35,6 +35,10 @@ export const AppRoutes = [
     component: () => import('../views/addFriend/AddFriend.vue')
   },
   {
+    path: '/create-group',
+    component: () => import('../views/createGroup/CreatGroup.vue')
+  },
+  {
     path: '/login',
     component: () => import('../views/login/Login.vue')
   },

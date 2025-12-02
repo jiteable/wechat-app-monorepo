@@ -8,6 +8,7 @@ let loginWindow: BrowserWindow | null = null
 let contactWindow: BrowserWindow | null = null
 let addFriendWindow: BrowserWindow | null = null
 let setWindow: BrowserWindow | null = null
+let createGroupWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 
 function createWindow(): void {
@@ -156,6 +157,43 @@ function createSetWindow(): void {
     setWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/settings')
   } else {
     setWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/settings' })
+  }
+}
+
+function createGroupWindowFunc(): void {
+  // 如果创建群组窗口已存在，直接显示并获得焦点
+  if (createGroupWindow) {
+    createGroupWindow.show()
+    createGroupWindow.focus()
+    return
+  }
+
+  createGroupWindow = new BrowserWindow({
+    width: Math.round(880 / scaleFactor),
+    height: Math.round(680 / scaleFactor),
+    frame: false,
+    show: false,
+    autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  createGroupWindow.on('ready-to-show', () => {
+    createGroupWindow!.show()
+  })
+
+  createGroupWindow.on('closed', () => {
+    createGroupWindow = null
+  })
+
+  // Load the remote URL for development or the local html file for production.
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    createGroupWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/create-group')
+  } else {
+    createGroupWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/create-group' })
   }
 }
 
@@ -442,6 +480,24 @@ app.whenReady().then(() => {
     if (setWindow) {
       setWindow.close()
       setWindow = null
+    }
+  })
+
+  ipcMain.on('close-set-window', () => {
+    if (setWindow) {
+      setWindow.close()
+      setWindow = null
+    }
+  })
+
+  ipcMain.on('open-create-group-window', () => {
+    createGroupWindowFunc()
+  })
+
+  ipcMain.on('close-create-group-window', () => {
+    if (createGroupWindow) {
+      createGroupWindow.close()
+      createGroupWindow = null
     }
   })
 

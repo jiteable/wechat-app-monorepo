@@ -45,7 +45,8 @@ const searchText = ref('')
 
 const handleCreateGroup = () => {
   console.log('发起群聊')
-  // 这里可以添加发起群聊的具体逻辑
+  // 打开创建群组窗口
+  window.electron.ipcRenderer.send('open-create-group-window')
 }
 
 const handleAddFriend = () => {
