@@ -72,9 +72,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue'
+import { defineComponent, ref, computed, onMounted } from 'vue'
 import { Search, Check, Close } from '@element-plus/icons-vue'
 import convertToPinyinInitials from '@/utils/changeChinese'
+import { getContact } from '@/api/getRelationship'
 
 // 定义联系人类型
 interface Contact {
@@ -100,69 +101,46 @@ export default defineComponent({
   },
   setup() {
     const searchText = ref('')
+    const loading = ref(false)
 
     // 联系人数据
-    const contacts = ref<Contact[]>([
-      {
-        id: 1,
-        name: '阿涛',
-        avatar:
-          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-        tag: '',
-        selected: false
-      },
-      {
-        id: 2,
-        name: 'A专业品牌阳光箱包',
-        avatar:
-          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-        tag: 'VIP',
-        selected: false
-      },
-      {
-        id: 3,
-        name: '柏塘陈总老婆',
-        avatar:
-          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-        tag: '',
-        selected: false
-      },
-      {
-        id: 4,
-        name: '包装时代',
-        avatar:
-          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-        tag: '',
-        selected: false
-      },
-      {
-        id: 5,
-        name: '不吃肥肉',
-        avatar:
-          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-        tag: '',
-        selected: false
-      },
-      {
-        id: 6,
-        name: '不吃肉包',
-        avatar:
-          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-        tag: '',
-        selected: false
-      },
-      {
-        id: 7,
-        name: '陈正帆',
-        avatar:
-          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-        tag: '',
-        selected: false
+    const contacts = ref<Contact[]>([])
+
+    // 获取联系人数据
+    const fetchContacts = async () => {
+      try {
+        loading.value = true
+        const response = await getContact()
+
+        if (response && response.contacts) {
+          // 将API返回的数据转换为组件所需的格式
+          contacts.value = response.contacts.map(contact => ({
+            id: parseInt(contact.id),
+            name: contact.remark || contact.username,
+            avatar: contact.avatar || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+            tag: '',
+            selected: false
+          }))
+        }
+      } catch (error) {
+        console.error('获取联系人失败:', error)
+      } finally {
+        loading.value = false
       }
-    ])
+    }
+
+    // 组件挂载时获取联系人数据
+    onMounted(() => {
+      fetchContacts()
+    })
 
     // 计算属性：按名称首字符分组的联系人列表
     const contactGroups = computed(() => {
+      // 如果正在加载或没有联系人数据，则返回空数组
+      if (loading.value || !contacts.value.length) {
+        return []
+      }
+
       // 如果有搜索文本，则过滤联系人
       let filteredContacts = contacts.value
       if (searchText.value) {
@@ -264,6 +242,7 @@ export default defineComponent({
       contacts,
       contactGroups,
       selectedContacts,
+      loading,
       handleSearch,
       toggleContactSelection,
       removeContact,
