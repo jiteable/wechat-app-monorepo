@@ -80,7 +80,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import convertToPinyinInitials from '@/utils/changeChinese'
-import { getContact } from '@/api/getRelationship'
+import { getContact, getGroup } from '@/api/getRelationship'
 import { userContactStore } from '@/store/userContactStore'
 
 const searchText = ref('')
@@ -114,26 +114,7 @@ const newFriends = ref([
 ])
 
 // 群聊数据
-const groups = ref([
-  {
-    id: 1,
-    name: '技术交流群aaaaaaaaa',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 2,
-    name: '家庭群',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 3,
-    name: '同学群',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  }
-])
+const groups = ref([])
 
 // 联系人数据
 const contacts = ref([])
@@ -141,6 +122,7 @@ const contacts = ref([])
 // 组件挂载时获取联系人数据
 onMounted(async () => {
   await fetchContacts()
+  await fetchGroups()
 })
 
 // 获取联系人数据
@@ -157,6 +139,23 @@ const fetchContacts = async () => {
     }
   } catch (error) {
     console.error('获取联系人失败:', error)
+  }
+}
+
+// 获取群组数据
+const fetchGroups = async () => {
+  try {
+    const response = await getGroup()
+    if (response && response.groups) {
+      // 将后端返回的数据转换为前端需要的格式
+      groups.value = response.groups.map(group => ({
+        id: group.id,
+        name: group.name,
+        avatar: group.image || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+      }))
+    }
+  } catch (error) {
+    console.error('获取群组失败:', error)
   }
 }
 
