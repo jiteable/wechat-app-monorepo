@@ -84,7 +84,7 @@ import { ElMessage } from 'element-plus'
 
 // 定义联系人类型
 interface Contact {
-  id: number
+  id: string
   name: string
   avatar: string
   tag: string
@@ -112,15 +112,35 @@ export default defineComponent({
         loading.value = true
         const response = await getContact()
 
+        console.log('response.contacts:', response.contacts)
+
         if (response && response.contacts) {
-          // 将API返回的数据转换为组件所需的格式
-          contacts.value = response.contacts.map(contact => ({
-            id: parseInt(contact.id),
-            name: contact.remark || contact.username,
-            avatar: contact.avatar || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-            tag: '',
-            selected: false
-          }))
+          const contactMap = new Map<string, Contact>()
+          response.contacts.forEach(contact => {
+            const id = contact.id?.toString()
+            if (!id || id.trim() === '') {
+              console.warn('Invalid contact ID:', contact)
+              return
+            }
+
+            if (contactMap.has(id)) {
+              console.warn(`Duplicate contact ID: ${id}`)
+              return
+            }
+
+            contactMap.set(id, {
+              id,
+              name: contact.remark || contact.username,
+              avatar: contact.avatar || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+              tag: '',
+              selected: false
+            })
+          })
+
+          console.log('contacts.value length:', contacts.value.length)
+          console.log('contactMap size:', contactMap.size)
+
+          contacts.value = Array.from(contactMap.values())
         }
       } catch (error) {
         console.error('获取联系人失败:', error)
@@ -136,12 +156,10 @@ export default defineComponent({
 
     // 计算属性：按名称首字符分组的联系人列表
     const contactGroups = computed(() => {
-      // 如果正在加载或没有联系人数据，则返回空数组
       if (loading.value || !contacts.value.length) {
         return []
       }
 
-      // 如果有搜索文本，则过滤联系人
       let filteredContacts = contacts.value
       if (searchText.value) {
         filteredContacts = contacts.value.filter((contact) =>
@@ -149,29 +167,23 @@ export default defineComponent({
         )
       }
 
-      // 先按名称首字符排序
       const sorted = [...filteredContacts].sort((a, b) => {
-        // 获取姓名的拼音首字母
         const pinyinA = convertToPinyinInitials(a.name).charAt(0).toLowerCase()
         const pinyinB = convertToPinyinInitials(b.name).charAt(0).toLowerCase()
 
-        // 判断字符是否为数字
         const isDigitA = /\d/.test(pinyinA)
         const isDigitB = /\d/.test(pinyinB)
 
-        // 数字优先于字母
         if (isDigitA && !isDigitB) return -1
         if (!isDigitA && isDigitB) return 1
 
-        // 如果都是数字或都是字母，按字符编码排序
         return pinyinA.localeCompare(pinyinB)
       })
 
-      // 按首字母分组
       const groups: Record<string, Contact[]> = {}
 
       sorted.forEach((contact) => {
-        // 使用拼音首字母作为分组键
+        // ✅ 不再浅拷贝，直接使用原始对象
         const firstChar = convertToPinyinInitials(contact.name).charAt(0).toUpperCase()
         const groupKey = firstChar.match(/\d/) ? '0-9' : firstChar
 
@@ -181,10 +193,8 @@ export default defineComponent({
         groups[groupKey].push(contact)
       })
 
-      // 转换为数组格式并按字母顺序排序
       return Object.keys(groups)
         .sort((a, b) => {
-          // 数字组排在最前面
           if (a === '0-9') return -1
           if (b === '0-9') return 1
           return a.localeCompare(b)
@@ -207,7 +217,10 @@ export default defineComponent({
 
     // 切换联系人选择状态
     const toggleContactSelection = (contact: Contact) => {
-      contact.selected = !contact.selected
+      const originalContact = contacts.value.find(c => c.id === contact.id)
+      if (originalContact) {
+        originalContact.selected = !originalContact.selected
+      }
     }
 
     // 移除已选择的联系人
