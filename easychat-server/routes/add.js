@@ -68,4 +68,9 @@ router.post('/addFriend', authenticateToken, async function (req, res, next) {
   }
 });
 
+router.post('/addGroup', authenticateToken, async function (req, res, next) {
+
+})
+
+
 module.exports = router;

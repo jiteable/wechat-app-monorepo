@@ -62,24 +62,25 @@ model UserWithFriend{
 model Group{
   id          String   @id @default(cuid())          // 群组唯一标识符
   ownerId     String                                 // 群主ID
-  adminIds    String[]                               // 管理员ID数组
-  memberIds   String[]                               // 成员ID数组
+  adminIds    String[]                               // 管理员ID数组 包括创建者
+  memberIds   String[]                               // 成员ID数组 包括创建者
   name        String                                 // 群名称
-  announcement String?                                // 群公告，可选
+  announcement String?                               // 群公告，可选
   createdAt   DateTime @default(now())               // 创建时间
   updatedAt   DateTime @updatedAt                    // 更新时间
+  image       String?                                // 群图片
 }
 
 model UserWithGroup{
   id                  String   @id @default(cuid()) // 用户与群组关系唯一标识符
   userId              String                        // 用户ID
   groupId             String                        // 群组ID
+  identity            String                        // 在群中的身份
   nickname            String?                       // 用户在群内的昵称，可选
   remark              String?                       // 群备注，可选
   muteNotification    Boolean  @default(false)      // 是否消息免打扰，默认否
   stickyTopChat       Boolean  @default(false)      // 是否置顶聊天，默认否
-  saveToContact       Boolean  @default(false)      // 是否保存到通讯录，默认否
-  showMemberNameCard  Boolean  @default(false)      // 是否显示群成员名称，默认否
+  showMemberNameCard  Boolean  @default(true)       // 是否显示群成员名称，默认true
   createdAt           DateTime @default(now())      // 加入群组时间
   updatedAt           DateTime @updatedAt           // 更新时间
   background          String?                       // 聊天背景，可选
