@@ -90,9 +90,24 @@
               <el-table v-if="
                 activeButton === 'all' ||
                 activeButton.startsWith('authority-') ||
-                activeButton.startsWith('label-') ||
-                activeButton.startsWith('group-')
+                activeButton.startsWith('label-')
               " :data="filteredTableData" style="width: 100%">
+                <el-table-column type="selection" width="40" />
+                <el-table-column label="名称" width="120" show-overflow-tooltip>
+                  <template #default="scope">
+                    <div style="display: flex; align-items: center">
+                      <img :src="scope.row.avatar"
+                        style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px" />
+                      <span>{{ scope.row.name }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="remark" label="备注" width="100" show-overflow-tooltip />
+                <el-table-column prop="tag" label="标签" width="100" show-overflow-tooltip />
+                <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
+              </el-table>
+              <!-- 群聊筛选模式下显示的数据 -->
+              <el-table v-else-if="activeButton.startsWith('group-')" :data="filteredGroupContacts" style="width: 100%">
                 <el-table-column type="selection" width="40" />
                 <el-table-column label="名称" width="120" show-overflow-tooltip>
                   <template #default="scope">
@@ -119,13 +134,15 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Minus, Close } from '@element-plus/icons-vue'
-import { getContact } from '@/api/getRelationship'
+import { getContact, getGroup } from '@/api/getRelationship'
 
 const activeButton = ref('all')
 const searchKeyword = ref('')
 
 // 表格数据
 const tableData = ref([])
+// 当前选中的群组
+const selectedGroup = ref(null)
 
 const iconStates = reactive({
   friend: false,
@@ -147,30 +164,12 @@ const labelList = ref([
 ])
 
 // 群聊列表数据
-const chatGroupList = ref([
-  {
-    id: 1,
-    name: '技术交流群',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 2,
-    name: '家庭群',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 3,
-    name: '同学群',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  }
-])
+const chatGroupList = ref([])
 
-// 组件挂载时获取联系人数据
+// 组件挂载时获取联系人数据和群组数据
 onMounted(async () => {
   await fetchContacts()
+  await fetchGroups()
 })
 
 // 获取联系人数据
@@ -178,18 +177,39 @@ const fetchContacts = async () => {
   try {
     const response = await getContact()
     if (response && response.contacts) {
-      // 将后端返回的数据转换为前端需要的格式
+      // 将后端返回的数据转换为前端需要的格式，同时保留 chatId 字段
       tableData.value = response.contacts.map(contact => ({
         id: contact.id,
         name: contact.username || contact.chatId,
         avatar: contact.avatar || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
         remark: contact.remark || '',
         tag: contact.tag || '',
-        permission: '仅聊天' // 默认权限
+        permission: '仅聊天', // 默认权限
+        chatId: contact.chatId, // 保留 chatId 字段
+        signature: contact.signature, // 也可以添加其他字段
+        source: contact.source
       }))
     }
   } catch (error) {
     console.error('获取联系人失败:', error)
+  }
+}
+
+// 获取群组数据
+const fetchGroups = async () => {
+  try {
+    const response = await getGroup()
+    if (response && response.groups) {
+      // 将后端返回的数据转换为前端需要的格式
+      chatGroupList.value = response.groups.map(group => ({
+        id: group.id,
+        name: group.name,
+        avatar: group.image || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+        memberIds: group.memberIds || []
+      }))
+    }
+  } catch (error) {
+    console.error('获取群组失败:', error)
   }
 }
 
@@ -221,11 +241,42 @@ const filteredTableData = computed(() => {
           data = data.filter((item) => item.tag && item.tag.includes(label.name))
         }
       }
-    } else if (type === 'group') {
-      // 根据群聊筛选（这里简化处理）
-      // data保持不变
     }
   }
+
+  // 应用搜索关键词筛选
+  if (searchKeyword.value) {
+    const keyword = searchKeyword.value.toLowerCase()
+    data = data.filter(
+      (item) =>
+        (item.name && item.name.toLowerCase().includes(keyword)) ||
+        (item.remark && item.remark.toLowerCase().includes(keyword)) ||
+        (item.tag && item.tag.toLowerCase().includes(keyword))
+    )
+  }
+
+  return data
+})
+
+// 计算属性：筛选群组中的联系人（仅显示我也添加为好友的联系人）
+const filteredGroupContacts = computed(() => {
+  if (!activeButton.value.startsWith('group-')) {
+    return []
+  }
+
+  // 获取当前选中的群组
+  const groupId = activeButton.value.split('-')[1]
+  const group = chatGroupList.value.find(g => g.id === groupId)
+
+  if (!group) {
+    return []
+  }
+
+  // 获取群组中的成员ID列表
+  const groupMemberIds = group.memberIds || []
+
+  // 筛选出既是群成员又是我的好友的联系人
+  let data = tableData.value.filter(contact => groupMemberIds.includes(contact.id))
 
   // 应用搜索关键词筛选
   if (searchKeyword.value) {
@@ -274,6 +325,7 @@ const selectLabel = (item) => {
 const selectGroup = (item) => {
   console.log('选择了群聊:', item.name)
   activeButton.value = 'group-' + item.id
+  selectedGroup.value = item
   // 这里可以添加实际的业务逻辑
 }
 </script>

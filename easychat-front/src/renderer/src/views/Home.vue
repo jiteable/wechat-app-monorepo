@@ -17,6 +17,8 @@
                 <el-button class="menu-button" @click="handleChatFiles">聊天文件</el-button>
                 <el-button class="menu-button" @click="handleChatHistory">聊天记录管理</el-button>
                 <el-button class="menu-button" @click="handleSettings">设置</el-button>
+                <!-- 添加退出登录按钮 -->
+                <el-button class="menu-button" @click="handleLogout">退出登录</el-button>
               </div>
 
               <template #reference>
@@ -130,6 +132,23 @@ const handleSettings = () => {
   window.electron.ipcRenderer.send('open-set-window')
 }
 
+// 添加退出登录处理函数
+const handleLogout = () => {
+  console.log('退出登录按钮被点击')
+  // 关闭popover
+  popoverRef.value?.hide()
+
+  // 清除本地存储的token
+  localStorage.removeItem('TOKEN')
+
+  // 清空用户store状态
+  userStore.$reset()
+  userSetStore.$reset()
+
+  // 通知主进程切换到登录窗口
+  window.electron.ipcRenderer.send('navigate-to-login')
+}
+
 onMounted(async () => {
   // 获取用户信息并存储到userStore中
   const userInfo = await getUserInfo()
@@ -160,6 +179,7 @@ const handleAvatarError = () => {
   return true
 }
 </script>
+
 <style scoped lang="scss">
 .full-height {
   height: 100vh;

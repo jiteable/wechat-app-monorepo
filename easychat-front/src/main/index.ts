@@ -331,10 +331,9 @@ app.whenReady().then(() => {
     }
 
     if (mainWindow) {
-      mainWindow.show()
-    } else {
-      createWindow()
+      mainWindow.close()
     }
+    createWindow()
   })
 
   // 添加用于TOKEN检查的IPC处理器

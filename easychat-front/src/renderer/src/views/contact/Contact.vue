@@ -2,7 +2,7 @@
   <div class="contact-container">
     <div class="contact-left-title">
       <div class="search-box">
-        <el-input class="no-drag search-input" v-model="searchText" placeholder="搜索" clearable prefix-icon="Search" />
+        <el-input v-model="searchText" class="no-drag search-input" placeholder="搜索" clearable prefix-icon="Search" />
       </div>
     </div>
     <div class="chat-left-content no-drag">
@@ -21,9 +21,9 @@
         </button>
         <div v-show="buttonStates[0]" class="sub-list">
           <button v-for="friend in newFriends" :key="friend.id" class="contact-item no-drag"
-            :style="{ marginLeft: '0px' }" @click="selectNewFriend(friend)"
-            :class="{ 'contact-item-selected': isItemSelected(friend.id, 'newFriend') }"
-            @mouseenter="hoveredContact = friend.id" @mouseleave="hoveredContact = null">
+            :style="{ marginLeft: '0px' }" :class="{ 'contact-item-selected': isItemSelected(friend.id, 'newFriend') }"
+            @click="selectNewFriend(friend)" @mouseenter="hoveredContact = friend.id"
+            @mouseleave="hoveredContact = null">
             <el-avatar shape="square" class="avatar-left" :size="30" :src="friend.avatar" />
             <span class="contact-name">{{ friend.name }}</span>
           </button>
@@ -40,7 +40,7 @@
         </button>
         <div v-show="buttonStates[1]" class="sub-list">
           <button v-for="group in groups" :key="group.id" class="contact-item no-drag" :style="{ marginLeft: '0px' }"
-            @click="selectGroup(group)" :class="{ 'contact-item-selected': isItemSelected(group.id, 'group') }"
+            :class="{ 'contact-item-selected': isItemSelected(group.id, 'group') }" @click="selectGroup(group)"
             @mouseenter="hoveredGroup = group.id" @mouseleave="hoveredGroup = null">
             <el-avatar shape="square" class="avatar-left" :size="30" :src="group.avatar" />
             <span class="contact-name">{{ group.name }}</span>
@@ -57,15 +57,15 @@
           联系人
         </button>
         <div v-show="buttonStates[2]" class="sub-list">
-          <div v-for="(item, index) in sortedContactsWithHeaders" :style="{ marginLeft: '0px' }"
-            :key="item.id || item.header" class="contact-item-wrapper">
+          <div v-for="(item, index) in sortedContactsWithHeaders" :key="item.id || item.header"
+            :style="{ marginLeft: '0px' }" class="contact-item-wrapper">
             <!-- 字母或数字标题 -->
             <div v-if="item.isHeader" class="contact-header">
               {{ item.header }}
             </div>
             <!-- 联系人项 -->
-            <button v-else class="contact-item no-drag" @click="selectContact(item)"
-              :class="{ 'contact-item-selected': isItemSelected(item.id, 'contact') }"
+            <button v-else class="contact-item no-drag"
+              :class="{ 'contact-item-selected': isItemSelected(item.id, 'contact') }" @click="selectContact(item)"
               @mouseenter="hoveredContact = item.id" @mouseleave="hoveredContact = null">
               <el-avatar shape="square" class="avatar-left" :size="30" :src="item.avatar" />
               <span class="contact-name">{{ item.name }}</span>
@@ -131,10 +131,12 @@ const fetchContacts = async () => {
     const response = await getContact()
     if (response && response.contacts) {
       // 将后端返回的数据转换为前端需要的格式
-      contacts.value = response.contacts.map(contact => ({
+      contacts.value = response.contacts.map((contact) => ({
         id: contact.id,
         name: contact.username || contact.chatId,
-        avatar: contact.avatar || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+        avatar:
+          contact.avatar ||
+          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
       }))
     }
   } catch (error) {
@@ -148,10 +150,12 @@ const fetchGroups = async () => {
     const response = await getGroup()
     if (response && response.groups) {
       // 将后端返回的数据转换为前端需要的格式
-      groups.value = response.groups.map(group => ({
+      groups.value = response.groups.map((group) => ({
         id: group.id,
         name: group.name,
-        avatar: group.image || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+        avatar:
+          group.image ||
+          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
       }))
     }
   } catch (error) {

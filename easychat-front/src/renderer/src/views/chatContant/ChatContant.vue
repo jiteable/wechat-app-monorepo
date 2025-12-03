@@ -1,6 +1,6 @@
 <template>
   <div class="chat-contant-container">
-    <div class="chat-contant-title">
+    <div class="chat-contant-title drag">
       <div class="window-button no-drag">
         <el-button link class="button" @click="toggleAlwaysOnTop">
           <i class="iconfont icon-top" :style="{ color: isAlwaysOnTop ? '#87CEEB' : '' }"></i>
