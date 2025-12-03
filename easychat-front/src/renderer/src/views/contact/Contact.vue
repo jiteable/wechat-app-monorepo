@@ -12,23 +12,11 @@
       </button>
 
       <!-- 新的朋友 -->
-      <div class="section">
-        <button class="drop-button" @click="toggleButton(0)">
-          <el-icon>
-            <component :is="buttonStates[0] ? 'ArrowDown' : 'ArrowRight'" />
-          </el-icon>
-          新的朋友
-        </button>
-        <div v-show="buttonStates[0]" class="sub-list">
-          <button v-for="friend in filteredNewFriends" :key="friend.id" class="contact-item no-drag"
-            :style="{ marginLeft: '0px' }" :class="{ 'contact-item-selected': isItemSelected(friend.id, 'newFriend') }"
-            @click="selectNewFriend(friend)" @mouseenter="hoveredContact = friend.id"
-            @mouseleave="hoveredContact = null">
-            <el-avatar shape="square" class="avatar-left" :size="30" :src="friend.avatar" />
-            <span class="contact-name">{{ friend.name }}</span>
-          </button>
-        </div>
-      </div>
+      <button class="contact-button" :class="{ 'contact-button-selected': isItemSelected('newFriend', 'newFriend') }"
+        @click="showContactApply">
+        <i class="iconfont icon-user"></i>
+        新的朋友
+      </button>
 
       <!-- 群聊 -->
       <div class="section">
@@ -79,6 +67,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import convertToPinyinInitials from '@/utils/changeChinese'
 import { getContact, getGroup } from '@/api/getRelationship'
 import { userContactStore } from '@/store/userContactStore'
@@ -89,29 +78,21 @@ const hoveredGroup = ref(null)
 const selectedItemId = ref(null)
 const selectedItemType = ref(null) // 'contact', 'group', 或 'newFriend'
 const contactStore = userContactStore()
+const router = useRouter()
 
 const openContactManagement = () => {
   window.electron.ipcRenderer.send('open-contact-window')
 }
 
+// 显示新朋友页面
+const showContactApply = () => {
+  selectedItemId.value = 'newFriend'
+  selectedItemType.value = 'newFriend'
+  router.push('/contact/apply')
+}
+
 // 按钮状态管理，false表示ArrowRight，true表示ArrowDown
 const buttonStates = reactive([false, false, false])
-
-// 新的朋友数据
-const newFriends = ref([
-  {
-    id: 1,
-    name: '张三',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  },
-  {
-    id: 2,
-    name: '李四',
-    avatar:
-      'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
-  }
-])
 
 // 群聊数据
 const groups = ref([])
@@ -165,15 +146,6 @@ const fetchGroups = async () => {
   }
 }
 
-// 过滤新朋友列表
-const filteredNewFriends = computed(() => {
-  if (!searchText.value) {
-    return newFriends.value
-  }
-  return newFriends.value.filter(friend =>
-    friend.name.toLowerCase().includes(searchText.value.toLowerCase())
-  )
-})
 
 // 过滤群聊列表
 const filteredGroups = computed(() => {
@@ -246,7 +218,7 @@ const toggleButton = (index) => {
 
 // 通用选择函数
 const selectItem = (item, type) => {
-  selectedItemId.value = item.id
+  selectedItemId.value = item.id || item
   selectedItemType.value = type
   console.log(`Selected ${type}:`, item)
   // 可以在这里添加处理选择项目的逻辑
@@ -261,14 +233,14 @@ const selectContact = (contact) => {
   selectItem(contact, 'contact')
   // 设置选中的联系人信息到store中
   contactStore.setSelectedContact(contact)
+  // 导航回联系人详情页面
+  router.push('/contact')
 }
 
 const selectGroup = (group) => {
   selectItem(group, 'group')
-}
-
-const selectNewFriend = (friend) => {
-  selectItem(friend, 'newFriend')
+  // 导航回联系人详情页面
+  router.push('/contact')
 }
 </script>
 
@@ -318,6 +290,14 @@ const selectNewFriend = (friend) => {
 
 .contact-button:hover {
   background-color: rgb(228, 228, 228);
+}
+
+.contact-button-selected {
+  background-color: rgb(222, 222, 222);
+}
+
+.contact-button-selected:hover {
+  background-color: rgb(211, 211, 211);
 }
 
 .section {

@@ -3,6 +3,7 @@ import Chat from '@/views/chat/Chat.vue'
 import ChatContant from '@/views/chatContant/ChatContant.vue'
 import Contact from '@/views/contact/Contact.vue'
 import ContactContent from '@/views/contactContent/ContactContent.vue'
+import ContactApply from '@/views/contactContent/ContactApply.vue'
 import Contacts from '@/views/contacts/Contacts.vue'
 
 export const AppRoutes = [
@@ -26,6 +27,13 @@ export const AppRoutes = [
         components: {
           left: Contact,
           right: ContactContent
+        }
+      },
+      {
+        path: 'contact/apply',
+        components: {
+          left: Contact,
+          right: ContactApply
         }
       }
     ]

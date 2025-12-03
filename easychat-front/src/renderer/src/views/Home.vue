@@ -90,7 +90,7 @@ const handleStorageChange = (event) => {
 const activeButton = computed(() => {
   if (route.path === '/' || route.path === '/chat') {
     return 'chat'
-  } else if (route.path === '/contact') {
+  } else if (route.path.startsWith('/contact')) {
     return 'contact'
   }
   return ''
