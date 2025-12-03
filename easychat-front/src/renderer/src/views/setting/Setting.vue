@@ -166,6 +166,9 @@ const username = ref('')
 const chatId = ref('')
 
 onMounted(() => {
+  // 从localStorage同步主窗口的store数据
+  syncStoreFromLocalStorage()
+
   // 从用户存储中获取用户信息
   username.value = userStore.username
   chatId.value = userStore.chatId
@@ -176,6 +179,32 @@ onMounted(() => {
   // 从服务器加载最新的用户设置并更新 userSetStore
   loadUserSettings()
 })
+
+// 从localStorage同步store数据
+const syncStoreFromLocalStorage = () => {
+  // 同步userStore数据
+  const userStoreData = localStorage.getItem('userStoreUpdated')
+  if (userStoreData) {
+    try {
+      const userData = JSON.parse(userStoreData)
+      userStore.syncFromOtherWindows(userData)
+    } catch (e) {
+      console.error('解析userStore数据失败:', e)
+    }
+  }
+
+  // 同步userSetStore数据
+  const userSetStoreData = localStorage.getItem('userSetStoreUpdated')
+  if (userSetStoreData) {
+    try {
+      const setData = JSON.parse(userSetStoreData)
+      userSetStore.syncFromOtherWindows(setData)
+      Object.assign(settings, setData)
+    } catch (e) {
+      console.error('解析userSetStore数据失败:', e)
+    }
+  }
+}
 
 // 从服务器加载用户设置并更新 userSetStore
 const loadUserSettings = async () => {
