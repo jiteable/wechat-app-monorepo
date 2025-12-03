@@ -168,6 +168,8 @@ import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
 import { getUserSettingInfo, setSetting, setUserInfo } from '@/api/user'
 import { ElMessage } from 'element-plus'
+import { compressImage } from '@/utils/img'
+import { uploadAvatar } from '@/api/upload'
 
 const activeTab = ref('account') // 默认选中账户与存储标签页
 const userStore = useUserStore()
@@ -289,21 +291,23 @@ const handleAvatarUpload = async (event) => {
     return
   }
 
-  // 检查文件大小 (限制为2MB)
-  if (file.size > 2 * 1024 * 1024) {
-    ElMessage.error('图片大小不能超过2MB')
-    return
-  }
+  // // 检查文件大小 (限制为2MB)
+  // if (file.size > 2 * 1024 * 1024) {
+  //   ElMessage.error('图片大小不能超过2MB')
+  //   return
+  // }
 
   try {
-    // 在实际应用中，这里应该上传文件到服务器并获取URL
-    // 目前我们只是演示功能，使用本地预览
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      avatar.value = e.target.result
-      checkForChanges()
-    }
-    reader.readAsDataURL(file)
+    // 压缩图片
+    const compressedFile = await compressImage(file)
+
+    // 上传文件到服务器并获取URL
+    const response = await uploadAvatar(compressedFile)
+    console.log('avatarUrl: ', response.avatarUrl)
+
+    // 使用服务器返回的真实URL而不是本地预览
+    avatar.value = response.avatarUrl
+    checkForChanges()
 
     // 清空input值以便下次选择相同文件也能触发change事件
     event.target.value = ''

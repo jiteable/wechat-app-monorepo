@@ -12,6 +12,7 @@ var searchRouter = require('./routes/search')
 var addRouter = require('./routes/add')
 var getRouter = require('./routes/getUser')
 var createRouter = require('./routes/create')
+var uploadRouter = require('./routes/upload')
 
 var app = express();
 
@@ -33,6 +34,7 @@ app.use('/search', searchRouter)
 app.use('/add', addRouter)
 app.use('/get', getRouter)
 app.use('/create', createRouter)
+app.use('/upload', uploadRouter)
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
