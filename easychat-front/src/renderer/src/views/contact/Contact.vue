@@ -20,7 +20,7 @@
           新的朋友
         </button>
         <div v-show="buttonStates[0]" class="sub-list">
-          <button v-for="friend in newFriends" :key="friend.id" class="contact-item no-drag"
+          <button v-for="friend in filteredNewFriends" :key="friend.id" class="contact-item no-drag"
             :style="{ marginLeft: '0px' }" :class="{ 'contact-item-selected': isItemSelected(friend.id, 'newFriend') }"
             @click="selectNewFriend(friend)" @mouseenter="hoveredContact = friend.id"
             @mouseleave="hoveredContact = null">
@@ -39,9 +39,9 @@
           群聊
         </button>
         <div v-show="buttonStates[1]" class="sub-list">
-          <button v-for="group in groups" :key="group.id" class="contact-item no-drag" :style="{ marginLeft: '0px' }"
-            :class="{ 'contact-item-selected': isItemSelected(group.id, 'group') }" @click="selectGroup(group)"
-            @mouseenter="hoveredGroup = group.id" @mouseleave="hoveredGroup = null">
+          <button v-for="group in filteredGroups" :key="group.id" class="contact-item no-drag"
+            :style="{ marginLeft: '0px' }" :class="{ 'contact-item-selected': isItemSelected(group.id, 'group') }"
+            @click="selectGroup(group)" @mouseenter="hoveredGroup = group.id" @mouseleave="hoveredGroup = null">
             <el-avatar shape="square" class="avatar-left" :size="30" :src="group.avatar" />
             <span class="contact-name">{{ group.name }}</span>
           </button>
@@ -165,10 +165,38 @@ const fetchGroups = async () => {
   }
 }
 
+// 过滤新朋友列表
+const filteredNewFriends = computed(() => {
+  if (!searchText.value) {
+    return newFriends.value
+  }
+  return newFriends.value.filter(friend =>
+    friend.name.toLowerCase().includes(searchText.value.toLowerCase())
+  )
+})
+
+// 过滤群聊列表
+const filteredGroups = computed(() => {
+  if (!searchText.value) {
+    return groups.value
+  }
+  return groups.value.filter(group =>
+    group.name.toLowerCase().includes(searchText.value.toLowerCase())
+  )
+})
+
 // 计算属性：按名称首字符排序的联系人列表（带标题）
 const sortedContactsWithHeaders = computed(() => {
-  // 先按名称首字符排序
-  const sorted = [...contacts.value].sort((a, b) => {
+  // 先过滤联系人
+  let filteredContacts = contacts.value
+  if (searchText.value) {
+    filteredContacts = contacts.value.filter(contact =>
+      contact.name.toLowerCase().includes(searchText.value.toLowerCase())
+    )
+  }
+
+  // 再按名称首字符排序
+  const sorted = [...filteredContacts].sort((a, b) => {
     // 获取姓名的拼音首字母
     const pinyinA = convertToPinyinInitials(a.name).charAt(0).toLowerCase()
     const pinyinB = convertToPinyinInitials(b.name).charAt(0).toLowerCase()
