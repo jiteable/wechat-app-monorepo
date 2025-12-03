@@ -380,6 +380,12 @@ const applyChanges = async () => {
       userStore.updateSetting('avatar', avatar.value)
 
       hasChanges.value = false
+
+      // 通知主窗口刷新
+      if (window.electron && window.electron.ipcRenderer) {
+        window.electron.ipcRenderer.send('refresh-main-window')
+      }
+
       ElMessage.success('所有设置已保存')
     } else {
       ElMessage.error('保存设置失败')
@@ -389,6 +395,7 @@ const applyChanges = async () => {
     ElMessage.error('保存设置失败')
   }
 }
+
 </script>
 
 <style scoped lang="scss">

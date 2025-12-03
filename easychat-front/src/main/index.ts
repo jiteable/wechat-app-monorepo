@@ -331,9 +331,17 @@ app.whenReady().then(() => {
     }
 
     if (mainWindow) {
-      mainWindow.close()
+      mainWindow.show()
+    } else {
+      createWindow()
     }
-    createWindow()
+  })
+
+  // 监听刷新主窗口的请求
+  ipcMain.on('refresh-main-window', () => {
+    if (mainWindow) {
+      mainWindow.reload()
+    }
   })
 
   // 添加用于TOKEN检查的IPC处理器
