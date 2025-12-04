@@ -30,6 +30,12 @@ model User {
   updatedAt     DateTime      @updatedAt                // 最后更新时间
   sessions      Session[]                              // 用户会话列表（一对多关系）
   settings      UserSetting?                           // 用户设置（一对一关系）
+  
+  // 反向关系字段
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestFrom")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestTo")
+  sentGroupInvitations   GroupInvitation[] @relation("GroupInvitationInviter")
+  receivedGroupInvitations GroupInvitation[] @relation("GroupInvitationInvitee")
 }
 
 model VerificationToken {
@@ -69,6 +75,9 @@ model Group{
   createdAt   DateTime @default(now())               // 创建时间
   updatedAt   DateTime @updatedAt                    // 更新时间
   image       String?                                // 群图片
+  
+  // 反向关系字段
+  invitations GroupInvitation[]
 }
 
 model UserWithGroup{
@@ -110,4 +119,39 @@ model UserSetting{
   updatedAt                     DateTime @updatedAt             // 设置更新时间
   
   user                          User     @relation(fields: [userId], references: [id])  // 关联的用户对象
+}
+
+model FriendRequest {
+  id              String    @id @default(cuid())             // 请求唯一标识符
+  fromUserId      String                                   // 发起请求的用户ID
+  toUserId        String                                   // 接收请求的用户ID
+  status          String    @default("pending")             // 请求状态: pending, accepted, rejected
+  requestMessage  String?                                  // 请求附加的消息
+  createdAt       DateTime  @default(now())                 // 请求创建时间
+  updatedAt       DateTime  @updatedAt                      // 请求更新时间
+  
+  fromUser        User      @relation(name: "FriendRequestFrom", fields: [fromUserId], references: [id])  // 发起请求的用户对象
+  toUser          User      @relation(name: "FriendRequestTo", fields: [toUserId], references: [id])    // 接收请求的用户对象
+  
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+model GroupInvitation {
+  id              String    @id @default(cuid())             // 邀请唯一标识符
+  groupId         String                                   // 被邀请的群组ID
+  inviterId       String                                   // 邀请人ID
+  inviteeId       String                                   // 被邀请人ID
+  status          String    @default("pending")             // 邀请状态: pending, accepted, rejected
+  inviteMessage   String?                                  // 邀请附加的消息
+  createdAt       DateTime  @default(now())                 // 邀请创建时间
+  updatedAt       DateTime  @updatedAt                      // 邀请更新时间
+  
+  group           Group     @relation(fields: [groupId], references: [id])     // 群组对象
+  inviter         User      @relation(name: "GroupInvitationInviter", fields: [inviterId], references: [id])   // 邀请人对象
+  invitee         User      @relation(name: "GroupInvitationInvitee", fields: [inviteeId], references: [id])   // 被邀请人对象
+  
+  @@index([groupId])
+  @@index([inviterId])
+  @@index([inviteeId])
 }

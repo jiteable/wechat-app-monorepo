@@ -146,13 +146,12 @@ const fetchGroups = async () => {
   }
 }
 
-
 // 过滤群聊列表
 const filteredGroups = computed(() => {
   if (!searchText.value) {
     return groups.value
   }
-  return groups.value.filter(group =>
+  return groups.value.filter((group) =>
     group.name.toLowerCase().includes(searchText.value.toLowerCase())
   )
 })
@@ -162,7 +161,7 @@ const sortedContactsWithHeaders = computed(() => {
   // 先过滤联系人
   let filteredContacts = contacts.value
   if (searchText.value) {
-    filteredContacts = contacts.value.filter(contact =>
+    filteredContacts = contacts.value.filter((contact) =>
       contact.name.toLowerCase().includes(searchText.value.toLowerCase())
     )
   }
