@@ -10,5 +10,6 @@ export interface SearchUserResponse {
     chatId: string
     searchMethod
     isFriend: boolean
+    needVerificationToAddFriend: boolean
   }>
 }

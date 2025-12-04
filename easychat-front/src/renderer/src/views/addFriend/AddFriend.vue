@@ -32,9 +32,9 @@
             <div class="user-id">ChatID: {{ user.chatId }}</div>
           </div>
           <div class="action-button">
-            <el-button size="small" :type="user.isFriend ? 'success' : 'primary'" :disabled="user.isFriend" round
+            <el-button size="small" :type="getButtonType(user)" :disabled="user.isFriend" round
               @click.stop="addFriendHandler(user)">
-              {{ user.isFriend ? '已添加' : '添加' }}
+              {{ getButtonText(user) }}
             </el-button>
           </div>
         </div>
@@ -52,6 +52,7 @@ import { ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { searchUser } from '@/api/search'
 import { addFriend } from '@/api/add'
+import { sendFriendRequest } from '@/api/messages'
 
 const searchText = ref('')
 const searchResults = ref([])
@@ -81,16 +82,50 @@ const selectUser = (user) => {
   // 这里可以添加选中用户的逻辑
 }
 
+// 根据用户设置决定按钮文本
+const getButtonText = (user) => {
+  if (user.isFriend) {
+    return '已添加'
+  }
+  return user.needVerificationToAddFriend ? '发送申请' : '添加'
+}
+
+// 根据用户设置决定按钮类型
+const getButtonType = (user) => {
+  if (user.isFriend) {
+    return 'success'
+  }
+  return user.needVerificationToAddFriend ? 'warning' : 'primary'
+}
+
 const addFriendHandler = async (user) => {
   if (!user.isFriend) {
     console.log('添加好友:', user)
     try {
-      const response = await addFriend({ userId: user.id, source: user.searchMethod })
-      if (response.success) {
-        user.isFriend = true
-        console.log('添加好友成功')
+      if (user.needVerificationToAddFriend) {
+        // 如果需要验证，则发送好友请求
+        const response = await sendFriendRequest({
+          toUserId: user.id,
+          requestMessage: ''
+        })
+        if (response.success) {
+          console.log('好友请求发送成功')
+          // 可以添加提示告知用户请求已发送
+        } else {
+          console.error('发送好友请求失败:', response.message)
+        }
       } else {
-        console.error('添加好友失败:', response.message)
+        // 如果不需要验证，则直接添加好友
+        const response = await addFriend({
+          userId: user.id,
+          source: user.searchMethod
+        })
+        if (response.success) {
+          user.isFriend = true
+          console.log('添加好友成功')
+        } else {
+          console.error('添加好友失败:', response.message)
+        }
       }
     } catch (error) {
       console.error('添加好友失败:', error)

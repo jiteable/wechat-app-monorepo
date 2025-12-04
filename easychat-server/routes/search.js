@@ -154,7 +154,6 @@ router.get('/userSearch', authenticateToken, async function (req, res, next) {
       username: user.username,
       avatar: user.avatar || '',
       chatId: user.chatId,
-      email: user.email,
       searchMethod: user.searchMethod,
       isFriend: friendIds.includes(user.id),
       needVerificationToAddFriend: settingsMap.get(user.id) ?? true // 默认值为 true
