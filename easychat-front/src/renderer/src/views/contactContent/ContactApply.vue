@@ -64,93 +64,30 @@
 <script setup>
 import WindowControls from '@/components/WindowControls.vue'
 import { ref, onMounted } from 'vue'
+import { getFriendRequest, getGroupInvitations, acceptFriendRequest, rejectFriendRequest } from '@/api/messages'
 
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
 const defaultGroupAvatar = 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png'
 const friendApplyList = ref([])
 const groupInviteList = ref([])
 
-// 模拟加载好友申请和群组邀请数据
-const loadApply = () => {
-  // TODO: 实际项目中需要调用API获取好友申请数据
-  // 这里模拟一些测试数据
-  const mockFriendData = [
-    {
-      id: '1',
-      fromUserId: '1',
-      toUserId: '2',
-      status: 'pending',
-      requestMessage: '你好，我想加你为好友',
-      createdAt: new Date(),
-      fromUser: {
-        id: '1',
-        chatId: 'user1',
-        username: '张三',
-        avatar: ''
-      }
-    },
-    {
-      id: '2',
-      fromUserId: '3',
-      toUserId: '2',
-      status: 'accepted',
-      requestMessage: '我是李四，很高兴认识你',
-      createdAt: new Date(),
-      fromUser: {
-        id: '3',
-        chatId: 'user3',
-        username: '李四',
-        avatar: 'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg'
-      }
+// 加载好友申请和群组邀请数据
+const loadApply = async () => {
+  try {
+    // 获取好友申请
+    const friendResponse = await getFriendRequest()
+    if (friendResponse.success) {
+      friendApplyList.value = friendResponse.data
     }
-  ]
 
-  const mockGroupData = [
-    {
-      id: '1',
-      groupId: '1',
-      inviterId: '1',
-      inviteeId: '2',
-      status: 'pending',
-      inviteMessage: '快来加入我们的讨论群吧',
-      createdAt: new Date(),
-      group: {
-        id: '1',
-        name: '技术交流群',
-        image: ''
-      },
-      inviter: {
-        id: '1',
-        chatId: 'user1',
-        username: '张三',
-        avatar: ''
-      }
-    },
-    {
-      id: '2',
-      groupId: '2',
-      inviterId: '3',
-      inviteeId: '2',
-      status: 'accepted',
-      inviteMessage: '',
-      createdAt: new Date(),
-      group: {
-        id: '2',
-        name: '项目协作群',
-        image: 'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg'
-      },
-      inviter: {
-        id: '3',
-        chatId: 'user3',
-        username: '李四',
-        avatar: 'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg'
-      }
+    // 获取群组邀请
+    const groupResponse = await getGroupInvitations()
+    if (groupResponse.success) {
+      groupInviteList.value = groupResponse.data
     }
-  ]
-
-  // 直接赋值，不分页
-  friendApplyList.value = mockFriendData
-  groupInviteList.value = mockGroupData
+  } catch (error) {
+    console.error('获取申请数据失败:', error)
+  }
 }
 
 // 组件挂载时加载数据
@@ -159,18 +96,34 @@ onMounted(() => {
 })
 
 // 处理接受好友申请
-const handleAcceptFriend = (apply) => {
+const handleAcceptFriend = async (apply) => {
   if (apply.status === 'pending') {
-    // TODO: 调用API接受好友申请
-    apply.status = 'accepted'
+    try {
+      const response = await acceptFriendRequest({ requestId: apply.id })
+      if (response.success) {
+        apply.status = 'accepted'
+      } else {
+        console.error('接受好友申请失败:', response.error)
+      }
+    } catch (error) {
+      console.error('接受好友申请失败:', error)
+    }
   }
 }
 
 // 处理拒绝好友申请
-const handleRejectFriend = (apply) => {
+const handleRejectFriend = async (apply) => {
   if (apply.status === 'pending') {
-    // TODO: 调用API拒绝好友申请
-    apply.status = 'rejected'
+    try {
+      const response = await rejectFriendRequest({ requestId: apply.id })
+      if (response.success) {
+        apply.status = 'rejected'
+      } else {
+        console.error('拒绝好友申请失败:', response.error)
+      }
+    } catch (error) {
+      console.error('拒绝好友申请失败:', error)
+    }
   }
 }
 

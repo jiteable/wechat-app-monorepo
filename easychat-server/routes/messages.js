@@ -12,7 +12,6 @@ router.get('/getFriendRequest', authenticateToken, async (req, res) => {
     const friendRequests = await db.friendRequest.findMany({
       where: {
         toUserId: userId,
-        status: 'pending'
       },
       include: {
         fromUser: {
@@ -275,6 +274,119 @@ router.post('/sendGroupInvitations', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: '发送群组邀请失败'
+    });
+  }
+});
+
+// 接受好友申请
+router.post('/acceptFriendRequest', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { requestId } = req.body;
+
+    // 查找好友申请记录
+    const friendRequest = await db.friendRequest.findUnique({
+      where: { id: requestId }
+    });
+
+    // 检查申请是否存在
+    if (!friendRequest) {
+      return res.status(404).json({
+        success: false,
+        error: '好友申请不存在'
+      });
+    }
+
+    // 检查当前用户是否有权限处理此申请（必须是接收者）
+    if (friendRequest.toUserId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: '无权处理此申请'
+      });
+    }
+
+    // 更新申请状态为已接受
+    const updatedRequest = await db.friendRequest.update({
+      where: { id: requestId },
+      data: { status: 'accepted' }
+    });
+
+    // 添加好友关系（双向）
+    await db.userWithFriend.create({
+      data: {
+        userId: friendRequest.fromUserId,
+        friendId: friendRequest.toUserId,
+        source: '通过好友申请添加',
+        createdAt: new Date()
+      }
+    });
+
+    await db.userWithFriend.create({
+      data: {
+        userId: friendRequest.toUserId,
+        friendId: friendRequest.fromUserId,
+        source: '通过好友申请添加',
+        createdAt: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      data: updatedRequest,
+      message: '好友申请已接受'
+    });
+  } catch (error) {
+    console.error('接受好友申请失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '接受好友申请失败'
+    });
+  }
+});
+
+// 拒绝好友申请
+router.post('/rejectFriendRequest', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { requestId } = req.body;
+
+    // 查找好友申请记录
+    const friendRequest = await db.friendRequest.findUnique({
+      where: { id: requestId }
+    });
+
+    // 检查申请是否存在
+    if (!friendRequest) {
+      return res.status(404).json({
+        success: false,
+        error: '好友申请不存在'
+      });
+    }
+
+    // 检查当前用户是否有权限处理此申请（必须是接收者）
+    if (friendRequest.toUserId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: '无权处理此申请'
+      });
+    }
+
+    // 更新申请状态为已拒绝
+    const updatedRequest = await db.friendRequest.update({
+      where: { id: requestId },
+      data: { status: 'rejected' }
+    });
+
+    res.json({
+      success: true,
+      data: updatedRequest,
+      message: '好友申请已拒绝'
+    });
+  } catch (error) {
+    console.error('拒绝好友申请失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '拒绝好友申请失败'
     });
   }
 });

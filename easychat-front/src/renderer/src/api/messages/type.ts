@@ -95,3 +95,11 @@ export interface SendGroupInvitationsResponse {
   message?: string
   error?: string
 }
+
+export interface AcceptFriendRequestParams {
+  requestId: string;
+}
+
+export interface RejectFriendRequestParams {
+  requestId: string;
+}

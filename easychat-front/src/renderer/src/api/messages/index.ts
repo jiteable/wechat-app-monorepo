@@ -6,7 +6,9 @@ import {
   SendFriendRequestParams,
   SendGroupInvitationsParams,
   SendFriendRequestResponse,
-  SendGroupInvitationsResponse
+  SendGroupInvitationsResponse,
+  AcceptFriendRequestParams,
+  RejectFriendRequestParams
 } from './type'
 
 // 枚举地址
@@ -16,7 +18,9 @@ enum API {
   // 获取群组邀请接口
   GET_GROUP_INVITATIONS_URL = '/messages/getGroupInvitations',
   SEND_FRIEND_REQUEST_URL = '/messages/sendFriendRequest',
-  SEND_GROUP_INVITATIONS_URL = '/messages/sendGroupInvitations'
+  SEND_GROUP_INVITATIONS_URL = '/messages/sendGroupInvitations',
+  ACCEPT_FRIEND_REQUEST_URL = '/messages/acceptFriendRequest',
+  REJECT_FRIEND_REQUEST_URL = '/messages/rejectFriendRequest'
 }
 
 /**
@@ -68,5 +72,26 @@ export const sendGroupInvitations = async (
     `${config.api}${API.SEND_GROUP_INVITATIONS_URL}`,
     params
   )
+  return response.data
+}
+
+/**
+ * 接受好友请求
+ * @param requestId 好友请求ID
+ * @returns 处理结果
+ */
+export const acceptFriendRequest = async (params: AcceptFriendRequestParams) => {
+  const response = await http.post(`${config.api}${API.ACCEPT_FRIEND_REQUEST_URL}`, params)
+  return response.data
+}
+
+/**
+ * 拒绝好友请求
+ * @param requestId 好友请求ID
+ * @returns 处理结果
+ */
+
+export const rejectFriendRequest = async (params: RejectFriendRequestParams) => {
+  const response = await http.post(`${config.api}${API.REJECT_FRIEND_REQUEST_URL}`, params)
   return response.data
 }

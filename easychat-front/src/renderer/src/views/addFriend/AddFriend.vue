@@ -25,7 +25,7 @@
       </div>
 
       <div v-else-if="searchResults.length > 0" class="search-results">
-        <div v-for="user in searchResults" class="result-item" :key="user.id" @click="selectUser(user)">
+        <div v-for="user in searchResults" :key="user.id" class="result-item" @click="selectUser(user)">
           <el-avatar :size="40" :src="user.avatar || ''" shape="square" />
           <div class="user-info">
             <div class="user-name">{{ user.username }}</div>
