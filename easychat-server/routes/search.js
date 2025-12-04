@@ -130,6 +130,24 @@ router.get('/userSearch', authenticateToken, async function (req, res, next) {
       .flatMap(f => [f.userId, f.friendId])
       .filter(id => id !== currentUserId);
 
+    // 获取这些用户的设置信息，特别是 needVerificationToAddFriend 字段
+    const userIds = users.map(user => user.id);
+    const userSettings = await db.UserSetting.findMany({
+      where: {
+        userId: { in: userIds }
+      },
+      select: {
+        userId: true,
+        needVerificationToAddFriend: true
+      }
+    });
+
+    // 创建一个映射，便于快速查找用户的设置
+    const settingsMap = new Map();
+    userSettings.forEach(setting => {
+      settingsMap.set(setting.userId, setting.needVerificationToAddFriend);
+    });
+
     // 构造返回结果，标记是否为好友
     const resultUsers = users.map(user => ({
       id: user.id,
@@ -138,7 +156,8 @@ router.get('/userSearch', authenticateToken, async function (req, res, next) {
       chatId: user.chatId,
       email: user.email,
       searchMethod: user.searchMethod,
-      isFriend: friendIds.includes(user.id)
+      isFriend: friendIds.includes(user.id),
+      needVerificationToAddFriend: settingsMap.get(user.id) ?? true // 默认值为 true
     }));
 
     res.json({

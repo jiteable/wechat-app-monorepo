@@ -57,3 +57,41 @@ export interface GetGroupInvitationsResponse {
   data: GroupInvitation[]
   error?: string
 }
+
+// 发送好友请求参数类型
+export interface SendFriendRequestParams {
+  toUserId: string
+  requestMessage?: string
+}
+
+// 发送好友请求响应类型
+export interface SendFriendRequestResponse {
+  success: boolean
+  data?: FriendRequest
+  message?: string
+  error?: string
+}
+
+// 发送群组邀请参数类型
+export interface SendGroupInvitationsParams {
+  groupId: string
+  inviteeIds: string[]
+  inviteMessage?: string
+}
+
+// 发送群组邀请响应类型
+export interface SendGroupInvitationsResult {
+  inviteeId: string
+  invitation?: GroupInvitation
+  error?: string
+}
+
+export interface SendGroupInvitationsResponse {
+  success: boolean
+  data?: {
+    successfulInvitations: SendGroupInvitationsResult[]
+    failedInvitations: SendGroupInvitationsResult[]
+  }
+  message?: string
+  error?: string
+}

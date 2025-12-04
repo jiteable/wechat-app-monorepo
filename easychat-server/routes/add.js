@@ -12,17 +12,6 @@ router.post('/addFriend', authenticateToken, async function (req, res, next) {
     const { userId, source } = req.body; // 要添加为好友的用户ID
     const currentUserId = req.user.id; // 当前登录用户ID
 
-    // 检查目标用户是否设置了需要验证才能添加好友
-    const targetUserSettings = await db.userSetting.findUnique({
-      where: { userId: userId }
-    });
-
-    // // 如果目标用户设置了需要验证，则需要发送好友请求而不是直接添加
-    // if (targetUserSettings && targetUserSettings.needVerificationToAddFriend) {
-    //   // 这里应该创建好友请求记录，但由于需求未明确说明，我们暂时直接添加
-    //   // 在实际应用中，这里可能需要创建一个好友请求记录等待对方确认
-    // }
-
     let method = ''
 
     if (source == 'chatId') {
