@@ -81,7 +81,9 @@ const contactStore = userContactStore()
 const router = useRouter()
 
 const openContactManagement = () => {
-  window.electron.ipcRenderer.send('open-contact-window')
+  if (window.api) {
+    window.api.openContactWindow()
+  }
 }
 
 // 显示新朋友页面

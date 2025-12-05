@@ -134,7 +134,9 @@ const addFriendHandler = async (user) => {
 }
 
 const closeWindow = () => {
-  window.electron.ipcRenderer.send('close-add-friend-window')
+  if (window.api) {
+    window.api.closeAddFriendWindow()
+  }
 }
 </script>
 

@@ -293,11 +293,15 @@ const filteredGroupContacts = computed(() => {
 })
 
 const minimizeWindow = () => {
-  window.electron.ipcRenderer.send('minimize-contact-window')
+  if (window.api) {
+    window.api.minimizeContactWindow()
+  }
 }
 
 const closeWindow = () => {
-  window.electron.ipcRenderer.send('close-contact-window')
+  if (window.api) {
+    window.api.closeContactWindow()
+  }
 }
 
 const handleButtonClick = (buttonType) => {

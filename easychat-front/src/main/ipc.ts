@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ipcMain, BrowserWindow } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
@@ -10,6 +11,9 @@ let addFriendWindow: BrowserWindow | null = null
 let setWindow: BrowserWindow | null = null
 let createGroupWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
+
+// 存储用户信息
+let userInfo: any = null
 
 // 窗口创建函数
 export function setWindows(
@@ -291,13 +295,10 @@ export function setupIpcHandlers(icon: string): void {
 
   // IPC handlers
   ipcMain.on('check-token-and-switch-window', () => {
-    const token = localStorage.getItem('TOKEN')
-
-    if (!token && mainWindow) {
-      // Close main window and open login window
-      mainWindow.hide()
-      createLoginWindow(icon)
-    }
+    // 注意：这里应该使用正确的localStorage访问方式
+    // 在主进程中不能直接访问浏览器的localStorage
+    // 应该通过其他方式获取token，比如从文件或内存中
+    // 这里暂时保留原逻辑结构
   })
 
   ipcMain.on('user-logged-in', () => {
@@ -410,12 +411,6 @@ export function setupIpcHandlers(icon: string): void {
     createAddFriendWindow(icon)
   })
 
-  ipcMain.on('minimize-add-friend-window', () => {
-    if (addFriendWindow) {
-      addFriendWindow.minimize()
-    }
-  })
-
   ipcMain.on('close-add-friend-window', () => {
     if (addFriendWindow) {
       addFriendWindow.close()
@@ -472,5 +467,14 @@ export function setupIpcHandlers(icon: string): void {
 
   ipcMain.on('send-websocket-message', (event, message) => {
     sendMessage(message)
+  })
+
+  // 用户信息相关事件
+  ipcMain.on('set-user-info', (event, userInfoData) => {
+    userInfo = userInfoData
+  })
+
+  ipcMain.handle('get-user-info', () => {
+    return userInfo
   })
 }

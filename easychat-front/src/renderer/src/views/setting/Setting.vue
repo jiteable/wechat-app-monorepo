@@ -313,7 +313,7 @@ const handleAvatarUpload = async (event) => {
     event.target.value = ''
   } catch (error) {
     console.error('处理头像失败:', error)
-    ElMessage.error('处理头像失败')
+    ElMessage.error('处理头像失败,请重试')
   }
 }
 
@@ -351,8 +351,8 @@ const saveUserInfo = async () => {
 }
 
 const closeWindow = () => {
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('close-set-window')
+  if (window.api) {
+    window.api.closeSetWindow()
   }
 }
 
@@ -382,8 +382,11 @@ const applyChanges = async () => {
       hasChanges.value = false
 
       // 通知主窗口设置已更新
-      if (window.electron && window.electron.ipcRenderer) {
-        window.electron.ipcRenderer.send('settings-updated')
+      if (window.api) {
+        // 触发设置更新事件，让主窗口知道设置已更改
+        if (window.electron && window.electron.ipcRenderer) {
+          window.electron.ipcRenderer.send('settings-updated')
+        }
       }
 
       ElMessage.success('所有设置已保存')

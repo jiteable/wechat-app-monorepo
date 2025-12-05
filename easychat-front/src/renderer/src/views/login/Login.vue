@@ -186,8 +186,8 @@ const countDownText = computed(() => {
 
 const handleClose = () => {
   // 通知主进程关闭窗口
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('close-login-window')
+  if (window.api) {
+    window.api.closeWindow()
   }
 }
 
@@ -225,9 +225,9 @@ const handleLogin = async () => {
 
       // 通知主进程用户已登录
       console.log('About to send navigate-to-main IPC message')
-      if (window.electron && window.electron.ipcRenderer) {
+      if (window.api) {
         console.log('Sending navigate-to-main IPC message')
-        window.electron.ipcRenderer.send('navigate-to-main')
+        window.api.navigateToMain()
       } else {
         console.log('electron ipcRenderer not available, fallback to router navigation')
         // 如果IPC通信不可用，则尝试直接跳转到主页
@@ -329,8 +329,8 @@ const toggleForm = () => {
 
 // 监听isLogin的变化并通过IPC通知主进程调整窗口大小
 watch(isLogin, (newVal) => {
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('login-form-toggle', newVal)
+  if (window.api) {
+    window.api.toggleLoginForm(newVal)
   }
 })
 </script>

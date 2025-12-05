@@ -120,6 +120,12 @@ const createWs = () => {
             }
             break
 
+          case 'server_message':
+            // 处理服务器定时发送的消息
+            console.log('收到服务器定时消息:', data)
+            // 可以在这里添加处理逻辑，比如显示通知等
+            break
+
           default:
             console.log('收到未知类型消息:', data)
         }

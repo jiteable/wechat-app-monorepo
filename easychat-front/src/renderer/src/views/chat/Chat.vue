@@ -46,13 +46,17 @@ const searchText = ref('')
 const handleCreateGroup = () => {
   console.log('发起群聊')
   // 打开创建群组窗口
-  window.electron.ipcRenderer.send('open-create-group-window')
+  if (window.api) {
+    window.api.openCreateGroupWindow()
+  }
 }
 
 const handleAddFriend = () => {
   console.log('添加好友')
   // 创建新窗口用于添加好友
-  window.electron.ipcRenderer.send('open-add-friend-window')
+  if (window.api) {
+    window.api.openAddFriendWindow()
+  }
 }
 </script>
 

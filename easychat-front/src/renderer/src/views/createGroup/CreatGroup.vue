@@ -249,7 +249,7 @@ export default defineComponent({
 
         if (response.success) {
           ElMessage.success('群聊创建成功')
-          window.electron.ipcRenderer.send('close-create-group-window')
+          window.api.closeCreateGroupWindow()
         } else {
           ElMessage.error(response.message || '创建群聊失败')
         }
@@ -261,12 +261,12 @@ export default defineComponent({
 
     // 取消群组创建
     const cancelGroupCreation = () => {
-      window.electron.ipcRenderer.send('close-create-group-window')
+      window.api.closeCreateGroupWindow()
     }
 
     // 关闭窗口
     const closeWindow = () => {
-      window.electron.ipcRenderer.send('close-create-group-window')
+      window.api.closeCreateGroupWindow()
     }
 
     return {

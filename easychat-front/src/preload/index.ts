@@ -18,6 +18,8 @@ const api = {
   navigateToLogin: (): void => ipcRenderer.send('navigate-to-login'),
   navigateToMain: (): void => ipcRenderer.send('navigate-to-main'),
   refreshMainWindow: (): void => ipcRenderer.send('refresh-main-window'),
+  checkTokenAndSwitchWindow: (): void => ipcRenderer.send('check-token-and-switch-window'),
+  toggleLoginForm: (isLogin: boolean): void => ipcRenderer.send('login-form-toggle', isLogin),
 
   // 通讯录窗口相关
   openContactWindow: (): void => ipcRenderer.send('open-contact-window'),
@@ -27,7 +29,6 @@ const api = {
   // 添加好友窗口相关
   openAddFriendWindow: (): void => ipcRenderer.send('open-add-friend-window'),
   closeAddFriendWindow: (): void => ipcRenderer.send('close-add-friend-window'),
-  minimizeAddFriendWindow: (): void => ipcRenderer.send('minimize-add-friend-window'),
 
   // 设置窗口相关
   openSetWindow: (): void => ipcRenderer.send('open-set-window'),
@@ -49,6 +50,14 @@ const api = {
   },
   removeNewMessageListener: (): void => {
     ipcRenderer.removeAllListeners('new-message')
+  },
+
+  // 设置更新相关
+  onSettingsUpdated: (callback: () => void): void => {
+    ipcRenderer.on('settings-updated', () => callback())
+  },
+  removeSettingsUpdatedListener: (): void => {
+    ipcRenderer.removeAllListeners('settings-updated')
   }
 }
 

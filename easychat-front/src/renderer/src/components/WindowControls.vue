@@ -19,7 +19,13 @@
 </template>
 
 <script setup>
-import { windowState, toggleAlwaysOnTop, toggleMaximize, minimizeWindow, closeWindow } from '@/utils/windowState'
+import {
+  windowState,
+  toggleAlwaysOnTop,
+  toggleMaximize,
+  minimizeWindow,
+  closeWindow
+} from '@/utils/windowState'
 
 const isAlwaysOnTop = windowState.isAlwaysOnTop
 const isMaximized = windowState.isMaximized
