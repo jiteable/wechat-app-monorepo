@@ -1,11 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import WebSocket from 'ws'
 
-const NODE_ENV = process.env.NODE_ENV
+interface WsConfig {
+  userId?: string;
+}
+
+interface MessageSender {
+  handleNewMessage: (data: any) => void;
+}
 
 let ws: WebSocket | null = null
 let wsUrl: string | null = null
-let sender: any = null
+let sender: MessageSender | null = null
 let needReconnect: boolean = true
 let maxReConnectTimes: number = 5
 let lockReconnect: boolean = false
@@ -13,10 +19,12 @@ let reconnectTimeout: NodeJS.Timeout | null = null
 let heartbeatInterval: NodeJS.Timeout | null = null
 let userId: string | null = null
 
-const initWs = (config: any, _sender: any) => {
-  // 使用相对地址而不是硬编码的本地地址
-  wsUrl = `ws://localhost:3000/ws`
+const WEBSOCKET_URL = 'ws://localhost:3000/ws'
+const HEARTBEAT_INTERVAL = 30000
+const RECONNECT_DELAY = 5000
 
+const initWs = (config: WsConfig, _sender: MessageSender) => {
+  wsUrl = WEBSOCKET_URL
   sender = _sender
   userId = config.userId || null
   needReconnect = true
@@ -26,7 +34,15 @@ const initWs = (config: any, _sender: any) => {
 
 const closeWs = () => {
   needReconnect = false
+  cleanup()
 
+  if (ws) {
+    ws.close()
+    ws = null
+  }
+}
+
+const cleanup = () => {
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval)
     heartbeatInterval = null
@@ -35,11 +51,6 @@ const closeWs = () => {
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout)
     reconnectTimeout = null
-  }
-
-  if (ws) {
-    ws.close()
-    ws = null
   }
 }
 
@@ -84,20 +95,8 @@ const createWs = () => {
         ws!.send(authMessage)
       }
 
-      // 启动心跳机制(每30秒发送一次心跳)
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval)
-      }
-
-      heartbeatInterval = setInterval(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          const pingMessage = JSON.stringify({
-            type: 'ping'
-          })
-          console.log('Sending ping message:', pingMessage)
-          ws.send(pingMessage)
-        }
-      }, 30000)
+      // 启动心跳机制
+      setupHeartbeat()
     }
 
     // 从服务器接收到信息的回调函数
@@ -131,30 +130,53 @@ const createWs = () => {
 
     ws.onclose = function () {
       console.log('WebSocket连接已关闭')
-      // ... existing code ...
+      handleDisconnection()
     }
 
     ws.onerror = function (error) {
       console.error('WebSocket连接出错:', error)
       console.log('WebSocket readyState:', ws?.readyState)
 
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval)
-        heartbeatInterval = null
-      }
+      cleanup()
+      handleDisconnection()
     }
   } catch (error) {
     console.error('创建WebSocket连接失败:', error)
     lockReconnect = false
 
     // 出错时也尝试重连
-    if (needReconnect && maxReConnectTimes > 0) {
-      maxReConnectTimes--
-      console.log(`WebSocket尝试重连，剩余次数: ${maxReConnectTimes}`)
-      reconnectTimeout = setTimeout(() => {
-        createWs()
-      }, 5000)
+    handleReconnection()
+  }
+}
+
+const setupHeartbeat = () => {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval)
+  }
+
+  heartbeatInterval = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const pingMessage = JSON.stringify({
+        type: 'ping'
+      })
+      console.log('Sending ping message:', pingMessage)
+      ws.send(pingMessage)
     }
+  }, HEARTBEAT_INTERVAL)
+}
+
+const handleDisconnection = () => {
+  cleanup()
+  handleReconnection()
+}
+
+const handleReconnection = () => {
+  if (needReconnect && maxReConnectTimes > 0) {
+    maxReConnectTimes--
+    console.log(`WebSocket尝试重连，剩余次数: ${maxReConnectTimes}`)
+    reconnectTimeout = setTimeout(() => {
+      createWs()
+    }, RECONNECT_DELAY)
   }
 }
 
