@@ -26,6 +26,7 @@ router.get('/info', authenticateToken, async function (req, res, next) {
     // 返回用户信息
     res.json({
       user: {
+        userId: userId,
         username: user.username,
         avatar: user.avatar || '',
         chatId: user.chatId

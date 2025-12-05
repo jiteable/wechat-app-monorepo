@@ -11,8 +11,8 @@ export const toggleAlwaysOnTop = () => {
   windowState.isAlwaysOnTop.value = !windowState.isAlwaysOnTop.value
 
   // 通过 IPC 向主进程发送切换窗口置顶状态的消息
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('toggle-always-on-top', windowState.isAlwaysOnTop.value)
+  if (window.api && typeof window.api.toggleAlwaysOnTop === 'function') {
+    window.api.toggleAlwaysOnTop(windowState.isAlwaysOnTop.value)
   }
 }
 
@@ -21,23 +21,23 @@ export const toggleMaximize = () => {
   windowState.isMaximized.value = !windowState.isMaximized.value
 
   // 通过 IPC 向主进程发送切换最大化状态的消息
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('toggle-maximize-window', windowState.isMaximized.value)
+  if (window.api && typeof window.api.toggleMaximizeWindow === 'function') {
+    window.api.toggleMaximizeWindow(windowState.isMaximized.value)
   }
 }
 
 // 最小化窗口
 export const minimizeWindow = () => {
   // 通过 IPC 向主进程发送最小化窗口的消息
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('minimize-main-window')
+  if (window.api && typeof window.api.minimizeWindow === 'function') {
+    window.api.minimizeWindow()
   }
 }
 
 // 关闭窗口
 export const closeWindow = () => {
   // 通过 IPC 向主进程发送关闭窗口的消息
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('close-main-window')
+  if (window.api && typeof window.api.closeWindow === 'function') {
+    window.api.closeWindow()
   }
 }

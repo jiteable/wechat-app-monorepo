@@ -1,8 +1,56 @@
-import { contextBridge } from 'electron'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { UserInfo } from '../renderer/src/api/user/type'
 
 // Custom APIs for renderer
-const api = {}
+const api = {
+  // 窗口控制相关
+  closeWindow: (): void => ipcRenderer.send('close-main-window'),
+  minimizeWindow: (): void => ipcRenderer.send('minimize-main-window'),
+  toggleMaximizeWindow: (maximize: boolean): void =>
+    ipcRenderer.send('toggle-maximize-window', maximize),
+  toggleAlwaysOnTop: (isAlwaysOnTop: boolean): void =>
+    ipcRenderer.send('toggle-always-on-top', isAlwaysOnTop),
+
+  // 登录相关
+  userLoggedIn: (): void => ipcRenderer.send('user-logged-in'),
+  navigateToLogin: (): void => ipcRenderer.send('navigate-to-login'),
+  navigateToMain: (): void => ipcRenderer.send('navigate-to-main'),
+  refreshMainWindow: (): void => ipcRenderer.send('refresh-main-window'),
+
+  // 通讯录窗口相关
+  openContactWindow: (): void => ipcRenderer.send('open-contact-window'),
+  closeContactWindow: (): void => ipcRenderer.send('close-contact-window'),
+  minimizeContactWindow: (): void => ipcRenderer.send('minimize-contact-window'),
+
+  // 添加好友窗口相关
+  openAddFriendWindow: (): void => ipcRenderer.send('open-add-friend-window'),
+  closeAddFriendWindow: (): void => ipcRenderer.send('close-add-friend-window'),
+  minimizeAddFriendWindow: (): void => ipcRenderer.send('minimize-add-friend-window'),
+
+  // 设置窗口相关
+  openSetWindow: (): void => ipcRenderer.send('open-set-window'),
+  closeSetWindow: (): void => ipcRenderer.send('close-set-window'),
+
+  // 创建群组窗口相关
+  openCreateGroupWindow: (): void => ipcRenderer.send('open-create-group-window'),
+  closeCreateGroupWindow: (): void => ipcRenderer.send('close-create-group-window'),
+
+  // 用户信息相关
+  setUserInfo: (userInfo: UserInfo): void => ipcRenderer.send('set-user-info', userInfo),
+  getUserInfo: (): Promise<UserInfo> => ipcRenderer.invoke('get-user-info'),
+
+  // WebSocket 相关
+  initWebSocket: (userId: string): void => ipcRenderer.send('init-websocket', userId),
+  sendMessage: (message: any): void => ipcRenderer.send('send-websocket-message', message),
+  onNewMessage: (callback: (data: any) => void): void => {
+    ipcRenderer.on('new-message', (_event, data) => callback(data))
+  },
+  removeNewMessageListener: (): void => {
+    ipcRenderer.removeAllListeners('new-message')
+  }
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

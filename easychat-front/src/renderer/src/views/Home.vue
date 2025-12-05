@@ -149,6 +149,24 @@ const handleLogout = () => {
   window.electron.ipcRenderer.send('navigate-to-login')
 }
 
+// 初始化WebSocket连接
+const initWebSocket = () => {
+  console.log('wadwa')
+  // 通过IPC向主进程发送初始化WebSocket的消息
+  if (window.api && typeof window.api.initWebSocket === 'function') {
+    console.log('wadwaaaaaaaaa')
+    window.api.initWebSocket(userStore.$state.userId)
+  }
+
+  // 监听新消息
+  if (window.api && typeof window.api.onNewMessage === 'function') {
+    window.api.onNewMessage((data) => {
+      console.log('收到新消息:', data)
+      // 在这里处理新消息，比如更新聊天界面
+    })
+  }
+}
+
 onMounted(async () => {
   // 获取用户信息并存储到userStore中
   const userInfo = await getUserInfo()
@@ -159,7 +177,11 @@ onMounted(async () => {
   console.log('userSetting: ', userSettings)
   if (userInfo) {
     squareUrl.value = userInfo.avatar
-    userStore.initialUserInfo(userInfo.username, userInfo.avatar, userInfo.chatId)
+    console.log('1213')
+    userStore.initialUserInfo(userInfo.userId, userInfo.username, userInfo.avatar, userInfo.chatId)
+    console.log('userStore: ', userStore)
+    // 初始化WebSocket连接
+    initWebSocket()
     // 强制重新渲染 splitter 组件以避免初始化问题
     splitterKey.value += 1
   }
@@ -170,6 +192,11 @@ onMounted(async () => {
   onUnmounted(() => {
     window.removeEventListener('userSetStoreUpdated', handleStoreUpdate)
     window.removeEventListener('storage', handleStorageChange)
+
+    // 移除新消息监听器
+    if (window.api && typeof window.api.removeNewMessageListener === 'function') {
+      window.api.removeNewMessageListener()
+    }
   })
 })
 

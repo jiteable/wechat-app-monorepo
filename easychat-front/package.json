@@ -30,7 +30,8 @@
     "element-plus": "^2.11.8",
     "pinia": "^3.0.4",
     "pinyin-pro": "^3.27.0",
-    "vue-router": "^4.6.3"
+    "vue-router": "^4.6.3",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^1.0.2",

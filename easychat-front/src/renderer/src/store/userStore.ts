@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 const STORE_UPDATE_EVENT = 'userStoreUpdated'
 
 interface UserState {
+  userId: string
   username: string
   avatar: string
   chatId: string
@@ -10,12 +11,14 @@ interface UserState {
 
 export const useUserStore = defineStore('user', {
   state: (): UserState => ({
+    userId: '',
     username: '',
     avatar: '',
     chatId: ''
   }),
   actions: {
-    initialUserInfo(username: string, avatar: string, chatId: string) {
+    initialUserInfo(userId: string, username: string, avatar: string, chatId: string) {
+      this.userId = userId
       this.username = username
       this.avatar = avatar
       this.chatId = chatId

@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { initWs, sendMessage } from './wsClient'
 
 let mainWindow: BrowserWindow | null = null
 let loginWindow: BrowserWindow | null = null
@@ -21,6 +22,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
+      contextIsolation: true,
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
     }
@@ -506,6 +508,32 @@ app.whenReady().then(() => {
       createGroupWindow.close()
       createGroupWindow = null
     }
+  })
+
+  ipcMain.on('init-websocket', (event, userId) => {
+    initWs(
+      {
+        userId: userId
+      },
+      {
+        // 处理从服务器接收的新消息
+        handleNewMessage: (data) => {
+          console.log('收到新消息:', data)
+          // 将消息转发给所有打开的窗口
+          if (mainWindow) {
+            mainWindow.webContents.send('new-message', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('new-message', data)
+          }
+          // 可以为其他窗口也添加消息转发
+        }
+      }
+    )
+  })
+
+  ipcMain.on('send-websocket-message', (event, message) => {
+    sendMessage(message)
   })
 
   app.on('activate', function () {

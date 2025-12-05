@@ -6,3 +6,12 @@ declare module '*.vue' {
   const component: DefineComponent<{}, {}, any>
   export default component
 }
+
+interface Window {
+  api: {
+    toggleAlwaysOnTop: (isAlwaysOnTop: boolean) => void
+    toggleMaximizeWindow: (maximize: boolean) => void
+    minimizeWindow: () => void
+    closeWindow: () => void
+  }
+}

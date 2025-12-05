@@ -2,7 +2,6 @@ import http from '../../utils/http'
 import { UserInfo, ApiResponse, UserSetState, UserApiResponse } from './type'
 import config from '../../config'
 
-
 enum API {
   GET_USERINFO_URL = '/user/info',
   GET_SETTINGINFO_URL = '/user/settingInfo',
@@ -22,9 +21,10 @@ export async function getUserInfo(): Promise<UserInfo | null> {
     // 调用后端API获取用户信息（Authorization头由拦截器自动添加）
     const response = await http.get<UserApiResponse>(`${config.api}${API.GET_USERINFO_URL}`)
 
-    const { username, avatar, chatId } = response.data.user
+    const { userId, username, avatar, chatId } = response.data.user
 
     return {
+      userId,
       username,
       avatar,
       chatId

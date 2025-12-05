@@ -138,14 +138,14 @@ model FriendRequest {
 }
 
 model GroupInvitation {
-  id              String    @id @default(cuid())             // 邀请唯一标识符
+  id              String    @id @default(cuid())           // 邀请唯一标识符
   groupId         String                                   // 被邀请的群组ID
   inviterId       String                                   // 邀请人ID
   inviteeId       String                                   // 被邀请人ID
-  status          String    @default("pending")             // 邀请状态: pending, accepted, rejected
+  status          String    @default("pending")            // 邀请状态: pending, accepted, rejected
   inviteMessage   String?                                  // 邀请附加的消息
-  createdAt       DateTime  @default(now())                 // 邀请创建时间
-  updatedAt       DateTime  @updatedAt                      // 邀请更新时间
+  createdAt       DateTime  @default(now())                // 邀请创建时间
+  updatedAt       DateTime  @updatedAt                     // 邀请更新时间
   
   group           Group     @relation(fields: [groupId], references: [id])     // 群组对象
   inviter         User      @relation(name: "GroupInvitationInviter", fields: [inviterId], references: [id])   // 邀请人对象

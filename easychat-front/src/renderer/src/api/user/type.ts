@@ -1,4 +1,5 @@
 export interface UserInfo {
+  userId: string
   username: string
   avatar: string
   chatId: string
