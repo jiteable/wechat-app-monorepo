@@ -7,7 +7,6 @@
 var app = require('../app');
 var debug = require('debug')('easychat-server:server');
 var http = require('http');
-var WebSocket = require('ws');
 
 /**
  * Get port from environment and store in Express.
@@ -23,162 +22,11 @@ app.set('port', port);
 var server = http.createServer(app);
 
 /**
- * Create WebSocket server.
+ * Initialize WebSocket server.
  */
-var wss = new WebSocket.Server({ server });
 
-// 存储连接的客户端 (userId -> websocket)
-const clients = new Map();
-
-wss.on('connection', function connection(ws, req) {
-  console.log('新的WebSocket连接已建立');
-
-  // 设置连接超时
-  ws.isAlive = true;
-
-  // 心跳检测
-  ws.on('pong', () => {
-    ws.isAlive = true;
-  });
-
-  // 处理收到的消息
-  ws.on('message', function incoming(message) {
-    try {
-      const data = JSON.parse(message);
-
-      // 如果是认证消息
-      if (data.type === 'auth') {
-        // 这里应该验证token并关联用户ID到连接
-        // 简化示例中直接使用userId
-        const userId = data.userId;
-        if (userId) {
-          // 如果该用户已经有连接，先断开旧连接
-          if (clients.has(userId)) {
-            const oldWs = clients.get(userId);
-            if (oldWs !== ws) {
-              oldWs.close();
-            }
-          }
-
-          clients.set(userId, ws);
-          ws.userId = userId;
-
-          // 发送连接成功的消息
-          ws.send(JSON.stringify({
-            type: 'connection_success',
-            message: '成功连接到WebSocket服务器'
-          }));
-
-          console.log(`用户 ${userId} 已连接`);
-        }
-      }
-      // 处理ping消息
-      else if (data.type === 'ping') {
-        // 回复pong消息
-        ws.send(JSON.stringify({
-          type: 'pong'
-        }));
-      }
-      // 其他类型的消息处理
-      else {
-        handleMessage(ws, data);
-      }
-    } catch (error) {
-      console.error('解析消息错误:', error);
-    }
-  });
-
-  // 处理连接关闭
-  ws.on('close', function close() {
-    console.log('WebSocket连接已关闭');
-    if (ws.userId) {
-      clients.delete(ws.userId);
-      console.log(`用户 ${ws.userId} 已断开连接`);
-    }
-  });
-
-  // 处理错误
-  ws.on('error', function error(err) {
-    console.error('WebSocket错误:', err);
-    if (ws.userId) {
-      clients.delete(ws.userId);
-    }
-  });
-});
-
-// 处理不同类型的消息
-function handleMessage(ws, data) {
-  switch (data.type) {
-    case 'chat_message':
-      // 处理聊天消息
-      handleChatMessage(data);
-      break;
-
-    default:
-      console.log('未知消息类型:', data.type);
-      ws.send(JSON.stringify({
-        type: 'error',
-        message: '未知消息类型'
-      }));
-  }
-}
-
-// 处理聊天消息
-function handleChatMessage(data) {
-  // 这里可以添加具体的消息处理逻辑
-  // 比如保存到数据库、转发给其他用户等
-
-  // 示例：如果消息有目标用户，则转发给该用户
-  if (data.targetUserId) {
-    const targetClient = clients.get(data.targetUserId);
-    if (targetClient && targetClient.readyState === WebSocket.OPEN) {
-      targetClient.send(JSON.stringify({
-        type: 'new_message',
-        from: data.fromUserId,
-        message: data.message,
-        timestamp: Date.now()
-      }));
-    }
-  }
-}
-
-// 定期检查客户端连接状态 (心跳检测)
-const interval = setInterval(() => {
-  wss.clients.forEach((ws) => {
-    if (ws.isAlive === false) {
-      return ws.terminate();
-    }
-
-    ws.isAlive = false;
-    ws.ping(() => { });
-  });
-}, 30000);
-
-// 添加定时发送消息给所有连接的客户端 (每10秒)
-const messageInterval = setInterval(() => {
-  const messageData = {
-    type: 'server_message',
-    message: '这是一条来自服务器的定时消息',
-    timestamp: Date.now(),
-    data: {
-      randomValue: Math.random() // 添加一些动态数据
-    }
-  };
-
-  // 向所有连接的客户端发送消息
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(messageData));
-    }
-  });
-
-  console.log('已向所有连接的客户端发送定时消息');
-}, 10000); // 每10秒发送一次
-
-wss.on('close', () => {
-  clearInterval(interval);
-  clearInterval(messageInterval); // 清理定时器
-});
+var initWebSocketServer = require('../websocket');
+initWebSocketServer(server);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -224,11 +72,11 @@ function onError(error) {
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' 需要提升权限');
+      console.error(bind + ' requires elevated privileges');
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error(bind + ' 端口已被占用');
+      console.error(bind + ' is already in use');
       process.exit(1);
       break;
     default:
@@ -246,5 +94,4 @@ function onListening() {
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
-  console.log('WebSocket服务器运行在 ws://localhost:' + addr.port);
 }
