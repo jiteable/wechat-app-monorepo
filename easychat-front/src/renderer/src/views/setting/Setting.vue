@@ -381,9 +381,9 @@ const applyChanges = async () => {
 
       hasChanges.value = false
 
-      // 通知主窗口刷新
+      // 通知主窗口设置已更新
       if (window.electron && window.electron.ipcRenderer) {
-        window.electron.ipcRenderer.send('refresh-main-window')
+        window.electron.ipcRenderer.send('settings-updated')
       }
 
       ElMessage.success('所有设置已保存')
@@ -395,7 +395,6 @@ const applyChanges = async () => {
     ElMessage.error('保存设置失败')
   }
 }
-
 </script>
 
 <style scoped lang="scss">

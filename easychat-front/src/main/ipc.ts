@@ -344,7 +344,16 @@ export function setupIpcHandlers(icon: string): void {
   // 监听刷新主窗口的请求
   ipcMain.on('refresh-main-window', () => {
     if (mainWindow) {
+      // 刷新主窗口
       mainWindow.reload()
+    }
+  })
+
+  // 监听设置更新事件
+  ipcMain.on('settings-updated', () => {
+    // 通知主窗口设置已更新，但不强制刷新整个页面
+    if (mainWindow) {
+      mainWindow.webContents.send('settings-updated')
     }
   })
 
