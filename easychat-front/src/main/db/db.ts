@@ -120,3 +120,70 @@ export const getDatabase = (): Database => {
   }
   return db
 }
+
+export async function insertUser() {
+  try {
+    const db = getDatabase()
+
+    const newUser = {
+      username: 'john_doe',
+      email: 'john@example.com',
+      password: 'encrypted_password_here',
+      avatar: 'path/to/avatar.jpg',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    const insertedUser = await db.users.insert(newUser)
+    console.log('用户插入成功:', insertedUser)
+    return insertedUser
+  } catch (error) {
+    console.error('插入用户失败:', error)
+  }
+}
+
+// 插入聊天消息示例
+export async function insertChatMessage() {
+  try {
+    const db = getDatabase()
+
+    const newMessage = {
+      sessionId: 'session_123',
+      senderId: 'user_456',
+      messageType: 'text',
+      content: '这是一条测试消息',
+      timestamp: new Date(),
+      status: 'sent'
+    }
+
+    const insertedMessage = await db.messages.insert(newMessage)
+    console.log('消息插入成功:', insertedMessage)
+    return insertedMessage
+  } catch (error) {
+    console.error('插入消息失败:', error)
+  }
+}
+
+// 插入会话用户关系示例
+export async function insertSessionUser() {
+  try {
+    const db = getDatabase()
+
+    const newSessionUser = {
+      sessionId: 'session_123',
+      userId: 'user_456',
+      joinTime: new Date(),
+      lastReadTime: new Date(),
+      isMuted: false,
+      isPinned: false,
+      unreadCount: 0,
+      sessionType: 'private'
+    }
+
+    const insertedSessionUser = await db.sessionUsers.insert(newSessionUser)
+    console.log('会话用户关系插入成功:', insertedSessionUser)
+    return insertedSessionUser
+  } catch (error) {
+    console.error('插会话用户关系失败:', error)
+  }
+}

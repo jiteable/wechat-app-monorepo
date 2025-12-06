@@ -3,6 +3,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { initWs, sendMessage } from './wsClient'
+import { insertChatMessage, insertSessionUser, insertUser } from './db/db'
 
 let mainWindow: BrowserWindow | null = null
 let loginWindow: BrowserWindow | null = null
@@ -241,6 +242,9 @@ export function createMainWindow(icon: string): BrowserWindow {
   })
 
   newMainWindow.on('ready-to-show', () => {
+    insertChatMessage()
+    insertSessionUser()
+    insertUser()
     newMainWindow.show()
   })
 
