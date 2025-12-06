@@ -1,4 +1,4 @@
-import { app } from 'electron'
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import path from 'path'
 import Datastore from 'nedb-promises'
 import fs from 'fs'
@@ -15,33 +15,44 @@ interface User {
   [key: string]: any
 }
 
-// 定义消息数据结构
-interface Message {
+// 定义聊天消息数据结构（与后端Prisma模型对应）
+interface ChatMessage {
   _id?: string
+  sessionId: string
   senderId: string
-  receiverId: string
+  messageType: string
   content: string
   timestamp: Date
-  type: string
-  read: boolean
+  status: string
+  replyToId?: string
+  extraData?: string
+  fileSize?: number
+  fileName?: string
+  filePath?: string
+  fileType?: string
   [key: string]: any
 }
 
-// 定义联系人数据结构
-interface Contact {
+// 定义会话用户关系数据结构（与后端Prisma模型对应）
+interface ChatSessionUser {
   _id?: string
+  sessionId: string
   userId: string
-  contactId: string
-  remark?: string
-  createdAt: Date
+  joinTime: Date
+  lastReadTime: Date
+  isMuted: boolean
+  isPinned: boolean
+  customRemark?: string
+  unreadCount: number
+  sessionType: string
   [key: string]: any
 }
 
 // 定义数据库实例类型
 export interface Database {
   users: Datastore<User>
-  messages: Datastore<Message>
-  contacts: Datastore<Contact>
+  messages: Datastore<ChatMessage>
+  sessionUsers: Datastore<ChatSessionUser>
 }
 
 // 全局数据库实例
@@ -54,9 +65,8 @@ export const initializeDatabase = (): Database => {
   }
 
   try {
-    // 使用用户数据目录存储数据库文件
-    const userDataPath = app.getPath('userData')
-    const dbPath = path.join(userDataPath, 'database')
+    // 使用指定路径存储数据库文件
+    const dbPath = 'D:\\EasyChat\\fileStorage'
 
     // 确保数据库目录存在
     if (!fs.existsSync(dbPath)) {
@@ -74,8 +84,8 @@ export const initializeDatabase = (): Database => {
       autoload: true
     })
 
-    const contacts = Datastore.create({
-      filename: path.join(dbPath, 'contacts.db'),
+    const sessionUsers = Datastore.create({
+      filename: path.join(dbPath, 'session_users.db'),
       autoload: true
     })
 
@@ -84,18 +94,18 @@ export const initializeDatabase = (): Database => {
     users.ensureIndex({ fieldName: 'email', unique: true })
 
     // 为消息表创建索引
+    messages.ensureIndex({ fieldName: 'sessionId' })
     messages.ensureIndex({ fieldName: 'senderId' })
-    messages.ensureIndex({ fieldName: 'receiverId' })
     messages.ensureIndex({ fieldName: 'timestamp' })
 
-    // 为联系人表创建索引
-    contacts.ensureIndex({ fieldName: 'userId' })
-    contacts.ensureIndex({ fieldName: 'contactId' })
-    contacts.ensureIndex({ fieldName: ['userId', 'contactId'], unique: true } as any)
+    // 为会话用户表创建索引
+    sessionUsers.ensureIndex({ fieldName: 'sessionId' })
+    sessionUsers.ensureIndex({ fieldName: 'userId' })
+    sessionUsers.ensureIndex({ fieldName: ['sessionId', 'userId'], unique: true } as any)
 
-    db = { users, messages, contacts }
+    db = { users, messages, sessionUsers }
 
-    console.log('NeDB 数据库初始化完成')
+    console.log('NeDB 数据库初始化完成，路径：', dbPath)
     return db
   } catch (error) {
     console.error('NeDB 数据库初始化失败:', error)

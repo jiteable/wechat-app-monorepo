@@ -9,6 +9,8 @@ import {
   setWindows,
   setScaleFactor
 } from './ipc'
+import { initializeDatabase } from './db/db'
+
 
 let mainWindow: BrowserWindow | null = null
 const loginWindow: BrowserWindow | null = null
@@ -24,6 +26,9 @@ let scaleFactor = 1.0
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
+
+  // 初始化数据库
+  initializeDatabase()
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
