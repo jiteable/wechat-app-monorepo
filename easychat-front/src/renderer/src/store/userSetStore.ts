@@ -16,6 +16,9 @@ interface UserSetState {
   openFileInReadonlyMode: boolean // 是否以只读的方式打开聊天中的文件
   showWebSearchHistory: boolean // 是否显示网络搜索历史
   autoConvertVoiceToText: boolean // 是否将聊天语音自动转成文字
+
+  // 聊天文件保存路径
+  chatSaveUrlSetting: string // 聊天文件保存路径设置
 }
 
 // 定义事件名称常量
@@ -37,7 +40,10 @@ export const useUserSetStore = defineStore('userSet', {
     fontSize: 14, // 字体大小设置
     openFileInReadonlyMode: false, // 是否以只读的方式打开聊天中的文件
     showWebSearchHistory: true, // 是否显示网络搜索历史
-    autoConvertVoiceToText: true // 是否将聊天语音自动转成文字
+    autoConvertVoiceToText: true, // 是否将聊天语音自动转成文字
+
+    // 聊天文件保存路径
+    chatSaveUrlSetting: '' // 聊天文件保存路径设置
   }),
 
   actions: {

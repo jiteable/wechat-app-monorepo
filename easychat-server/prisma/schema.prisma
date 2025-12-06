@@ -114,6 +114,8 @@ model UserSetting{
   openFileInReadonlyMode        Boolean  @default(false)        // 是否以只读的方式打开聊天中的文件
   showWebSearchHistory          Boolean  @default(true)         // 是否显示网络搜索历史
   autoConvertVoiceToText        Boolean  @default(true)         // 是否将聊天语音自动转成文字
+
+  chatSaveUrlSetting            String   @default("D:\\EasyChat\\fileStorage\\")    // 聊天文件保存路径设置
   
   createdAt                     DateTime @default(now())        // 设置创建时间
   updatedAt                     DateTime @updatedAt             // 设置更新时间
@@ -155,3 +157,40 @@ model GroupInvitation {
   @@index([inviterId])
   @@index([inviteeId])
 }
+
+model ChatMessage {
+  id              String     @id @default(cuid())           // 消息唯一标识符
+  sessionId       String                                    // 会话ID
+  senderId        String                                    // 发送者ID
+  messageType     String                                    // 消息类型 (text, image, file, voice, etc.)
+  content         String                                    // 消息内容
+  timestamp       DateTime   @default(now())                // 消息发送时间
+  status          String     @default("sent")               // 消息状态 (sending, sent, delivered, read)
+  replyToId       String?                                   // 回复的消息ID，可选
+  extraData       String?    @db.Text                       // 额外数据，如文件路径、图片尺寸等，可选
+  fileSize        Int?                                      // 文件大小
+  fileName        String?                                   // 文件名
+  filePath        String?                                   // 文件路径
+  fileType        String?                                   // 文件类型
+
+  @@index([sessionId])
+  @@index([senderId])
+  @@index([timestamp])
+}
+
+model ChatSessionUser{
+  id              String     @id @default(cuid())          // 会话用户关系唯一标识符
+  sessionId       String                                   // 会话ID
+  userId          String                                   // 用户ID
+  joinTime        DateTime   @default(now())               // 加入会话时间
+  lastReadTime    DateTime   @default(now())               // 最后阅读消息时间
+  isMuted         Boolean    @default(false)               // 是否免打扰
+  isPinned        Boolean    @default(false)               // 是否置顶会话
+  customRemark    String?                                  // 自定义备注
+  unreadCount     Int        @default(0)                   // 未读消息数
+  sessionType     String     @default("private")           // 会话类型: private, group
+  
+  @@unique([sessionId, userId])
+  @@index([userId])
+}
+

@@ -38,6 +38,13 @@
               <span>聊天ID:</span>
               <el-input v-model="chatId" size="small" style="width: 200px" />
             </div>
+
+            <!-- 聊天记录保存路径设置 -->
+            <div class="setting-item">
+              <span>聊天文件保存路径:</span>
+              <el-input v-model="settings.chatSaveUrlSetting" size="small" style="width: 200px"
+                @input="onSettingChange" />
+            </div>
           </div>
         </el-tab-pane>
 
@@ -245,7 +252,8 @@ const loadUserSettings = async () => {
     if (serverSettings) {
       // 更新本地设置
       Object.assign(settings, serverSettings)
-      originalSettings.value = { ...serverSettings }
+      // 确保原始设置也是全新的副本
+      originalSettings.value = JSON.parse(JSON.stringify(serverSettings))
       checkForChanges()
     }
   } catch (error) {
@@ -253,16 +261,48 @@ const loadUserSettings = async () => {
   }
 }
 
-// 检查设置是否有变更
 const checkForChanges = () => {
   const userInfoChanged =
     username.value !== originalUserInfo.value.username ||
     chatId.value !== originalUserInfo.value.chatId ||
     avatar.value !== originalUserInfo.value.avatar
 
-  const settingsChanged = JSON.stringify(settings) !== JSON.stringify(originalSettings.value)
+  // 深度比较设置变化，忽略函数和其他非设置属性
+  const settingsChanged = !isEqual(settings, originalSettings.value)
 
   hasChanges.value = userInfoChanged || settingsChanged
+}
+
+// 深度比较两个对象是否相等
+const isEqual = (obj1, obj2) => {
+  // 如果两个对象引用相同，则直接相等
+  if (obj1 === obj2) return true
+
+  // 获取对象的键
+  const keys1 = Object.keys(obj1)
+  const keys2 = Object.keys(obj2)
+
+  // 如果键的数量不同，则不相等
+  if (keys1.length !== keys2.length) return false
+
+  // 检查每个键的值是否相等
+  for (let key of keys1) {
+    // 忽略函数类型的属性
+    if (typeof obj1[key] === 'function') continue
+
+    // 如果 obj2 中没有这个键，则不相等
+    if (!Object.prototype.hasOwnProperty.call(obj2, key)) return false
+
+    // 如果值是对象，则递归比较
+    if (typeof obj1[key] === 'object' && typeof obj2[key] === 'object') {
+      if (!isEqual(obj1[key], obj2[key])) return false
+    } else {
+      // 简单值直接比较
+      if (obj1[key] !== obj2[key]) return false
+    }
+  }
+
+  return true
 }
 
 // 当设置改变时调用

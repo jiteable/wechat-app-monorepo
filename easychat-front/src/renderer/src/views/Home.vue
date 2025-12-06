@@ -5,10 +5,10 @@
         <div class="home-left">
           <el-avatar style="margin-left: 12px; margin-top: 10px" shape="square" :size="40" :src="squareUrl"
             @error="handleAvatarError" />
-          <el-button class="box no-drag first-box" :class="{ 'active': activeButton === 'chat' }" @click="goToChat">
+          <el-button class="box no-drag first-box" :class="{ active: activeButton === 'chat' }" @click="goToChat">
             <i class="iconfont icon-chat2"></i>
           </el-button>
-          <el-button class="box no-drag" :class="{ 'active': activeButton === 'contact' }" @click="goToContact">
+          <el-button class="box no-drag" :class="{ active: activeButton === 'contact' }" @click="goToContact">
             <i class="iconfont icon-user"></i>
           </el-button>
           <div class="drawer-toggle-wrapper">
@@ -218,9 +218,7 @@ const handleAvatarError = () => {
 
 .home-left {
   background-color: rgb(247, 247, 247);
-  border: 1px solid rgb(219,
-      219,
-      219);
+  border: 1px solid rgb(219, 219, 219);
   height: 100%;
   padding: 10px 0;
   display: flex;

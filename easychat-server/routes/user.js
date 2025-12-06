@@ -63,6 +63,7 @@ router.get('/settingInfo', authenticateToken, async function (req, res, next) {
         canAddFromGroup: userSettings.canAddFromGroup,
         language: userSettings.language,
         fontSize: userSettings.fontSize,
+        chatSaveUrlSetting: userSettings.chatSaveUrlSetting,
         openFileInReadonlyMode: userSettings.openFileInReadonlyMode,
         showWebSearchHistory: userSettings.showWebSearchHistory,
         autoConvertVoiceToText: userSettings.autoConvertVoiceToText
@@ -90,7 +91,8 @@ router.post('/setSetting', authenticateToken, async function (req, res, next) {
       fontSize,
       openFileInReadonlyMode,
       showWebSearchHistory,
-      autoConvertVoiceToText
+      autoConvertVoiceToText,
+      chatSaveUrlSetting
     } = req.body;
 
     // 更新或创建用户设置
@@ -107,6 +109,7 @@ router.post('/setSetting', authenticateToken, async function (req, res, next) {
         openFileInReadonlyMode,
         showWebSearchHistory,
         autoConvertVoiceToText,
+        chatSaveUrlSetting,
         updatedAt: new Date()
       },
       create: {
@@ -120,7 +123,8 @@ router.post('/setSetting', authenticateToken, async function (req, res, next) {
         fontSize: fontSize || 14,
         openFileInReadonlyMode: openFileInReadonlyMode !== undefined ? openFileInReadonlyMode : false,
         showWebSearchHistory: showWebSearchHistory !== undefined ? showWebSearchHistory : true,
-        autoConvertVoiceToText: autoConvertVoiceToText !== undefined ? autoConvertVoiceToText : true
+        autoConvertVoiceToText: autoConvertVoiceToText !== undefined ? autoConvertVoiceToText : true,
+        chatSaveUrlSetting: chatSaveUrlSetting || ''
       }
     });
 
