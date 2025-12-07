@@ -31,11 +31,22 @@ model User {
   sessions      Session[]                              // 用户会话列表（一对多关系）
   settings      UserSetting?                           // 用户设置（一对一关系）
   
-  // 反向关系字段
+   // 反向关系字段
   sentFriendRequests     FriendRequest[] @relation("FriendRequestFrom")
   receivedFriendRequests FriendRequest[] @relation("FriendRequestTo")
   sentGroupInvitations   GroupInvitation[] @relation("GroupInvitationInviter")
   receivedGroupInvitations GroupInvitation[] @relation("GroupInvitationInvitee")
+  
+  // 消息相关关系
+  sentMessages           Message[]      @relation("SentMessages")
+  receivedMessages       Message[]      @relation("ReceivedMessages")
+  
+  // 会话相关关系
+  chatSessions           ChatSessionUser[]  // 用户参与的聊天会话
+  
+  // 好友关系
+  friends                UserWithFriend[] @relation("UserFriends")
+  friendOf               UserWithFriend[] @relation("FriendOfUser")
 }
 
 model VerificationToken {
@@ -65,7 +76,7 @@ model UserWithFriend{
   @@unique([userId, friendId])                       // 用户和朋友ID组合唯一索引
 }
 
-model Group{
+model Group {
   id          String   @id @default(cuid())          // 群组唯一标识符
   ownerId     String                                 // 群主ID
   adminIds    String[]                               // 管理员ID数组 包括创建者
@@ -75,10 +86,19 @@ model Group{
   createdAt   DateTime @default(now())               // 创建时间
   updatedAt   DateTime @updatedAt                    // 更新时间
   image       String?                                // 群图片
+  type        String   @default("normal")            // 群组类型: normal, work
+  mutedMembers String[]                             // 禁言成员列表
+  allowMembersInvite Boolean @default(true)         // 是否允许成员邀请新成员
+  needApprovalToJoin Boolean @default(true)         // 是否需要审批才能加入
+  isDismissed Boolean  @default(false)               // 群组是否已解散
+  dismissedAt DateTime?                              // 群组解散时间
   
   // 反向关系字段
   invitations GroupInvitation[]
+  messages    GroupMessage[]
+  chatSessions ChatSession[]                         // 群组关联的聊天会话
 }
+
 
 model UserWithGroup{
   id                  String   @id @default(cuid()) // 用户与群组关系唯一标识符
@@ -154,4 +174,180 @@ model GroupInvitation {
   @@index([groupId])
   @@index([inviterId])
   @@index([inviteeId])
+}
+
+// 消息状态枚举
+enum MessageStatus {
+  SENDING
+  SENT
+  DELIVERED
+  READ
+}
+
+
+// 私聊消息模型
+// 私聊消息模型
+model Message {
+  id           String        @id @default(cuid())     // 消息唯一标识符
+  fromUserId   String                                 // 发送者ID
+  toUserId     String                                 // 接收者ID
+  content      String                                 // 消息内容
+  messageType  String        @default("text")         // 消息类型: text, image, file, emoji, voice, video
+  mediaUrl     String?                                // 媒体文件URL (图片/文件)
+  fileName     String?                                // 文件名 (针对文件类型消息)
+  fileSize     Int?                                   // 文件大小 (针对文件类型消息)
+  status       MessageStatus @default(SENDING)        // 消息状态
+  readStatus   Boolean       @default(false)          // 是否已读
+  isRecalled   Boolean       @default(false)          // 是否已撤回
+  isDeleted    Boolean       @default(false)          // 是否已删除
+  createdAt    DateTime      @default(now())          // 消息创建时间
+  updatedAt    DateTime      @updatedAt               // 消息更新时间
+  recalledAt   DateTime?                              // 撤回时间
+  deletedAt    DateTime?                              // 删除时间
+  
+  // 关系
+  fromUser     User          @relation(name: "SentMessages", fields: [fromUserId], references: [id])
+  toUser       User          @relation(name: "ReceivedMessages", fields: [toUserId], references: [id])
+  
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([createdAt])
+}
+
+// 群聊消息模型
+model GroupMessage {
+  id           String      @id @default(cuid())           // 消息唯一标识符
+  groupId      String                                     // 群组ID
+  senderId     String                                     // 发送者ID
+  content      String                                     // 消息内容
+  messageType  String      @default("text")               // 消息类型: text, image, file, emoji, voice, video
+  mediaUrl     String?                                    // 媒体文件URL (图片/文件)
+  fileName     String?                                    // 文件名 (针对文件类型消息)
+  fileSize     Int?                                       // 文件大小 (针对文件类型消息)
+  isRecalled   Boolean     @default(false)                // 是否已撤回
+  isDeleted    Boolean     @default(false)                // 是否已删除
+  createdAt    DateTime    @default(now())                // 消息创建时间
+  updatedAt    DateTime    @updatedAt                     // 消息更新时间
+  recalledAt   DateTime?                                  // 撤回时间
+  deletedAt    DateTime?                                  // 删除时间
+  
+  // 关系
+  group        Group       @relation(fields: [groupId], references: [id])
+  sender       User        @relation(fields: [senderId], references: [id])
+  
+  @@index([groupId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+// 文件模型 - 用于标识群聊或私聊时上传的文件
+model File {
+  id              String      @id @default(cuid())       // 文件唯一标识符
+  name            String                                 // 原始文件名
+  url             String                                 // 文件访问URL
+  thumbnailUrl    String?                                // 缩略图URL (适用于图片)
+  size            Int                                    // 文件大小 (字节)
+  mimeType        String                                 // MIME类型
+  fileType        String                                 // 文件类型分类 (image/document/video/audio等)
+  uploaderId      String                                 // 上传者ID
+  messageId       String?                                // 关联的私聊消息ID
+  groupMessageId  String?                                // 关联的群聊消息ID
+  createdAt       DateTime    @default(now())            // 上传时间
+  expireAt        DateTime?                              // 过期时间 (可选)
+  
+  // 关系
+  uploader        User        @relation(fields: [uploaderId], references: [id])
+  message         Message?    @relation(fields: [messageId], references: [id])
+  groupMessage    GroupMessage? @relation(fields: [groupMessageId], references: [id])
+  
+  @@index([uploaderId])
+  @@index([messageId])
+  @@index([groupMessageId])
+  @@index([createdAt])
+  @@index([fileType])
+}
+
+// 聊天会话模型 - 用于确定用户进入的是群聊还是私聊
+model ChatSession {
+  id              String      @id @default(cuid())       // 会话唯一标识符
+  sessionType     String                                 // 会话类型: private(私聊) 或 group(群聊)
+  name            String?                                // 会话名称 (群聊名称或私聊时对方的备注名)
+  avatar          String?                                // 会话头像 (群头像或对方头像)
+  ownerId         String?                                // 会话创建者ID (主要用于群聊)
+  createdAt       DateTime    @default(now())            // 会话创建时间
+  updatedAt       DateTime    @updatedAt                 // 会话更新时间
+  isPinned        Boolean     @default(false)            // 是否置顶
+  isMuted         Boolean     @default(false)            // 是否免打扰
+  isDeleted       Boolean     @default(false)            // 是否已删除
+  deletedAt       DateTime?                              // 删除时间
+  
+  // 关系
+  group           Group?      @relation(fields: [groupId], references: [id])  // 关联的群组 (仅群聊)
+  groupId         String?                                                    // 群组ID (仅群聊)
+  privateWithUserId String?                                                  // 私聊对象的用户ID (仅私聊)
+  users           ChatSessionUser[]                                          // 参与此会话的用户
+  messages        ChatSessionMessage[]                                       // 此会话的消息
+  
+  @@index([sessionType])
+  @@index([ownerId])
+  @@index([groupId])
+  @@index([privateWithUserId])
+}
+
+// 聊天会话用户关系模型 - 记录用户与会话的关系
+model ChatSessionUser {
+  id              String      @id @default(cuid())       // 关系唯一标识符
+  sessionId       String                                 // 会话ID
+  userId          String                                 // 用户ID
+  joinTime        DateTime    @default(now())            // 加入时间
+  lastReadTime    DateTime    @default(now())            // 最后阅读时间
+  isMuted         Boolean     @default(false)            // 是否免打扰
+  isPinned        Boolean     @default(false)            // 是否置顶
+  customRemark    String?                                // 自定义备注名
+  unreadCount     Int         @default(0)                // 未读消息数
+  sessionType     String                                 // 会话类型: private(私聊) 或 group(群聊)
+  createdAt       DateTime    @default(now())            // 关系创建时间
+  updatedAt       DateTime    @updatedAt                 // 关系更新时间
+  
+  // 关系
+  session         ChatSession @relation(fields: [sessionId], references: [id])
+  user            User        @relation(fields: [userId], references: [id])
+  
+  @@unique([sessionId, userId])
+  @@index([userId])
+  @@index([sessionType])
+  @@index([isPinned])
+}
+
+// 聊天会话消息模型 - 所有类型消息的统一视图
+model ChatSessionMessage {
+  id              String      @id @default(cuid())       // 消息唯一标识符
+  sessionId       String                                 // 会话ID
+  messageId       String?                                // 私聊消息ID
+  groupMessageId  String?                                // 群聊消息ID
+  senderId        String                                 // 发送者ID
+  content         String                                 // 消息内容
+  messageType     String      @default("text")           // 消息类型: text, image, file, emoji, voice, video
+  mediaUrl        String?                                // 媒体文件URL (图片/文件)
+  fileName        String?                                // 文件名 (针对文件类型消息)
+  fileSize        Int?                                   // 文件大小 (针对文件类型消息)
+  isRecalled      Boolean     @default(false)            // 是否已撤回
+  isDeleted       Boolean     @default(false)            // 是否已删除
+  createdAt       DateTime    @default(now())            // 消息创建时间
+  updatedAt       DateTime    @updatedAt                 // 消息更新时间
+  recalledAt      DateTime?                              // 撤回时间
+  deletedAt       DateTime?                              // 删除时间
+  
+  // 关系
+  session         ChatSession @relation(fields: [sessionId], references: [id])
+  message         Message?    @relation(fields: [messageId], references: [id])      // 私聊消息
+  groupMessage    GroupMessage? @relation(fields: [groupMessageId], references: [id]) // 群聊消息
+  sender          User        @relation(fields: [senderId], references: [id])       // 发送者
+  file            File?       @relation(fields: [fileId], references: [id])         // 关联的文件
+  fileId          String?                                                        // 文件ID
+  
+  @@index([sessionId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([messageType])
 }
