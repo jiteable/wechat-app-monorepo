@@ -51,9 +51,6 @@ model User {
   
   // 文件关系
   uploadedFiles             File[]           // 用户上传的文件
-  
-  // 会话消息关系
-  chatSessionMessages    ChatSessionMessage[] // 用户发送的会话消息
 }
 
 model VerificationToken {
@@ -220,7 +217,6 @@ model UnifiedMessage {
   receiver     User?       @relation("ReceivedMessages", fields: [receiverId], references: [id])
   group        Group?      @relation("GroupMessages", fields: [groupId], references: [id])
   file         File?
-  chatSessionMessages ChatSessionMessage[]
   
   @@index([sessionId])
   @@index([senderId])
@@ -228,6 +224,7 @@ model UnifiedMessage {
   @@index([groupId])
   @@index([createdAt])
 }
+
 // 文件模型 - 用于标识群聊或私聊时上传的文件
 model File {
   id              String      @id @default(cuid())       // 文件唯一标识符
@@ -239,23 +236,21 @@ model File {
   fileType        String                                 // 文件类型分类 (image/document/video/audio等)
   uploaderId      String                                 // 上传者ID
   unifiedMessageId String?    @unique                    // 关联的统一消息ID
-  chatSessionMessageId String? @unique                   // 关联的会话消息ID
   createdAt       DateTime    @default(now())            // 上传时间
   expireAt        DateTime?                              // 过期时间 (可选)
   
   // 关系
   uploader         User           @relation(fields: [uploaderId], references: [id])
   unifiedMessage   UnifiedMessage? @relation(fields: [unifiedMessageId], references: [id])
-  chatSessionMessage ChatSessionMessage? // 反向关系
   
   @@index([uploaderId])
   @@index([unifiedMessageId])
-  @@index([chatSessionMessageId])
   @@index([createdAt])
   @@index([fileType])
 }
 
 
+// 聊天会话模型 - 用于确定用户进入的是群聊还是私聊
 // 聊天会话模型 - 用于确定用户进入的是群聊还是私聊
 model ChatSession {
   id              String      @id @default(cuid())       // 会话唯一标识符
@@ -274,8 +269,7 @@ model ChatSession {
   group           Group?      @relation(fields: [groupId], references: [id])  // 关联的群组 (仅群聊)
   groupId         String?                                                    // 群组ID (仅群聊)
   privateWithUserId String?                                                  // 私聊对象的用户ID (仅私聊)
-  users           ChatSessionUser[]                                          // 参与此会话的用户
-  messages        ChatSessionMessage[]                                       // 此会话的消息
+  ChatSessionUsers           ChatSessionUser[]                                          // 参与此会话的用户
   unifiedMessages UnifiedMessage[]    @relation("SessionMessages")
   
   @@index([sessionType])
@@ -284,6 +278,7 @@ model ChatSession {
   @@index([privateWithUserId])
 }
 
+// 聊天会话用户关系模型 - 记录用户与会话的关系
 // 聊天会话用户关系模型 - 记录用户与会话的关系
 model ChatSessionUser {
   id                  String   @id @default(cuid()) // 关系唯一标识符
@@ -311,32 +306,6 @@ model ChatSessionUser {
   @@unique([sessionId, userId])
   @@index([userId])
   @@index([sessionType])
-  @@index([isPinned])
-}
-
-// 聊天会话消息模型 - 所有类型消息的统一视图
-model ChatSessionMessage {
-  id              String      @id @default(cuid())       // 消息唯一标识符
-  sessionId       String                                 // 会话ID
-  unifiedMessageId String     @unique                    // 统一消息ID（强制关联）
-  senderId        String                                 // 发送者ID（冗余字段，提高查询效率）
-  
-  // 会话特有属性
-  isPinned        Boolean     @default(false)            // 是否置顶
-  displayOrder    Int         @default(0)                // 显示顺序（可用于特殊排序）
-  clientSideId    String?                                // 客户端生成的临时ID（用于消息去重）
-  createdAt       DateTime    @default(now())            // 消息创建时间
-  
-  // 关系
-  session         ChatSession @relation(fields: [sessionId], references: [id])
-  unifiedMessage  UnifiedMessage @relation(fields: [unifiedMessageId], references: [id])
-  sender          User        @relation(fields: [senderId], references: [id])
-  file            File?       @relation(fields: [fileId], references: [id])
-  fileId          String?     @unique                    // 文件ID
-  
-  @@index([sessionId])
-  @@index([senderId])
-  @@index([createdAt])
   @@index([isPinned])
 }
 

@@ -155,29 +155,29 @@ const interval = setInterval(() => {
 }, 30000);
 
 // 添加定时发送消息给所有连接的客户端 (每10秒)
-const messageInterval = setInterval(() => {
-  const messageData = {
-    type: 'server_message',
-    message: '这是一条来自服务器的定时消息',
-    timestamp: Date.now(),
-    data: {
-      randomValue: Math.random() // 添加一些动态数据
-    }
-  };
+// const messageInterval = setInterval(() => {
+//   const messageData = {
+//     type: 'server_message',
+//     message: '这是一条来自服务器的定时消息',
+//     timestamp: Date.now(),
+//     data: {
+//       randomValue: Math.random() // 添加一些动态数据
+//     }
+//   };
 
-  // 向所有连接的客户端发送消息
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(messageData));
-    }
-  });
+//   // 向所有连接的客户端发送消息
+//   wss.clients.forEach((client) => {
+//     if (client.readyState === WebSocket.OPEN) {
+//       client.send(JSON.stringify(messageData));
+//     }
+//   });
 
-  console.log('已向所有连接的客户端发送定时消息');
-}, 10000); // 每10秒发送一次
+//   console.log('已向所有连接的客户端发送定时消息');
+// }, 10000); // 每10秒发送一次
 
 wss.on('close', () => {
   clearInterval(interval);
-  clearInterval(messageInterval); // 清理定时器
+  // clearInterval(messageInterval); // 清理定时器
 });
 
 /**
