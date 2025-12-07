@@ -132,27 +132,33 @@ router.post('/createSession', authenticateToken, async (req, res) => {
     // 检查是否已经存在相同的私聊会话
     let existingSession = null;
     if (sessionType === 'private') {
+      const otherUserId = userIds.find(id => id !== currentUserId);
       existingSession = await db.chatSession.findFirst({
         where: {
           sessionType: 'private',
           ChatSessionUsers: {
             every: {
-              userId: { in: userIds }
+              userId: { in: [currentUserId, otherUserId] }
             }
           }
-        },
-        include: {
-          ChatSessionUsers: true
         }
       });
 
-      // 如果已存在相同用户数量的私聊会话，则认为是重复的
-      if (existingSession && existingSession.ChatSessionUsers.length === 2) {
-        return res.json({
-          success: true,
-          data: existingSession,
-          message: '会话已存在'
+      // 检查是否确实有两个用户在会话中
+      if (existingSession) {
+        const sessionUsers = await db.chatSessionUser.findMany({
+          where: {
+            sessionId: existingSession.id
+          }
         });
+
+        if (sessionUsers.length === 2) {
+          return res.json({
+            success: true,
+            data: existingSession,
+            message: '会话已存在'
+          });
+        }
       }
     }
 
@@ -194,7 +200,7 @@ router.post('/createSession', authenticateToken, async (req, res) => {
             }
           }
         },
-        group: true
+        group: sessionType === 'group' ? true : false
       }
     });
 
@@ -210,3 +216,5 @@ router.post('/createSession', authenticateToken, async (req, res) => {
     });
   }
 });
+
+module.exports = router;
