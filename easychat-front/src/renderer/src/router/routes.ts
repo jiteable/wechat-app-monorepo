@@ -23,6 +23,13 @@ export const AppRoutes = [
         }
       },
       {
+        path: 'chat/:id',
+        components: {
+          left: Chat,
+          right: ChatContant
+        }
+      },
+      {
         path: 'contact',
         components: {
           left: Contact,

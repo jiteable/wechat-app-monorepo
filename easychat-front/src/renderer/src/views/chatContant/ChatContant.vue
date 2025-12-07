@@ -1,12 +1,16 @@
 <template>
   <div class="chat-contant-container">
     <WindowControls />
-    <div class="chat-contant">123</div>
+    <div class="chat-contant">{{ route.params.id ? route.params.id : 1 }}</div>
   </div>
 </template>
 
 <script setup>
 import WindowControls from '@/components/WindowControls.vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+console.log(route.params.id) // 当前用户ID
 </script>
 
 <style scoped>

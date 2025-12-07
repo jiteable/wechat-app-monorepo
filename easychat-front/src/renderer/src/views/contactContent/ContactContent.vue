@@ -72,9 +72,11 @@
 import WindowControls from '@/components/WindowControls.vue'
 import { ref, computed } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
+import { useRouter } from 'vue-router'
 
 const popoverRef = ref(null)
 const contactStore = userContactStore()
+const router = useRouter()
 
 // 计算属性：当前选中的联系人
 const currentContact = computed(() => contactStore.selectedContact)
@@ -88,6 +90,8 @@ const handleContainerClick = () => {
 // 添加操作按钮的点击事件
 const sendMessage = () => {
   console.log('发送消息给:', currentContact.value?.name)
+  // 跳转到聊天页面，并传递联系人ID作为参数
+  router.push('/chat/12345')
 }
 </script>
 

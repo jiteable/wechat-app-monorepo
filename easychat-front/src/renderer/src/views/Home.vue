@@ -58,7 +58,6 @@ import { userContactStore } from '@/store/userContactStore'
 import { getUserInfo } from '@/api/user'
 import { getUserSettingInfo } from '@/api/user'
 
-
 const userStore = useUserStore()
 const userSetStore = useUserSetStore()
 const contactStore = userContactStore()
@@ -91,7 +90,7 @@ const handleStorageChange = (event) => {
 
 // 计算当前激活的按钮
 const activeButton = computed(() => {
-  if (route.path === '/' || route.path === '/chat') {
+  if (route.path === '/' || route.path.startsWith('/chat')) {
     return 'chat'
   } else if (route.path.startsWith('/contact')) {
     return 'contact'
