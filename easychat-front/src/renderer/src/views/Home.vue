@@ -54,11 +54,14 @@ import { useRouter, useRoute } from 'vue-router'
 import { Grid } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
+import { userContactStore } from '@/store/userContactStore'
 import { getUserInfo } from '@/api/user'
 import { getUserSettingInfo } from '@/api/user'
 
+
 const userStore = useUserStore()
 const userSetStore = useUserSetStore()
+const contactStore = userContactStore()
 const squareUrl = ref('')
 const defaultAvatar = ref('')
 const splitterKey = ref(0)
@@ -144,6 +147,30 @@ const handleLogout = () => {
   // 清空用户store状态
   userStore.$reset()
   userSetStore.$reset()
+  contactStore.$reset()
+
+  // 关闭可能打开的其他窗口
+  if (window.api) {
+    // 关闭通讯录窗口
+    if (typeof window.api.closeContactWindow === 'function') {
+      window.api.closeContactWindow()
+    }
+
+    // 关闭添加好友窗口
+    if (typeof window.api.closeAddFriendWindow === 'function') {
+      window.api.closeAddFriendWindow()
+    }
+
+    // 关闭设置窗口
+    if (typeof window.api.closeSetWindow === 'function') {
+      window.api.closeSetWindow()
+    }
+
+    // 关闭创建群组窗口
+    if (typeof window.api.closeCreateGroupWindow === 'function') {
+      window.api.closeCreateGroupWindow()
+    }
+  }
 
   // 通知主进程切换到登录窗口
   window.electron.ipcRenderer.send('navigate-to-login')

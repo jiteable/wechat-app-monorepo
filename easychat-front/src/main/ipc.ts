@@ -317,7 +317,9 @@ export function setupIpcHandlers(icon: string): void {
 
   ipcMain.on('navigate-to-login', () => {
     if (mainWindow) {
-      mainWindow.hide()
+      // 关闭主窗口而不是隐藏它
+      mainWindow.close()
+      mainWindow = null
     }
 
     // 检查是否已存在登录窗口，如果不存在则创建

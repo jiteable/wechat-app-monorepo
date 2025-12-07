@@ -7,6 +7,9 @@ export const userContactStore = defineStore('contact', {
   actions: {
     setSelectedContact(contact) {
       this.selectedContact = contact
+    },
+    clearSelectedContact() {
+      this.selectedContact = null
     }
   }
 })

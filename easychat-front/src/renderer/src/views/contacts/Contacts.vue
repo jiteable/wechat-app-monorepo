@@ -132,9 +132,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { Minus, Close } from '@element-plus/icons-vue'
+import { ref, reactive, computed, onMounted, onUnmounted, onActivated, watch } from 'vue'
+import { Minus, Close, Search } from '@element-plus/icons-vue'
 import { getContact, getGroup } from '@/api/getRelationship'
+import { useUserStore } from '@/store/userStore'
+
+const userStore = useUserStore()
 
 const activeButton = ref('all')
 const searchKeyword = ref('')
@@ -171,6 +174,42 @@ onMounted(async () => {
   await fetchContacts()
   await fetchGroups()
 })
+
+// 组件卸载时清除数据
+onUnmounted(() => {
+  clearContactsData()
+})
+
+onActivated(async () => {
+  await fetchContacts()
+  await fetchGroups()
+})
+
+// 监听用户信息变化，当用户切换账号时重新获取联系人数据
+watch(
+  () => userStore.userId,
+  async (newUserId, oldUserId) => {
+    // 只有当用户真正切换时才刷新数据
+    if (newUserId !== oldUserId) {
+      await fetchContacts()
+      await fetchGroups()
+    }
+  }
+)
+
+// 清除所有联系人相关数据
+const clearContactsData = () => {
+  tableData.value = []
+  chatGroupList.value = []
+  selectedGroup.value = null
+  searchKeyword.value = ''
+  activeButton.value = 'all'
+
+  // 重置展开状态
+  iconStates.friend = false
+  iconStates.tag = false
+  iconStates.group = false
+}
 
 // 获取联系人数据
 const fetchContacts = async () => {
