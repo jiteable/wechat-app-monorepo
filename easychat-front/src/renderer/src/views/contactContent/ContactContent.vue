@@ -94,50 +94,54 @@ const handleContainerClick = () => {
 const sendMessage = async () => {
   if (!currentContact.value) return
 
-  console.log('发送消息给:', currentContact.value?.name)
-  console.log('wws: ', userStore.$state)
+  let session = null
 
   try {
-    // 查询当前用户与目标用户是否已有会话
+    // 尝试获取现有会话
     const sessionResponse = await getSessions(currentContact.value.id)
 
     if (sessionResponse && sessionResponse.success) {
-      let sessionId
-
-      if (Array.isArray(sessionResponse.data) && sessionResponse.data.length > 0) {
-        // 已存在会话，获取第一个会话ID
-        sessionId = sessionResponse.data[0].id
-      } else if (
-        sessionResponse.data &&
-        typeof sessionResponse.data === 'object' &&
-        'id' in sessionResponse.data
-      ) {
-        // 返回的是单个会话对象
-        sessionId = sessionResponse.data.id
-      } else {
-        // 不存在会话，创建新会话
-        const createResponse = await createSession({
-          sessionType: 'private',
-          userIds: [userStore.userId, currentContact.value.id]
-        })
-
-        if (createResponse && createResponse.success) {
-          sessionId = createResponse.data.id
-        } else {
-          console.error('创建会话失败')
-          return
-        }
-      }
-
-      // 跳转到聊天页面，并传递会话ID作为参数
-      if (sessionId) {
-        router.push(`/chat/${sessionId}`)
-      }
-    } else {
-      console.error('获取会话失败')
+      // 存在会话
+      session = sessionResponse.data
+      console.log('获取到现有会话:', session)
     }
   } catch (error) {
-    console.error('发送消息时发生错误:', error)
+    // 检查是否是404错误（会话不存在）
+    if (error.response && error.response.status === 404) {
+      // 会话不存在，创建新会话
+      console.log('会话不存在，正在创建新会话...')
+    } else {
+      console.error('获取会话时出错:', error)
+      return
+    }
+  }
+
+  // 如果没有找到会话，则创建新会话
+  if (!session) {
+    try {
+      const createResponse = await createSession({
+        sessionType: 'private',
+        userIds: [userStore.userId, currentContact.value.id]
+      })
+
+      if (createResponse && createResponse.success) {
+        session = createResponse.data
+        console.log('创建了新会话:', session)
+      } else {
+        console.error('创建会话失败')
+        return
+      }
+    } catch (createError) {
+      console.error('创建会话时出错:', createError)
+      return
+    }
+  }
+
+  // 使用获取到的或新建的会话进行导航
+  if (session) {
+    console.log('将会话信息传递给聊天页面:', session)
+    // 这里可以添加路由跳转逻辑，例如：
+    // router.push(`/chat/${session.id}`)
   }
 }
 </script>

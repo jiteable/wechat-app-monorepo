@@ -15,6 +15,8 @@ export interface ChatSessionUser {
   remark: string | null
   showMemberNameCard: boolean
   background: string | null
+  displayName: string | null
+  displayAvatar: string | null
   createdAt: string
   updatedAt: string
   user: {

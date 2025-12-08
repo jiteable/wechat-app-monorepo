@@ -63,55 +63,45 @@ router.get('/getGroup', authenticateToken, async function (req, res, next) {
     // 获取当前登录用户的ID
     const userId = req.user.id;
 
-    // 查询该用户参与的所有群组关系
-    const userGroups = await db.userWithGroup.findMany({
+    // 查询该用户参与的所有群聊会话
+    const userChatSessions = await db.chatSessionUser.findMany({
       where: {
-        userId: userId
-      }
-    });
-
-    // 提取群组ID列表
-    const groupIds = userGroups.map(userGroup => userGroup.groupId);
-
-    // 查询群组的详细信息
-    const groupsInfo = await db.group.findMany({
-      where: {
-        id: {
-          in: groupIds
+        userId: userId,
+        sessionType: 'group'
+      },
+      include: {
+        session: {
+          include: {
+            group: true
+          }
         }
       }
     });
 
-    // 构建群组信息映射
-    const groupInfoMap = {};
-    groupsInfo.forEach(group => {
-      groupInfoMap[group.id] = group;
-    });
-
-    // 合并用户与群组关系信息和群组详细信息
-    const groups = userGroups.map(userGroup => {
-      const groupInfo = groupInfoMap[userGroup.groupId];
-      if (!groupInfo) return null;
-
-      return {
-        id: groupInfo.id,
-        name: groupInfo.name,
-        ownerId: groupInfo.ownerId,
-        adminIds: groupInfo.adminIds,
-        memberIds: groupInfo.memberIds,
-        announcement: groupInfo.announcement,
-        createdAt: groupInfo.createdAt,
-        updatedAt: groupInfo.updatedAt,
-        image: groupInfo.image,
-        identity: userGroup.identity,
-        nickname: userGroup.nickname,
-        remark: userGroup.remark,
-        muteNotification: userGroup.muteNotification,
-        stickyTopChat: userGroup.stickyTopChat,
-        showMemberNameCard: userGroup.showMemberNameCard,
-        background: userGroup.background
-      };
-    }).filter(group => group !== null); // 过滤掉空值
+    // 过滤并提取群组信息
+    const groups = userChatSessions
+      .filter(chatSessionUser => chatSessionUser.session && chatSessionUser.session.group)
+      .map(chatSessionUser => {
+        const group = chatSessionUser.session.group;
+        return {
+          id: group.id,
+          name: group.name,
+          ownerId: group.ownerId,
+          adminIds: group.adminIds,
+          memberIds: group.memberIds,
+          announcement: group.announcement,
+          createdAt: group.createdAt,
+          updatedAt: group.updatedAt,
+          image: group.image,
+          identity: chatSessionUser.identity,
+          nickname: chatSessionUser.nickname,
+          remark: chatSessionUser.remark,
+          muteNotification: chatSessionUser.isMuted,
+          stickyTopChat: chatSessionUser.isPinned,
+          showMemberNameCard: chatSessionUser.showMemberNameCard,
+          background: chatSessionUser.background
+        };
+      });
 
     res.json({ groups });
   } catch (error) {
@@ -119,7 +109,5 @@ router.get('/getGroup', authenticateToken, async function (req, res, next) {
     res.status(500).json({ error: '服务器内部错误' });
   }
 });
-
-
 
 module.exports = router;

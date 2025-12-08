@@ -54,16 +54,24 @@ router.post('/createGroup', authenticateToken, async function (req, res, next) {
       }
     });
 
-    // 为每个成员创建群组关系记录
-    const userWithGroupRecords = memberIds.map(userId => ({
-      userId: userId.toString(),
-      groupId: group.id,
-      identity: userId === currentUserId ? 'owner' : 'member',
-      createdAt: new Date()
-    }));
-
-    await db.userWithGroup.createMany({
-      data: userWithGroupRecords
+    // 创建群聊会话
+    const chatSession = await db.chatSession.create({
+      data: {
+        sessionType: 'group',
+        name: groupName,
+        avatar: group.image,
+        ownerId: currentUserId,
+        groupId: group.id,
+        ChatSessionUsers: {
+          create: memberIds.map(userId => ({
+            userId: userId.toString(),
+            sessionType: 'group',
+            identity: userId === currentUserId ? 'owner' : 'member',
+            joinTime: new Date(),
+            lastReadTime: new Date()
+          }))
+        }
+      }
     });
 
     // 返回成功响应

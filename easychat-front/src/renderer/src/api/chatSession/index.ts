@@ -16,7 +16,7 @@ export async function getSessions(contactUserId?: string): Promise<GetSessionsRe
     return response.data
   } catch (error) {
     console.error('获取会话失败:', error)
-    return null
+    throw error // 抛出错误让调用者处理
   }
 }
 

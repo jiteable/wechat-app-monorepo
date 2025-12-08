@@ -8,6 +8,8 @@ router.get('/getSession', authenticateToken, async (req, res) => {
     const currentUserId = req.user.id; // 当前登录用户ID
     const { contactUserId } = req.query; // 从查询参数中获取联系人用户ID
 
+    console.log('contactUrlId: ', contactUserId)
+
     // 如果提供了contactUserId，则获取与指定联系人的会话，否则获取所有会话
     if (contactUserId) {
       // 查询与指定联系人的私聊会话
@@ -280,6 +282,24 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       }
     }
 
+    // 检查是否已经存在相同的群聊会话
+    if (sessionType === 'group') {
+      existingSession = await db.chatSession.findFirst({
+        where: {
+          sessionType: 'group',
+          groupId: groupId
+        }
+      });
+
+      if (existingSession) {
+        return res.json({
+          success: true,
+          data: existingSession,
+          message: '会话已存在'
+        });
+      }
+    }
+
     // 创建会话
     const sessionData = {
       sessionType,
@@ -289,36 +309,43 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       groupId: sessionType === 'group' ? groupId : null
     };
 
-    // 获取用户详细信息
-    const usersInfo = await db.user.findMany({
-      where: {
-        id: { in: userIds }
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        avatar: true
-      }
-    });
+    // 获取用户详细信息（仅对私聊会话需要）
+    let usersInfo = [];
+    if (sessionType === 'private') {
+      usersInfo = await db.user.findMany({
+        where: {
+          id: { in: userIds }
+        },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          avatar: true
+        }
+      });
+    }
 
     const newSession = await db.chatSession.create({
       data: {
         ...sessionData,
         ChatSessionUsers: {
           create: userIds.map(userId => {
-            const userInfo = usersInfo.find(u => u.id === userId);
-            const otherUserInfo = usersInfo.find(u => u.id !== userId);
-
             // 对于私聊会话，设置各自看到的显示名称和头像
             let displayName = null;
             let displayAvatar = null;
 
-            if (sessionType === 'private' && userInfo && otherUserInfo) {
-              // 每个用户看到的是对方的信息
-              displayName = otherUserInfo.username || otherUserInfo.email;
-              displayAvatar = otherUserInfo.avatar;
+            if (sessionType === 'private') {
+              const userInfo = usersInfo.find(u => u.id === userId);
+              const otherUserInfo = usersInfo.find(u => u.id !== userId);
+
+              if (userInfo && otherUserInfo) {
+                // 每个用户看到的是对方的信息
+                displayName = otherUserInfo.username || otherUserInfo.email;
+                displayAvatar = otherUserInfo.avatar;
+              }
             }
+            // 对于群聊会话，不设置个性化的 displayName 和 displayAvatar
+            // 所有用户将看到相同的群聊名称和头像，这些信息存储在 ChatSession 的 name 和 avatar 字段中
 
             return {
               userId,
