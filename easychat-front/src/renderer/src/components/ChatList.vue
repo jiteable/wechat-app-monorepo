@@ -1,8 +1,9 @@
 <template>
   <div class="chat-list-container">
     <!-- 会话列表 -->
-    <div class="chat-list">
-      <div v-for="session in filteredSessions" :key="session.id" class="chat-item" @click="handleClickSession(session)">
+    <div class="chat-list no-drag">
+      <button v-for="session in filteredSessions" :key="session.id" class="chat-item"
+        :class="{ active: selectedSessionId === session.id }" @click="handleClickSession(session)">
         <!-- 头像 -->
         <div class="avatar-wrapper">
           <el-avatar :src="session.avatar" alt="avatar" class="avatar" shape="square" />
@@ -29,7 +30,7 @@
             {{ formatDate(session.updatedAt) }}
           </div>
         </div>
-      </div>
+      </button>
     </div>
   </div>
 </template>
@@ -38,12 +39,17 @@
 import { ref, computed } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
 import { getSessions } from '@/api/chatSession'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
 const contactStore = userContactStore()
+const router = useRouter()
 
 // 搜索关键词
 const searchText = ref('')
+
+// 当前选中的会话ID
+const selectedSessionId = ref(null)
 
 // 获取所有会话
 const fetchSessions = async () => {
@@ -121,16 +127,28 @@ const formatDate = (dateStr) => {
 
 // 点击会话跳转
 const handleClickSession = (session) => {
+  // 设置当前选中的会话ID
+  selectedSessionId.value = session.id
+
   // 将当前会话保存到 Pinia 状态
   contactStore.setSelectedContact(session)
   // 跳转到聊天页面（可使用 router 或 window.api）
-  if (window.api) {
-    window.api.openChatWindow(session.id)
-  }
+
+  router.push(`/chat/${session.id}`)
+}
+
+// 获取当前选中的会话ID
+const getSelectedSessionId = () => {
+  return selectedSessionId.value
 }
 
 // 页面加载时获取会话
 fetchSessions()
+
+// 如果需要在父组件中访问选中ID，可以暴露这个方法
+defineExpose({
+  getSelectedSessionId
+})
 </script>
 
 <style scoped>
@@ -141,6 +159,11 @@ fetchSessions()
   background-color: #f5f7fa;
 }
 
+.chat-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .chat-item {
   display: flex;
   align-items: center;
@@ -148,11 +171,23 @@ fetchSessions()
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
 }
 
 .chat-item:hover {
-  background-color: #f0f5ff;
+  background-color: rgb(234, 234, 234);
   transform: translateY(-1px);
+}
+
+.chat-item.active {
+  background-color: rgb(222, 222, 222);
+}
+
+.chat-item.active:hover {
+  background-color: rgb(211, 211, 211);
 }
 
 .avatar-wrapper {
