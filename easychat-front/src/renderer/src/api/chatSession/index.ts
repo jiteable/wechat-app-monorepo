@@ -3,11 +3,16 @@ import config from '../../config'
 import { GetSessionsResponse, CreateSessionRequest, CreateSessionResponse } from './type'
 
 /**
- * 获取用户的所有会话
+ * 获取用户的会话
+ * @param sessionId 可选的会话ID，如果不提供则获取所有会话
  */
-export async function getSessions(): Promise<GetSessionsResponse | null> {
+export async function getSessions(sessionId?: string): Promise<GetSessionsResponse | null> {
   try {
-    const response = await http.get<GetSessionsResponse>(`${config.api}/chatSession/getSession`)
+    const url = sessionId
+      ? `${config.api}/chatSession/getSession?sessionId=${sessionId}`
+      : `${config.api}/chatSession/getSession`
+
+    const response = await http.get<GetSessionsResponse>(url)
     return response.data
   } catch (error) {
     console.error('获取会话失败:', error)

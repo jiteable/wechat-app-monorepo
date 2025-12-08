@@ -6,52 +6,56 @@ const { authenticateToken } = require('../middleware');
 router.get('/getSession', authenticateToken, async (req, res) => {
   try {
     const currentUserId = req.user.id; // 当前登录用户ID
+    const { sessionId } = req.query; // 从查询参数中获取sessionId
 
-    // 查询当前用户参与的所有会话
-    const sessions = await db.chatSession.findMany({
-      where: {
-        ChatSessionUsers: {
-          some: {
-            userId: currentUserId
-          }
-        }
-      },
-      include: {
-        ChatSessionUsers: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                chatId: true,
-                username: true,
-                email: true,
-                avatar: true,
-                gender: true,
-                signature: true,
-                region: true
-              }
+    // 如果提供了sessionId，则获取指定会话，否则获取所有会话
+    if (sessionId) {
+      // 查询指定会话
+      const session = await db.chatSession.findFirst({
+        where: {
+          id: sessionId,
+          ChatSessionUsers: {
+            some: {
+              userId: currentUserId
             }
           }
         },
-        group: true,
-        unifiedMessages: {
-          orderBy: {
-            createdAt: 'desc'
+        include: {
+          ChatSessionUsers: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  chatId: true,
+                  username: true,
+                  email: true,
+                  avatar: true,
+                  gender: true,
+                  signature: true,
+                  region: true
+                }
+              }
+            }
           },
-          take: 1 // 获取最新的消息
+          group: true,
+          unifiedMessages: {
+            orderBy: {
+              createdAt: 'desc'
+            },
+            take: 1 // 获取最新的消息
+          }
         }
-      },
-      orderBy: {
-        updatedAt: 'desc' // 按更新时间倒序排列
+      });
+
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          error: '会话不存在或无权限访问'
+        });
       }
-    });
 
-    // 处理会话数据，构建返回格式
-    const sessionList = sessions.map(session => {
-      // 获取当前用户的会话关系信息
+      // 处理单个会话数据
       const currentUserSessionInfo = session.ChatSessionUsers.find(userSession => userSession.userId === currentUserId);
-
-      // 获取会话中的其他用户（对于私聊）
       const otherUsers = session.ChatSessionUsers.filter(userSession => userSession.userId !== currentUserId);
 
       let displayName, displayAvatar;
@@ -72,7 +76,7 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         displayAvatar = session.avatar;
       }
 
-      return {
+      const sessionData = {
         id: session.id,
         sessionType: session.sessionType,
         name: displayName,
@@ -86,12 +90,98 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         lastMessage: session.unifiedMessages.length > 0 ? session.unifiedMessages[0] : null,
         group: session.group || null
       };
-    });
 
-    res.json({
-      success: true,
-      data: sessionList
-    });
+      return res.json({
+        success: true,
+        data: sessionData
+      });
+    } else {
+      // 查询当前用户参与的所有会话
+      const sessions = await db.chatSession.findMany({
+        where: {
+          ChatSessionUsers: {
+            some: {
+              userId: currentUserId
+            }
+          }
+        },
+        include: {
+          ChatSessionUsers: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  chatId: true,
+                  username: true,
+                  email: true,
+                  avatar: true,
+                  gender: true,
+                  signature: true,
+                  region: true
+                }
+              }
+            }
+          },
+          group: true,
+          unifiedMessages: {
+            orderBy: {
+              createdAt: 'desc'
+            },
+            take: 1 // 获取最新的消息
+          }
+        },
+        orderBy: {
+          updatedAt: 'desc' // 按更新时间倒序排列
+        }
+      });
+
+      // 处理会话数据，构建返回格式
+      const sessionList = sessions.map(session => {
+        // 获取当前用户的会话关系信息
+        const currentUserSessionInfo = session.ChatSessionUsers.find(userSession => userSession.userId === currentUserId);
+
+        // 获取会话中的其他用户（对于私聊）
+        const otherUsers = session.ChatSessionUsers.filter(userSession => userSession.userId !== currentUserId);
+
+        let displayName, displayAvatar;
+
+        if (session.sessionType === 'private' && otherUsers.length > 0) {
+          // 私聊会话
+          const otherUser = otherUsers[0].user;
+          // 使用自定义备注名或对方用户名
+          displayName = currentUserSessionInfo?.customRemark || otherUser.username || otherUser.email;
+          displayAvatar = otherUser.avatar;
+        } else if (session.sessionType === 'group' && session.group) {
+          // 群聊会话
+          displayName = session.name || session.group.name;
+          displayAvatar = session.avatar || session.group.image;
+        } else {
+          // 默认情况
+          displayName = session.name;
+          displayAvatar = session.avatar;
+        }
+
+        return {
+          id: session.id,
+          sessionType: session.sessionType,
+          name: displayName,
+          avatar: displayAvatar,
+          ownerId: session.ownerId,
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+          isPinned: currentUserSessionInfo?.isPinned || false,
+          isMuted: currentUserSessionInfo?.isMuted || false,
+          unreadCount: currentUserSessionInfo?.unreadCount || 0,
+          lastMessage: session.unifiedMessages.length > 0 ? session.unifiedMessages[0] : null,
+          group: session.group || null
+        };
+      });
+
+      res.json({
+        success: true,
+        data: sessionList
+      });
+    }
   } catch (error) {
     console.error('获取会话失败:', error);
     res.status(500).json({
