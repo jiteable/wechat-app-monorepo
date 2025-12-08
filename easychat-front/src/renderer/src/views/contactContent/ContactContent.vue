@@ -141,7 +141,7 @@ const sendMessage = async () => {
   if (session) {
     console.log('将会话信息传递给聊天页面:', session)
     // 这里可以添加路由跳转逻辑，例如：
-    // router.push(`/chat/${session.id}`)
+    router.push(`/chat/${session.id}`)
   }
 }
 </script>

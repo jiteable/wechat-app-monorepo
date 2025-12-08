@@ -34,12 +34,16 @@
         </el-popover>
       </div>
     </div>
+
+    <!-- 添加聊天列表 -->
+    <ChatList />
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { Plus, User, Avatar } from '@element-plus/icons-vue'
+import ChatList from '@/components/ChatList.vue'
 
 const searchText = ref('')
 
@@ -90,8 +94,8 @@ const handleAddFriend = () => {
 }
 
 .add-btn {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   border-radius: 5px;
   background-color: rgb(234, 234, 234);
   border: none;
