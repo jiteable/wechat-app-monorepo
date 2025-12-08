@@ -106,23 +106,6 @@ model Group {
   chatSessions ChatSession[]                         // 群组关联的聊天会话
 }
 
-
-// model UserWithGroup{
-//   id                  String   @id @default(cuid()) // 用户与群组关系唯一标识符
-//   userId              String                        // 用户ID
-//   groupId             String                        // 群组ID
-//   identity            String                        // 在群中的身份
-//   nickname            String?                       // 用户在群内的昵称，可选
-//   remark              String?                       // 群备注，可选
-//   muteNotification    Boolean  @default(false)      // 是否消息免打扰，默认否
-//   showMemberNameCard  Boolean  @default(true)       // 是否显示群成员名称，默认true
-//   createdAt           DateTime @default(now())      // 加入群组时间
-//   updatedAt           DateTime @updatedAt           // 更新时间
-//   background          String?                       // 聊天背景，可选
-  
-//   @@unique([userId, groupId])                       // 用户和群组ID组合唯一索引
-// }
-
 model UserSetting{
   id                            String   @id @default(cuid())  // 设置唯一标识符
   userId                        String   @unique                // 关联的用户ID
@@ -296,6 +279,8 @@ model ChatSessionUser {
   remark              String?                       // 群备注（仅群聊）
   showMemberNameCard  Boolean  @default(true)       // 是否显示群成员名称（仅群聊）
   background          String?                       // 聊天背景（仅群聊）
+  displayName         String?                       // 显示名称
+  displayAvatar       String?                       // 显示头像
   createdAt           DateTime @default(now())      // 关系创建时间
   updatedAt           DateTime @updatedAt           // 关系更新时间
   

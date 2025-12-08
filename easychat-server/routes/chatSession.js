@@ -6,17 +6,17 @@ const { authenticateToken } = require('../middleware');
 router.get('/getSession', authenticateToken, async (req, res) => {
   try {
     const currentUserId = req.user.id; // 当前登录用户ID
-    const { sessionId } = req.query; // 从查询参数中获取sessionId
+    const { contactUserId } = req.query; // 从查询参数中获取联系人用户ID
 
-    // 如果提供了sessionId，则获取指定会话，否则获取所有会话
-    if (sessionId) {
-      // 查询指定会话
+    // 如果提供了contactUserId，则获取与指定联系人的会话，否则获取所有会话
+    if (contactUserId) {
+      // 查询与指定联系人的私聊会话
       const session = await db.chatSession.findFirst({
         where: {
-          id: sessionId,
+          sessionType: 'private',
           ChatSessionUsers: {
-            some: {
-              userId: currentUserId
+            every: {
+              userId: { in: [currentUserId, contactUserId] }
             }
           }
         },
@@ -47,10 +47,24 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         }
       });
 
-      if (!session) {
+      // 检查是否确实有两个用户在会话中
+      if (session) {
+        const sessionUsers = await db.chatSessionUser.findMany({
+          where: {
+            sessionId: session.id
+          }
+        });
+
+        if (sessionUsers.length !== 2) {
+          return res.status(404).json({
+            success: false,
+            error: '会话不存在'
+          });
+        }
+      } else {
         return res.status(404).json({
           success: false,
-          error: '会话不存在或无权限访问'
+          error: '会话不存在'
         });
       }
 
@@ -61,11 +75,9 @@ router.get('/getSession', authenticateToken, async (req, res) => {
       let displayName, displayAvatar;
 
       if (session.sessionType === 'private' && otherUsers.length > 0) {
-        // 私聊会话
-        const otherUser = otherUsers[0].user;
-        // 使用自定义备注名或对方用户名
-        displayName = currentUserSessionInfo?.customRemark || otherUser.username || otherUser.email;
-        displayAvatar = otherUser.avatar;
+        // 私聊会话 - 使用为当前用户定制的显示名称和头像
+        displayName = currentUserSessionInfo?.displayName || currentUserSessionInfo?.customRemark || otherUsers[0].user.username || otherUsers[0].user.email;
+        displayAvatar = currentUserSessionInfo?.displayAvatar || otherUsers[0].user.avatar;
       } else if (session.sessionType === 'group' && session.group) {
         // 群聊会话
         displayName = session.name || session.group.name;
@@ -146,11 +158,9 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         let displayName, displayAvatar;
 
         if (session.sessionType === 'private' && otherUsers.length > 0) {
-          // 私聊会话
-          const otherUser = otherUsers[0].user;
-          // 使用自定义备注名或对方用户名
-          displayName = currentUserSessionInfo?.customRemark || otherUser.username || otherUser.email;
-          displayAvatar = otherUser.avatar;
+          // 私聊会话 - 使用为当前用户定制的显示名称和头像
+          displayName = currentUserSessionInfo?.displayName || currentUserSessionInfo?.customRemark || otherUsers[0].user.username || otherUsers[0].user.email;
+          displayAvatar = currentUserSessionInfo?.displayAvatar || otherUsers[0].user.avatar;
         } else if (session.sessionType === 'group' && session.group) {
           // 群聊会话
           displayName = session.name || session.group.name;
@@ -231,6 +241,24 @@ router.post('/createSession', authenticateToken, async (req, res) => {
               userId: { in: [currentUserId, otherUserId] }
             }
           }
+        },
+        include: {
+          ChatSessionUsers: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  chatId: true,
+                  username: true,
+                  email: true,
+                  avatar: true,
+                  gender: true,
+                  signature: true,
+                  region: true
+                }
+              }
+            }
+          }
         }
       });
 
@@ -261,16 +289,46 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       groupId: sessionType === 'group' ? groupId : null
     };
 
+    // 获取用户详细信息
+    const usersInfo = await db.user.findMany({
+      where: {
+        id: { in: userIds }
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        avatar: true
+      }
+    });
+
     const newSession = await db.chatSession.create({
       data: {
         ...sessionData,
         ChatSessionUsers: {
-          create: userIds.map(userId => ({
-            userId,
-            sessionType,
-            joinTime: new Date(),
-            lastReadTime: new Date()
-          }))
+          create: userIds.map(userId => {
+            const userInfo = usersInfo.find(u => u.id === userId);
+            const otherUserInfo = usersInfo.find(u => u.id !== userId);
+
+            // 对于私聊会话，设置各自看到的显示名称和头像
+            let displayName = null;
+            let displayAvatar = null;
+
+            if (sessionType === 'private' && userInfo && otherUserInfo) {
+              // 每个用户看到的是对方的信息
+              displayName = otherUserInfo.username || otherUserInfo.email;
+              displayAvatar = otherUserInfo.avatar;
+            }
+
+            return {
+              userId,
+              sessionType,
+              joinTime: new Date(),
+              lastReadTime: new Date(),
+              displayName,
+              displayAvatar
+            };
+          })
         }
       },
       include: {

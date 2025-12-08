@@ -4,7 +4,7 @@
     <WindowControls />
 
     <!-- 主要内容区 -->
-    <div class="chat-contant" v-if="currentContact">
+    <div v-if="currentContact" class="chat-contant">
       <!-- 头像与昵称 -->
       <div class="chat-contant-info">
         <el-avatar shape="square" :size="60" :src="currentContact.avatar" />
@@ -62,7 +62,7 @@
     </div>
 
     <!-- 未选择联系人时的提示 -->
-    <div class="no-contact-selected" v-else>
+    <div v-else class="no-contact-selected">
       <div class="placeholder-text">请选择一个联系人</div>
     </div>
   </div>
@@ -72,10 +72,13 @@
 import WindowControls from '@/components/WindowControls.vue'
 import { ref, computed } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
+import { useUserStore } from '@/store/userStore'
 import { useRouter } from 'vue-router'
+import { getSessions, createSession } from '@/api/chatSession'
 
 const popoverRef = ref(null)
 const contactStore = userContactStore()
+const userStore = useUserStore()
 const router = useRouter()
 
 // 计算属性：当前选中的联系人
@@ -88,10 +91,54 @@ const handleContainerClick = () => {
 }
 
 // 添加操作按钮的点击事件
-const sendMessage = () => {
+const sendMessage = async () => {
+  if (!currentContact.value) return
+
   console.log('发送消息给:', currentContact.value?.name)
-  // 跳转到聊天页面，并传递联系人ID作为参数
-  router.push('/chat/12345')
+  console.log('wws: ', userStore.$state)
+
+  try {
+    // 查询当前用户与目标用户是否已有会话
+    const sessionResponse = await getSessions(currentContact.value.id)
+
+    if (sessionResponse && sessionResponse.success) {
+      let sessionId
+
+      if (Array.isArray(sessionResponse.data) && sessionResponse.data.length > 0) {
+        // 已存在会话，获取第一个会话ID
+        sessionId = sessionResponse.data[0].id
+      } else if (
+        sessionResponse.data &&
+        typeof sessionResponse.data === 'object' &&
+        'id' in sessionResponse.data
+      ) {
+        // 返回的是单个会话对象
+        sessionId = sessionResponse.data.id
+      } else {
+        // 不存在会话，创建新会话
+        const createResponse = await createSession({
+          sessionType: 'private',
+          userIds: [userStore.userId, currentContact.value.id]
+        })
+
+        if (createResponse && createResponse.success) {
+          sessionId = createResponse.data.id
+        } else {
+          console.error('创建会话失败')
+          return
+        }
+      }
+
+      // 跳转到聊天页面，并传递会话ID作为参数
+      if (sessionId) {
+        router.push(`/chat/${sessionId}`)
+      }
+    } else {
+      console.error('获取会话失败')
+    }
+  } catch (error) {
+    console.error('发送消息时发生错误:', error)
+  }
 }
 </script>
 

@@ -4,12 +4,12 @@ import { GetSessionsResponse, CreateSessionRequest, CreateSessionResponse } from
 
 /**
  * 获取用户的会话
- * @param sessionId 可选的会话ID，如果不提供则获取所有会话
+ * @param contactUserId 可选的会话ID，如果不提供则获取所有会话
  */
-export async function getSessions(sessionId?: string): Promise<GetSessionsResponse | null> {
+export async function getSessions(contactUserId?: string): Promise<GetSessionsResponse | null> {
   try {
-    const url = sessionId
-      ? `${config.api}/chatSession/getSession?sessionId=${sessionId}`
+    const url = contactUserId
+      ? `${config.api}/chatSession/getSession?contactUserId=${contactUserId}`
       : `${config.api}/chatSession/getSession`
 
     const response = await http.get<GetSessionsResponse>(url)
