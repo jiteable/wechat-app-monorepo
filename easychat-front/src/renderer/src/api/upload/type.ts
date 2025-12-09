@@ -8,3 +8,16 @@ export interface UploadAvatarError {
   success: boolean
   error: string
 }
+
+export interface UploadFileResponse {
+  success: boolean
+  mediaUrl: string
+  originalName: string
+  fileSize: number
+  message: string
+}
+
+export interface UploadFileError {
+  success: boolean
+  error: string
+}
