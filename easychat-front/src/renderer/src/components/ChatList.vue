@@ -5,11 +5,14 @@
       <button v-for="session in filteredSessions" :key="session.id" class="chat-item"
         :class="{ active: selectedSessionId === session.id }" @click="handleClickSession(session)">
         <!-- 头像 -->
-        <div class="avatar-wrapper">
-          <el-avatar :src="session.avatar" alt="avatar" class="avatar" shape="square" />
+
+        <div>
           <!-- 未读消息红点 -->
           <div v-if="session.unreadCount > 0" class="unread-badge">
-            {{ session.unreadCount }}
+            {{ session.unreadCount > 99 ? '~' : session.unreadCount }}
+          </div>
+          <div class="avatar-wrapper">
+            <el-avatar :src="session.avatar" alt="avatar" class="avatar" shape="square" />
           </div>
         </div>
 
@@ -57,6 +60,8 @@ const fetchSessions = async () => {
     const response = await getSessions()
     if (response && response.success) {
       sessions.value = response.data
+      console.log('unreadCountaaaaa: ', sessions.value)
+      console.log('unreadCount: ', sessions.value[0].unreadCount)
     } else {
       ElMessage.error('获取会话失败')
     }
@@ -204,6 +209,24 @@ defineExpose({
   height: 40px;
   object-fit: cover;
   flex-shrink: 0;
+}
+
+.unread-badge {
+  position: absolute;
+  top: 5px;
+  left: 35px;
+  background-color: #f56c6c;
+  color: white;
+  border-radius: 8px;
+  padding: 0 5px;
+  font-size: 10px;
+  min-width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
 }
 
 .content-wrapper {

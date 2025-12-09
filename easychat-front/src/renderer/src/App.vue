@@ -6,6 +6,7 @@ import en from 'element-plus/dist/locale/en.mjs'
 import '@/assets/cust-elementplus.scss'
 import '@/assets/icon/iconfont.css'
 import '@/assets/base.scss'
+import '@/assets/iconfont/iconfont.css'
 
 // 控制语言的响应式变量
 const locale = ref(zhCn)

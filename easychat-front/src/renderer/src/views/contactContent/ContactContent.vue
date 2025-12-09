@@ -70,7 +70,7 @@
 
 <script setup>
 import WindowControls from '@/components/WindowControls.vue'
-import { ref, computed } from 'vue'
+import { ref, computed, onDeactivated } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { useRouter } from 'vue-router'
@@ -144,6 +144,11 @@ const sendMessage = async () => {
     router.push(`/chat/${session.id}`)
   }
 }
+
+// 组件失活时清除选中的联系人
+onDeactivated(() => {
+  contactStore.clearSelectedContact()
+})
 </script>
 
 <style scoped>
