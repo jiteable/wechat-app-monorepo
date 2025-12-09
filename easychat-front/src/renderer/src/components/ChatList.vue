@@ -44,9 +44,26 @@ import { userContactStore } from '@/store/userContactStore'
 import { getSessions } from '@/api/chatSession'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { onMounted, onUnmounted } from 'vue'
 
 const contactStore = userContactStore()
 const router = useRouter()
+
+// 定义刷新函数
+const refreshSessions = () => {
+  fetchSessions()
+}
+
+// 组件挂载时监听事件
+onMounted(() => {
+  window.addEventListener('sessionCreated', refreshSessions)
+  console.log('刷新了')
+})
+
+// 组件卸载时移除监听
+onUnmounted(() => {
+  window.removeEventListener('sessionCreated', refreshSessions)
+})
 
 // 搜索关键词
 const searchText = ref('')

@@ -126,6 +126,11 @@ const sendMessage = async () => {
 
       if (createResponse && createResponse.success) {
         session = createResponse.data
+
+        // 触发ChatList.vue刷新数据
+        // 可以通过全局事件或状态管理实现
+        window.dispatchEvent(new CustomEvent('sessionCreated'))
+
         console.log('创建了新会话:', session)
       } else {
         console.error('创建会话失败')

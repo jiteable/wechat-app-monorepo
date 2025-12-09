@@ -375,13 +375,54 @@ router.post('/createSession', authenticateToken, async (req, res) => {
             }
           }
         },
-        group: sessionType === 'group' ? true : false
+        group: sessionType === 'group' ? true : false,
+        unifiedMessages: {
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: 1 // 获取最新的消息
+        }
       }
     });
 
+    // 处理返回数据格式，使其与getSession接口一致
+    const currentUserSessionInfo = newSession.ChatSessionUsers.find(userSession => userSession.userId === currentUserId);
+    const otherUsers = newSession.ChatSessionUsers.filter(userSession => userSession.userId !== currentUserId);
+
+    let displayName, displayAvatar;
+
+    if (newSession.sessionType === 'private' && otherUsers.length > 0) {
+      // 私聊会话 - 使用为当前用户定制的显示名称和头像
+      displayName = currentUserSessionInfo?.displayName || currentUserSessionInfo?.customRemark || otherUsers[0].user.username || otherUsers[0].user.email;
+      displayAvatar = currentUserSessionInfo?.displayAvatar || otherUsers[0].user.avatar;
+    } else if (newSession.sessionType === 'group' && newSession.group) {
+      // 群聊会话
+      displayName = newSession.name || newSession.group.name;
+      displayAvatar = newSession.avatar || newSession.group.image;
+    } else {
+      // 默认情况
+      displayName = newSession.name;
+      displayAvatar = newSession.avatar;
+    }
+
+    const formattedSession = {
+      id: newSession.id,
+      sessionType: newSession.sessionType,
+      name: displayName,
+      avatar: displayAvatar,
+      ownerId: newSession.ownerId,
+      createdAt: newSession.createdAt,
+      updatedAt: newSession.updatedAt,
+      isPinned: currentUserSessionInfo?.isPinned || false,
+      isMuted: currentUserSessionInfo?.isMuted || false,
+      unreadCount: currentUserSessionInfo?.unreadCount || 0,
+      lastMessage: newSession.unifiedMessages.length > 0 ? newSession.unifiedMessages[0] : null,
+      group: newSession.group || null
+    };
+
     res.status(201).json({
       success: true,
-      data: newSession
+      data: formattedSession
     });
   } catch (error) {
     console.error('创建会话失败:', error);

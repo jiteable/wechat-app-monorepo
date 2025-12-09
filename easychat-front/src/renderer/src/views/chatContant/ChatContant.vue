@@ -5,7 +5,9 @@
       <div v-if="route.params.id" class="chat-id">
         <el-splitter layout="vertical">
           <el-splitter-panel size="60%">
-            <div class="demo-panel">1</div>
+            <div class="demo-panel">
+              message
+            </div>
           </el-splitter-panel>
           <el-splitter-panel :min="185" :max="380">
             <div class="demo-panel">
