@@ -15,6 +15,7 @@ var createRouter = require('./routes/create')
 var uploadRouter = require('./routes/upload')
 var messagesRouter = require('./routes/messages')
 var chatSessionRouter = require('./routes/chatSession')
+var sendChatRouter = require('./routes/sendChat')
 
 var app = express();
 
@@ -39,6 +40,7 @@ app.use('/create', createRouter)
 app.use('/upload', uploadRouter)
 app.use('/messages', messagesRouter)
 app.use('/chatSession', chatSessionRouter)
+app.use('/chat', sendChatRouter)
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

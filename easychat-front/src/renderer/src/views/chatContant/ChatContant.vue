@@ -21,7 +21,7 @@
 
                 <div class="input-content">
                   <el-input v-model="message" type="textarea" placeholder="输入消息..." maxlength="2000" resize="none"
-                    @keydown.enter.native="handleEnterKey" />
+                    @keydown.enter="handleEnterKey" />
                 </div>
 
                 <div class="input-actions">
@@ -49,7 +49,7 @@
 <script setup>
 import WindowControls from '@/components/WindowControls.vue'
 import { useRoute } from 'vue-router'
-import { Message, More } from '@element-plus/icons-vue'
+import { Message } from '@element-plus/icons-vue'
 import { ref, nextTick } from 'vue'
 
 const route = useRoute()
@@ -92,21 +92,6 @@ const showEmojiPicker = () => {
 // 上传文件
 const uploadFile = () => {
   console.log('上传文件')
-}
-
-// 插入代码
-const insertCode = () => {
-  console.log('插入代码')
-}
-
-// 开始通话
-const startCall = () => {
-  console.log('开始通话')
-}
-
-// 开始视频通话
-const startVideoCall = () => {
-  console.log('开始视频通话')
 }
 </script>
 
