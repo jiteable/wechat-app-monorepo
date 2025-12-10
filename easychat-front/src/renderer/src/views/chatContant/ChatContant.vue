@@ -5,8 +5,32 @@
       <div v-if="route.params.id" class="chat-id">
         <el-splitter layout="vertical">
           <el-splitter-panel size="60%">
-            <div class="demo-panel">
-              message
+            <div class="chat-messages-container">
+              <!-- 使用 v-for 渲染消息列表 -->
+              <div v-for="message in messages" :key="message.id" class="message-item">
+                <!-- 时间戳 -->
+                <div v-if="message.type === 'timestamp'" class="message-timestamp">
+                  {{ message.content }}
+                </div>
+
+                <!-- 系统消息 -->
+                <div v-else-if="message.type === 'system'" class="system-message">
+                  {{ message.content }}
+                </div>
+
+                <!-- 普通消息 -->
+                <div v-else class="message-bubble"
+                  :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'">
+                  <!-- 接收的消息显示发送者 -->
+                  <div v-if="message.senderId !== userStore.userId" class="message-sender">
+                    {{ message.senderName }}
+                  </div>
+                  <!-- 消息内容 -->
+                  <div class="message-content">
+                    {{ message.content }}
+                  </div>
+                </div>
+              </div>
             </div>
           </el-splitter-panel>
           <el-splitter-panel :min="185" :max="380">
@@ -83,6 +107,41 @@ console.log(route.params.id) // 当前用户ID
 // 输入框数据
 const message = ref('')
 
+// 消息数据（假数据）
+const messages = ref([
+  {
+    id: 1,
+    type: 'timestamp',
+    content: '今天 10:30'
+  },
+  {
+    id: 2,
+    type: 'system',
+    content: '你已添加了好友，现在可以开始聊天了'
+  },
+  {
+    id: 3,
+    type: 'message',
+    senderId: 'other-user-id', // 不是当前用户ID，显示在左侧
+    senderName: '张三',
+    content: '你好！这个聊天应用看起来不错'
+  },
+  {
+    id: 4,
+    type: 'message',
+    senderId: userStore.userId, // 当前用户ID，显示在右侧
+    senderName: '我',
+    content: '是的，我也觉得很好用！'
+  },
+  {
+    id: 5,
+    type: 'message',
+    senderId: 'other-user-id', // 不是当前用户ID，显示在左侧
+    senderName: '张三',
+    content: '我们可以一起开发更多功能'
+  }
+])
+
 // 发送消息
 const sendMessageHandler = async () => {
   if (message.value.trim() && contactStore.selectedContact) {
@@ -99,8 +158,8 @@ const sendMessageHandler = async () => {
       console.log('12132aw')
       // 如果是私聊
       if (selectedContact.sessionType === 'private') {
-        console.log('selectedContact.userId: ', selectedContact.userId)
-        messageData.receiverId = selectedContact.userId
+        console.log('selectedContact.contactId: ', selectedContact.contactId)
+        messageData.receiverId = selectedContact.contactId
       }
       // 如果是群聊
       else if (selectedContact.sessionType === 'group') {
@@ -166,7 +225,6 @@ const uploadFile = () => {
 .chat-id {
   width: 100%;
   height: 100%;
-  background: skyblue;
 }
 
 .empty-chat {
@@ -182,9 +240,83 @@ const uploadFile = () => {
   font-size: 16px;
 }
 
-.demo-panel {
+.chat-messages-container {
   height: 100%;
-  background-color: rgb(237, 237, 237);
+  background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  overflow-y: scroll;
+  /* 始终显示滚动条 */
+}
+
+.message-item {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 消息气泡基础样式 */
+.message-bubble {
+  max-width: 70%;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  position: relative;
+  word-wrap: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+  /* 防止内容被压缩 */
+}
+
+/* 接收的消息样式 */
+.received-message {
+  align-self: flex-start;
+  background-color: white;
+  border-top-left-radius: 0;
+}
+
+/* 发送的消息样式 */
+.sent-message {
+  align-self: flex-end;
+  background-color: #409eff;
+  color: white;
+  border-top-right-radius: 0;
+}
+
+/* 消息发送者信息 */
+.message-sender {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 5px;
+}
+
+/* 消息内容 */
+.message-content {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* 时间戳样式 */
+.message-timestamp {
+  font-size: 12px;
+  color: #909399;
+  text-align: center;
+  margin: 10px 0;
+  flex-shrink: 0;
+  /* 防止时间戳被压缩 */
+}
+
+/* 系统消息样式 */
+.system-message {
+  align-self: center;
+  background-color: #e0e0e0;
+  color: #606266;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  flex-shrink: 0;
+  /* 防止系统消息被压缩 */
 }
 
 /* 聊天输入区域样式 */
@@ -273,5 +405,9 @@ const uploadFile = () => {
 .input-actions .el-icon {
   font-size: 18px;
   color: #606266;
+}
+
+.demo-panel {
+  height: 100%;
 }
 </style>
