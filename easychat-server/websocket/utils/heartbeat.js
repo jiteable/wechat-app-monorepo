@@ -1,3 +1,5 @@
+const WebSocket = require('ws');
+
 /**
  * 初始化心跳检测机制
  * @param {WebSocket.Server} wss WebSocket服务器实例

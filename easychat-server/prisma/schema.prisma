@@ -251,17 +251,14 @@ model ChatSession {
   // 关系
   group           Group?      @relation(fields: [groupId], references: [id])  // 关联的群组 (仅群聊)
   groupId         String?                                                    // 群组ID (仅群聊)
-  privateWithUserId String?                                                  // 私聊对象的用户ID (仅私聊)
   ChatSessionUsers           ChatSessionUser[]                                          // 参与此会话的用户
   unifiedMessages UnifiedMessage[]    @relation("SessionMessages")
   
   @@index([sessionType])
   @@index([ownerId])
   @@index([groupId])
-  @@index([privateWithUserId])
 }
 
-// 聊天会话用户关系模型 - 记录用户与会话的关系
 // 聊天会话用户关系模型 - 记录用户与会话的关系
 model ChatSessionUser {
   id                  String   @id @default(cuid()) // 关系唯一标识符

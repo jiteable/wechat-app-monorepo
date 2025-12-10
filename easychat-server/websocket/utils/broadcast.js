@@ -1,25 +1,11 @@
-/**
- * 广播消息给所有连接的客户端
- * @param {WebSocket.Server} wss WebSocket服务器实例
- * @param {Object} messageData 要发送的消息对象
- */
-function broadcastToAll(wss, messageData) {
-  const message = JSON.stringify(messageData);
-
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
-    }
-  });
-
-  console.log('已向所有连接的客户端发送消息');
-}
+const WebSocket = require('ws');
 
 /**
  * 广播消息给指定用户
  * @param {Map} clients 用户连接映射表
  * @param {string} userId 目标用户ID
  * @param {Object} messageData 要发送的消息对象
+ * @returns {boolean} 是否成功发送
  */
 function broadcastToUser(clients, userId, messageData) {
   const client = clients.get(userId);
@@ -31,29 +17,103 @@ function broadcastToUser(clients, userId, messageData) {
 }
 
 /**
- * 广播消息给除指定用户外的所有用户
- * @param {WebSocket.Server} wss WebSocket服务器实例
+ * 向会话中的所有参与者广播消息（适用于群聊和私聊）
  * @param {Map} clients 用户连接映射表
- * @param {string} excludeUserId 要排除的用户ID
+ * @param {Object} session 会话对象，包含参与者信息
  * @param {Object} messageData 要发送的消息对象
+ * @param {string} excludeUserId 可选，要排除的用户ID
+ * @returns {number} 成功发送的用户数量
  */
-function broadcastToOthers(wss, clients, excludeUserId, messageData) {
-  const message = JSON.stringify(messageData);
+function broadcastToSession(clients, session, messageData, excludeUserId = null) {
   let count = 0;
 
-  clients.forEach((client, userId) => {
-    if (userId !== excludeUserId && client.readyState === WebSocket.OPEN) {
-      client.send(message);
-      count++;
+  // 根据会话类型处理不同的广播逻辑
+  if (session.sessionType === 'group' && session.groupId) {
+    // 群聊会话 - 广播给群组所有成员
+    // 注意：这里假设 session.group 包含了 memberIds 数组
+    if (session.group && Array.isArray(session.group.memberIds)) {
+      session.group.memberIds.forEach(userId => {
+        // 排除指定用户（例如消息发送者）
+        if (userId !== excludeUserId) {
+          if (broadcastToUser(clients, userId, messageData)) {
+            count++;
+          }
+        }
+      });
+    }
+  } else if (session.sessionType === 'private' && session.privateWithUserId) {
+    // 私聊会话 - 广播给两个参与者（发送者和接收者）
+    const participants = [session.ownerId, session.privateWithUserId];
+
+    participants.forEach(userId => {
+      // 排除指定用户
+      if (userId !== excludeUserId) {
+        if (broadcastToUser(clients, userId, messageData)) {
+          count++;
+        }
+      }
+    });
+  }
+
+  console.log(`已向会话 ${session.id} 的 ${count} 个参与者发送消息`);
+  return count;
+}
+
+/**
+ * 向群组所有成员广播消息
+ * @param {Map} clients 用户连接映射表
+ * @param {Object} group 群组对象，应包含memberIds数组
+ * @param {Object} messageData 要发送的消息对象
+ * @param {string} excludeUserId 可选，要排除的用户ID
+ * @returns {number} 成功发送的用户数量
+ */
+function broadcastToGroup(clients, group, messageData, excludeUserId = null) {
+  let count = 0;
+
+  if (Array.isArray(group.memberIds)) {
+    group.memberIds.forEach(userId => {
+      // 排除指定用户
+      if (userId !== excludeUserId) {
+        if (broadcastToUser(clients, userId, messageData)) {
+          count++;
+        }
+      }
+    });
+  }
+
+  console.log(`已向群组 ${group.id} 的 ${count} 个成员发送消息`);
+  return count;
+}
+
+/**
+ * 向私聊双方广播消息
+ * @param {Map} clients 用户连接映射表
+ * @param {string} user1Id 用户1 ID
+ * @param {string} user2Id 用户2 ID
+ * @param {Object} messageData 要发送的消息对象
+ * @param {string} excludeUserId 可选，要排除的用户ID
+ * @returns {number} 成功发送的用户数量
+ */
+function broadcastToPrivateChat(clients, user1Id, user2Id, messageData, excludeUserId = null) {
+  let count = 0;
+  const participants = [user1Id, user2Id];
+
+  participants.forEach(userId => {
+    // 排除指定用户
+    if (userId !== excludeUserId) {
+      if (broadcastToUser(clients, userId, messageData)) {
+        count++;
+      }
     }
   });
 
-  console.log(`已向${count}个用户发送消息（排除用户${excludeUserId}）`);
+  console.log(`已向私聊双方 ${count} 人发送消息`);
   return count;
 }
 
 module.exports = {
-  broadcastToAll,
   broadcastToUser,
-  broadcastToOthers
+  broadcastToSession,
+  broadcastToGroup,
+  broadcastToPrivateChat
 };
