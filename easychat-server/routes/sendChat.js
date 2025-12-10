@@ -2,6 +2,8 @@ var express = require('express');
 var router = express.Router();
 const { db } = require('../db/db');
 const { authenticateToken } = require('../middleware');
+const { clients } = require('../websocket');
+const { broadcastToSession } = require('../websocket/utils/broadcast');
 
 /**
  * 发送聊天消息接口
@@ -195,6 +197,25 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
         unreadCount: { increment: 1 }
       }
     });
+
+    // 通过WebSocket广播消息给会话中的其他用户
+    const messageToSend = {
+      type: 'new_message',
+      data: {
+        id: newMessage.id,
+        sessionId: newMessage.sessionId,
+        senderId: newMessage.senderId,
+        content: newMessage.content,
+        messageType: newMessage.messageType,
+        mediaUrl: newMessage.mediaUrl,
+        fileName: newMessage.fileName,
+        fileSize: newMessage.fileSize,
+        timestamp: newMessage.createdAt
+      }
+    };
+
+    // 使用broadcastToSession广播消息
+    broadcastToSession(clients, session, messageToSend, senderId);
 
     // 返回成功响应
     res.status(201).json({

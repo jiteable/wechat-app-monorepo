@@ -1,20 +1,78 @@
 const WebSocket = require('ws');
+const { broadcastToSession } = require('../utils/broadcast');
 
-function handleChatMessage(ws, data, clients) {
-  // 这里可以添加具体的消息处理逻辑
-  // 比如保存到数据库、转发给其他用户等
-
-  // 示例：如果消息有目标用户，则转发给该用户
-  if (data.targetUserId) {
-    const targetClient = clients.get(data.targetUserId);
-    if (targetClient && targetClient.readyState === WebSocket.OPEN) {
-      targetClient.send(JSON.stringify({
-        type: 'new_message',
-        from: data.fromUserId,
-        message: data.message,
-        timestamp: Date.now()
+/**
+ * 处理聊天消息 - 基于会话ID的优先策略
+ * @param {WebSocket} ws WebSocket连接
+ * @param {Object} data 消息数据
+ * @param {Map} clients 客户端连接映射
+ */
+async function handleChatMessage(ws, data, clients) {
+  try {
+    // 确保用户已经认证
+    if (!ws.userId) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: '用户未认证'
       }));
+      return;
     }
+
+    // 检查必要的参数
+    if (!data.sessionId) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: '缺少会话ID'
+      }));
+      return;
+    }
+
+    // 注意：在这个架构中，实际的消息存储已经在REST API (/sendChat)中完成了
+    // 这里的WebSocket只负责实时推送消息
+
+    // 构造要广播的消息对象
+    const messageToSend = {
+      type: 'new_message',
+      data: {
+        id: data.messageId, // 来自API调用返回的消息ID
+        sessionId: data.sessionId,
+        senderId: ws.userId,
+        content: data.message || '',
+        messageType: data.messageType || 'text',
+        mediaUrl: data.mediaUrl || null,
+        fileName: data.fileName || null,
+        fileSize: data.fileSize || null,
+        timestamp: data.timestamp || new Date()
+      }
+    };
+
+    // 如果提供了会话信息，则通过会话广播消息
+    if (data.session) {
+      // 通过会话广播消息给所有参与者（除了发送者自己）
+      broadcastToSession(clients, data.session, messageToSend, ws.userId);
+    } else {
+      // 如果没有提供会话信息，则至少发送给指定的目标用户
+      // 这是一种后备机制
+      if (data.targetUserId) {
+        const targetClient = clients.get(data.targetUserId);
+        if (targetClient && targetClient.readyState === WebSocket.OPEN) {
+          targetClient.send(JSON.stringify(messageToSend));
+        }
+      }
+    }
+
+    // 同时也发给发送者本人，用于确认消息已送达
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(messageToSend));
+    }
+
+    console.log(`消息已通过WebSocket推送，会话ID: ${data.sessionId}`);
+  } catch (error) {
+    console.error('处理聊天消息出错:', error);
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: '发送消息失败'
+    }));
   }
 }
 
