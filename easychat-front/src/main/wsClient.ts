@@ -2,11 +2,11 @@
 import WebSocket from 'ws'
 
 interface WsConfig {
-  userId?: string;
+  userId?: string
 }
 
 interface MessageSender {
-  handleNewMessage: (data: any) => void;
+  handleNewMessage: (data: any) => void
 }
 
 let ws: WebSocket | null = null
@@ -186,10 +186,20 @@ const handleReconnection = () => {
   }
 }
 
-// 发送消息的方法
 const sendMessage = (message: any) => {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(message))
+    // 如果是发送聊天消息的请求，则直接发送到后端
+    if (message.type === 'send_message') {
+      ws.send(
+        JSON.stringify({
+          type: 'send_message', // 与后端路由保持一致
+          data: message.data
+        })
+      )
+    } else {
+      // 其他类型的消息保持原有格式
+      ws.send(JSON.stringify(message))
+    }
   } else {
     console.warn('WebSocket未连接，无法发送消息')
   }

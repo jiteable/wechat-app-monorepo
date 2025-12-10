@@ -86,6 +86,7 @@ export interface ChatSession {
   unreadCount: number
   lastMessage: LastMessage | null
   group: Group | null
+  contactId?: string // 添加联系人ID(限私聊)
 }
 
 // 获取会话响应

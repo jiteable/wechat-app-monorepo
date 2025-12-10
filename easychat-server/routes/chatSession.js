@@ -90,6 +90,12 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         displayAvatar = session.avatar;
       }
 
+      // 查找私聊中的联系人ID
+      let contactId = null;
+      if (session.sessionType === 'private' && otherUsers.length > 0) {
+        contactId = otherUsers[0].userId;
+      }
+
       const sessionData = {
         id: session.id,
         sessionType: session.sessionType,
@@ -102,7 +108,8 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         isMuted: currentUserSessionInfo?.isMuted || false,
         unreadCount: currentUserSessionInfo?.unreadCount || 0,
         lastMessage: session.unifiedMessages.length > 0 ? session.unifiedMessages[0] : null,
-        group: session.group || null
+        group: session.group || null,
+        contactId: contactId // 添加联系人ID(限私聊)
       };
 
       return res.json({
@@ -173,6 +180,12 @@ router.get('/getSession', authenticateToken, async (req, res) => {
           displayAvatar = session.avatar;
         }
 
+        // 查找私聊中的联系人ID
+        let contactId = null;
+        if (session.sessionType === 'private' && otherUsers.length > 0) {
+          contactId = otherUsers[0].userId;
+        }
+
         return {
           id: session.id,
           sessionType: session.sessionType,
@@ -185,7 +198,8 @@ router.get('/getSession', authenticateToken, async (req, res) => {
           isMuted: currentUserSessionInfo?.isMuted || false,
           unreadCount: currentUserSessionInfo?.unreadCount || 0,
           lastMessage: session.unifiedMessages.length > 0 ? session.unifiedMessages[0] : null,
-          group: session.group || null
+          group: session.group || null,
+          contactId: contactId // 添加联系人ID(限私聊)
         };
       });
 
@@ -405,6 +419,12 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       displayAvatar = newSession.avatar;
     }
 
+    // 查找私聊中的联系人ID
+    let contactId = null;
+    if (newSession.sessionType === 'private' && otherUsers.length > 0) {
+      contactId = otherUsers[0].userId;
+    }
+
     const formattedSession = {
       id: newSession.id,
       sessionType: newSession.sessionType,
@@ -417,7 +437,8 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       isMuted: currentUserSessionInfo?.isMuted || false,
       unreadCount: currentUserSessionInfo?.unreadCount || 0,
       lastMessage: newSession.unifiedMessages.length > 0 ? newSession.unifiedMessages[0] : null,
-      group: newSession.group || null
+      group: newSession.group || null,
+      contactId: contactId // 添加联系人ID(限私聊)
     };
 
     res.status(201).json({

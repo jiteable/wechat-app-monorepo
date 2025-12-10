@@ -76,6 +76,7 @@ const fetchSessions = async () => {
   try {
     const response = await getSessions()
     if (response && response.success) {
+      console.log('getSession_response: ', response)
       sessions.value = response.data
       console.log('unreadCountaaaaa: ', sessions.value)
       console.log('unreadCount: ', sessions.value[0].unreadCount)
@@ -154,8 +155,19 @@ const handleClickSession = (session) => {
 
   // 将当前会话保存到 Pinia 状态
   contactStore.setSelectedContact(session)
-  // 跳转到聊天页面（可使用 router 或 window.api）
 
+  console.log('session: ', session)
+
+  // 打印被选中的会话信息
+  console.log('选中的会话信息:', session)
+  console.log('会话ID:', session.id)
+  console.log('会话名称:', session.name)
+  console.log('会话类型:', session.sessionType)
+  console.log('会话头像:', session.avatar)
+  console.log('未读消息数:', session.unreadCount)
+  console.log('更新时间:', session.updatedAt)
+
+  // 跳转到聊天页面（可使用 router 或 window.api）
   router.push(`/chat/${session.id}`)
 }
 

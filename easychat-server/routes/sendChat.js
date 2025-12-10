@@ -20,6 +20,8 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
       fileSize
     } = req.body;
 
+    console.log('message: ', req.body)
+
     // 参数校验
     if (!sessionId) {
       return res.status(400).json({
@@ -151,7 +153,7 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
     const newMessage = await db.unifiedMessage.create({
       data: {
         ...messageData,
-        fileId: fileRecord ? fileRecord.id : null
+        file: fileRecord ? { connect: { id: fileRecord.id } } : undefined
       },
       include: {
         sender: {

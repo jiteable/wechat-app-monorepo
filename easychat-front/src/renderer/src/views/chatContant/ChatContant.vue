@@ -27,7 +27,7 @@
                 </div>
 
                 <div class="input-actions">
-                  <el-button type="primary" :disabled="!message" @click="sendMessage">
+                  <el-button type="primary" :disabled="!message" @click="sendMessageHandler">
                     发送(S)
                   </el-button>
                 </div>
@@ -51,20 +51,71 @@
 <script setup>
 import WindowControls from '@/components/WindowControls.vue'
 import { useRoute } from 'vue-router'
+import { userContactStore } from '@/store/userContactStore'
+import { useUserStore } from '@/store/userStore'
 import { Message } from '@element-plus/icons-vue'
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, watch } from 'vue'
+import { sendMessage } from '@/api/sendChat'
 
 const route = useRoute()
+const contactStore = userContactStore()
+const userStore = useUserStore()
+
+// 监听选中会话的变化并打印信息
+watch(
+  () => contactStore.selectedContact,
+  (newSession) => {
+    if (newSession) {
+      console.log('ChatContant中获取到的会话信息:', newSession)
+      console.log('会话ID:', newSession.id)
+      console.log('会话名称:', newSession.name)
+      console.log('会话类型:', newSession.sessionType)
+      console.log('会话头像:', newSession.avatar)
+      console.log('未读消息数:', newSession.unreadCount)
+      console.log('更新时间:', newSession.updatedAt)
+    }
+  },
+  { immediate: true }
+)
+
 console.log(route.params.id) // 当前用户ID
 
 // 输入框数据
 const message = ref('')
 
 // 发送消息
-const sendMessage = () => {
-  if (message.value.trim()) {
-    console.log('发送消息:', message.value)
-    message.value = ''
+const sendMessageHandler = async () => {
+  if (message.value.trim() && contactStore.selectedContact) {
+    const selectedContact = contactStore.selectedContact
+
+    try {
+      // 构造消息对象
+      const messageData = {
+        sessionId: selectedContact.id,
+        senderId: userStore.userId,
+        messageType: 'text',
+        content: message.value.trim()
+      }
+      console.log('12132aw')
+      // 如果是私聊
+      if (selectedContact.sessionType === 'private') {
+        console.log('selectedContact.userId: ', selectedContact.userId)
+        messageData.receiverId = selectedContact.userId
+      }
+      // 如果是群聊
+      else if (selectedContact.sessionType === 'group') {
+        messageData.groupId = selectedContact.groupId
+      }
+
+      // 通过HTTP API发送消息到后端
+      const response = await sendMessage(messageData)
+      console.log('消息发送成功:', response)
+
+      // 清空输入框
+      message.value = ''
+    } catch (error) {
+      console.error('发送消息失败:', error)
+    }
   }
 }
 
@@ -82,7 +133,7 @@ const handleEnterKey = (event) => {
   } else {
     // 单独按 Enter 键发送消息
     event.preventDefault()
-    sendMessage()
+    sendMessageHandler()
   }
 }
 
