@@ -32,12 +32,14 @@
                 <!-- 普通消息 -->
                 <div v-else :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'">
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
-                  <div v-if="shouldShowSenderName(message)" class="message-sender">
-                    {{ message.senderName }}
-                  </div>
-                  <div class="message-bubble">
-                    <div class="message-content">
-                      {{ message.content }}
+                  <div class="box">
+                    <div v-if="shouldShowSenderName(message)" class="message-sender">
+                      {{ message.senderName }}
+                    </div>
+                    <div class="message-bubble">
+                      <div class="message-content">
+                        {{ message.content }}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -102,6 +104,57 @@ const route = useRoute()
 const contactStore = userContactStore()
 const userStore = useUserStore()
 
+// 输入框数据
+const message = ref('')
+
+// 消息数据（从API获取）
+const messages = ref([])
+
+// 分页相关数据
+const pagination = ref({
+  currentPage: 1,
+  totalPages: 1,
+  totalMessages: 0,
+  hasNextPage: false,
+  hasPrevPage: false
+})
+const loadingMore = ref(false)
+const messagesContainer = ref(null)
+
+// 加载消息数据（带分页）
+const loadMessages = async (sessionId, page = 1, prepend = false) => {
+  try {
+    const response = await getMessages({ sessionId, page, limit: 20 })
+    if (response.data.success) {
+      // 更新分页信息
+      pagination.value = response.data.data.pagination
+
+      // 将获取到的消息转换为组件所需格式
+      const newMessages = response.data.data.messages.map(msg => ({
+        id: msg.id,
+        type: 'message',
+        senderId: msg.senderId,
+        senderName: msg.sender?.username || '未知用户',
+        senderAvatar: msg.sender?.avatar,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }))
+
+      if (prepend) {
+        // 在顶部添加旧消息（加载历史消息）
+        messages.value = [...newMessages, ...messages.value]
+      } else {
+        // 替换所有消息（初始化或刷新）
+        messages.value = newMessages
+      }
+
+      console.log('message.value: ', messages.value)
+    }
+  } catch (error) {
+    console.error('获取消息失败:', error)
+  }
+}
+
 // 监听选中会话的变化并打印信息
 watch(
   () => contactStore.selectedContact,
@@ -123,23 +176,6 @@ watch(
 )
 
 console.log(route.params.id) // 当前会话ID
-
-// 输入框数据
-const message = ref('')
-
-// 消息数据（从API获取）
-const messages = ref([])
-
-// 分页相关数据
-const pagination = ref({
-  currentPage: 1,
-  totalPages: 1,
-  totalMessages: 0,
-  hasNextPage: false,
-  hasPrevPage: false
-})
-const loadingMore = ref(false)
-const messagesContainer = ref(null)
 
 // 计算属性：根据会话类型显示不同的名称
 const getDisplayName = computed(() => {
@@ -185,40 +221,6 @@ const shouldShowSenderName = (message) => {
   }
 
   return false
-}
-
-// 加载消息数据（带分页）
-const loadMessages = async (sessionId, page = 1, prepend = false) => {
-  try {
-    const response = await getMessages({ sessionId, page, limit: 20 })
-    if (response.data.success) {
-      // 更新分页信息
-      pagination.value = response.data.data.pagination
-
-      // 将获取到的消息转换为组件所需格式
-      const newMessages = response.data.data.messages.map(msg => ({
-        id: msg.id,
-        type: 'message',
-        senderId: msg.senderId,
-        senderName: msg.sender?.username || '未知用户',
-        senderAvatar: msg.sender?.avatar,
-        content: msg.content,
-        timestamp: msg.timestamp
-      }))
-
-      if (prepend) {
-        // 在顶部添加旧消息（加载历史消息）
-        messages.value = [...newMessages, ...messages.value]
-      } else {
-        // 替换所有消息（初始化或刷新）
-        messages.value = newMessages
-      }
-
-      console.log('message.value: ', messages.value)
-    }
-  } catch (error) {
-    console.error('获取消息失败:', error)
-  }
 }
 
 // 处理滚动事件，实现无限滚动加载
@@ -414,36 +416,101 @@ const toggleChat = () => {
 .message-item {
   display: flex;
   flex-direction: column;
+  margin-bottom: 10px;
 }
 
 /* 消息气泡基础样式 */
 .message-bubble {
-  max-width: 70%;
-  padding: 10px 15px;
-  margin-bottom: 15px;
-  border-radius: 10px;
+  max-width: 100%;
+  padding: 6px 10px 8px 10px;
+  border-radius: 7px;
   position: relative;
   word-wrap: break-word;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
-  /* 防止内容被压缩 */
+  display: inline-block;
+  width: fit-content;
+  /* 让气泡框宽度适应内容 */
 }
 
 /* 接收的消息样式 */
 .received-message {
   align-self: flex-start;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  width: 100%;
+  /* 确保容器占满宽度 */
+}
+
+.received-message .box {
+  width: 70%;
+}
+
+.received-message .avatar {
+  margin-right: 8px;
+  border-radius: 3px;
+}
+
+.received-message .message-bubble {
+  background-color: white;
+  position: relative;
+}
+
+.received-message .message-bubble::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  border: 4px solid transparent;
+  border-right: 4px solid white;
+  position: absolute;
+  top: 6px;
+  left: -8px;
 }
 
 /* 发送的消息样式 */
 .sent-message {
   align-self: flex-end;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  margin-left: auto;
+}
+
+.sent-message .avatar {
+  margin-left: 8px;
+  border-radius: 3px;
+  order: 2;
+}
+
+.sent-message .message-bubble {
+  background-color: #a6e860;
+  position: relative;
+}
+
+.sent-message .message-bubble::after {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  border: 4px solid transparent;
+  border-left: 4px solid #a6e860;
+  position: absolute;
+  top: 6px;
+  right: -8px;
 }
 
 /* 消息发送者信息 */
 .message-sender {
   font-size: 12px;
-  color: #909399;
-  margin-bottom: 5px;
+  color: #999;
+  /* 将发送者名称放在消息气泡外部 */
+  position: relative;
+  z-index: 1;
+  background-color: rgb(237, 237, 237);
+  /* 使用不同的背景颜色 */
+  border-radius: 4px;
 }
 
 /* 消息内容 */
@@ -455,11 +522,10 @@ const toggleChat = () => {
 /* 时间戳样式 */
 .message-timestamp {
   font-size: 12px;
-  color: #909399;
+  color: #999;
   text-align: center;
   margin: 10px 0;
   flex-shrink: 0;
-  /* 防止时间戳被压缩 */
 }
 
 /* 系统消息样式 */
@@ -472,7 +538,6 @@ const toggleChat = () => {
   border-radius: 4px;
   margin: 10px 0;
   flex-shrink: 0;
-  /* 防止系统消息被压缩 */
 }
 
 /* 聊天输入区域样式 */
