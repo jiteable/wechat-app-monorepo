@@ -47,6 +47,18 @@
           <span class="title">发起群聊</span>
           <span class="count">已选择{{ selectedContacts.length }}个联系人</span>
         </div>
+
+        <!-- 群聊头像设置 -->
+        <div class="group-avatar-setting">
+          <div class="avatar-container">
+            <span>群聊头像:</span>
+            <el-avatar v-if="groupAvatar" :src="groupAvatar" shape="square" :size="60" />
+            <el-button size="small" @click="changeGroupAvatar">更改头像</el-button>
+            <input ref="groupAvatarInput" type="file" accept="image/*" style="display: none"
+              @change="handleGroupAvatarUpload" />
+          </div>
+        </div>
+
         <div class="group-name-input">
           <input v-model="groupName" placeholder="请输入群聊名称" class="group-name-field" />
         </div>
@@ -81,6 +93,8 @@ import convertToPinyinInitials from '@/utils/changeChinese'
 import { getContact } from '@/api/getRelationship'
 import { createGroup } from '@/api/create'
 import { ElMessage } from 'element-plus'
+import { compressImage } from '@/utils/img'
+import { uploadAvatar } from '@/api/upload'
 
 // 定义联系人类型
 interface Contact {
@@ -101,6 +115,8 @@ export default defineComponent({
   setup() {
     const searchText = ref('')
     const groupName = ref('')
+    const groupAvatar = ref('') // 群聊头像
+    const groupAvatarInput = ref<HTMLInputElement | null>(null) // 群聊头像输入框引用
     const loading = ref(false)
 
     // 联系人数据
@@ -228,6 +244,44 @@ export default defineComponent({
       contact.selected = false
     }
 
+    // 更改群聊头像
+    const changeGroupAvatar = () => {
+      if (groupAvatarInput.value) {
+        groupAvatarInput.value.click()
+      }
+    }
+
+    // 处理群聊头像上传
+    const handleGroupAvatarUpload = async (event: Event) => {
+      const target = event.target as HTMLInputElement
+      const file = target.files?.[0]
+      if (!file) return
+
+      // 检查文件类型
+      if (!file.type.startsWith('image/')) {
+        ElMessage.error('请选择图片文件')
+        return
+      }
+
+      try {
+        // 压缩图片
+        const compressedFile = await compressImage(file)
+
+        // 上传文件到服务器并获取URL
+        const response = await uploadAvatar(compressedFile)
+        console.log('groupAvatarUrl: ', response.avatarUrl)
+
+        // 使用服务器返回的真实URL
+        groupAvatar.value = response.avatarUrl
+
+        // 清空input值以便下次选择相同文件也能触发change事件
+        target.value = ''
+      } catch (error) {
+        console.error('处理头像失败:', error)
+        ElMessage.error('处理头像失败,请重试')
+      }
+    }
+
     // 完成群组创建
     const completeGroupCreation = async () => {
       if (!groupName.value.trim()) {
@@ -244,7 +298,8 @@ export default defineComponent({
         const memberIds = selectedContacts.value.map(contact => contact.id)
         const response = await createGroup({
           groupName: groupName.value,
-          memberIds: memberIds
+          memberIds: memberIds,
+          groupAvatar: groupAvatar.value // 添加群聊头像参数
         })
 
         if (response.success) {
@@ -272,6 +327,8 @@ export default defineComponent({
     return {
       searchText,
       groupName,
+      groupAvatar, // 添加群聊头像响应式变量
+      groupAvatarInput, // 添加群聊头像输入框引用
       contacts,
       contactGroups,
       selectedContacts,
@@ -279,6 +336,8 @@ export default defineComponent({
       handleSearch,
       toggleContactSelection,
       removeContact,
+      changeGroupAvatar, // 添加更改群聊头像方法
+      handleGroupAvatarUpload, // 添加处理群聊头像上传方法
       completeGroupCreation,
       cancelGroupCreation,
       closeWindow
@@ -497,6 +556,17 @@ export default defineComponent({
 .count {
   font-size: 12px;
   color: #999;
+}
+
+/* 群聊头像设置样式 */
+.group-avatar-setting {
+  margin-bottom: 20px;
+}
+
+.group-avatar-setting .avatar-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .group-name-input {
