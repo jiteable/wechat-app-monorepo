@@ -35,11 +35,26 @@ export interface Message {
   }
 }
 
+
 export interface GetMessagesResponse {
   success: boolean
   data: {
     messages: Message[]
+    pagination: {
+      currentPage: number
+      totalPages: number
+      totalMessages: number
+      hasNextPage: boolean
+      hasPrevPage: boolean
+    }
   }
+}
+
+// 添加分页请求参数接口
+export interface GetMessagesRequest {
+  sessionId: string
+  page?: number
+  limit?: number
 }
 
 // 发送消息请求参数（优化版）

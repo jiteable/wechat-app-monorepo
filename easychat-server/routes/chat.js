@@ -12,6 +12,10 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { sessionId } = req.params;
+    // 添加分页参数，默认值分别为0和50
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
 
     // 验证会话是否存在以及用户是否有权限访问该会话
     const session = await db.chatSession.findUnique({
@@ -36,6 +40,13 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
         error: '您无权访问此会话'
       });
     }
+
+    // 查询消息记录总数
+    const totalMessages = await db.unifiedMessage.count({
+      where: {
+        sessionId: sessionId
+      }
+    });
 
     // 查询消息记录，按创建时间正序排列（从旧到新）
     const messages = await db.unifiedMessage.findMany({
@@ -66,7 +77,9 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
       },
       orderBy: {
         createdAt: 'asc'
-      }
+      },
+      skip: skip,
+      take: limit
     });
 
     // 清零当前用户的未读计数
@@ -85,7 +98,14 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        messages: messages
+        messages: messages,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(totalMessages / limit),
+          totalMessages: totalMessages,
+          hasNextPage: page < Math.ceil(totalMessages / limit),
+          hasPrevPage: page > 1
+        }
       }
     });
   } catch (error) {

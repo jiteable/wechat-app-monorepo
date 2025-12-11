@@ -16,7 +16,7 @@
       <div v-if="route.params.id" class="chat-id">
         <el-splitter layout="vertical">
           <el-splitter-panel size="60%">
-            <div class="chat-messages-container">
+            <div class="chat-messages-container" ref="messagesContainer" @scroll="handleScroll">
               <!-- 使用 v-for 渲染消息列表 -->
               <div v-for="message in messages" :key="message.id" class="message-item">
                 <!-- 时间戳 -->
@@ -30,17 +30,23 @@
                 </div>
 
                 <!-- 普通消息 -->
-                <div v-else class="message-bubble"
-                  :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'">
-                  <!-- 接收的消息显示发送者 -->
+                <div v-else :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'">
+                  <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div v-if="shouldShowSenderName(message)" class="message-sender">
                     {{ message.senderName }}
                   </div>
-                  <!-- 消息内容 -->
-                  <div class="message-content">
-                    {{ message.content }}
+                  <div class="message-bubble">
+                    <div class="message-content">
+                      {{ message.content }}
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- 加载更多提示 -->
+              <div v-if="loadingMore" class="loading-more">
+                <el-spinner size="small" />
+                <span>加载中...</span>
               </div>
             </div>
           </el-splitter-panel>
@@ -124,6 +130,17 @@ const message = ref('')
 // 消息数据（从API获取）
 const messages = ref([])
 
+// 分页相关数据
+const pagination = ref({
+  currentPage: 1,
+  totalPages: 1,
+  totalMessages: 0,
+  hasNextPage: false,
+  hasPrevPage: false
+})
+const loadingMore = ref(false)
+const messagesContainer = ref(null)
+
 // 计算属性：根据会话类型显示不同的名称
 const getDisplayName = computed(() => {
   const session = contactStore.selectedContact
@@ -170,24 +187,61 @@ const shouldShowSenderName = (message) => {
   return false
 }
 
-// 加载消息数据
-const loadMessages = async (sessionId) => {
+// 加载消息数据（带分页）
+const loadMessages = async (sessionId, page = 1, prepend = false) => {
   try {
-    const response = await getMessages(sessionId)
+    const response = await getMessages({ sessionId, page, limit: 20 })
     if (response.data.success) {
+      // 更新分页信息
+      pagination.value = response.data.data.pagination
+
       // 将获取到的消息转换为组件所需格式
-      messages.value = response.data.data.messages.map(msg => ({
+      const newMessages = response.data.data.messages.map(msg => ({
         id: msg.id,
         type: 'message',
         senderId: msg.senderId,
         senderName: msg.sender?.username || '未知用户',
+        senderAvatar: msg.sender?.avatar,
         content: msg.content,
         timestamp: msg.timestamp
       }))
+
+      if (prepend) {
+        // 在顶部添加旧消息（加载历史消息）
+        messages.value = [...newMessages, ...messages.value]
+      } else {
+        // 替换所有消息（初始化或刷新）
+        messages.value = newMessages
+      }
+
+      console.log('message.value: ', messages.value)
     }
   } catch (error) {
     console.error('获取消息失败:', error)
   }
+}
+
+// 处理滚动事件，实现无限滚动加载
+const handleScroll = () => {
+  const container = messagesContainer.value
+  if (!container || loadingMore.value || !pagination.value.hasPrevPage) return
+
+  // 当滚动到顶部附近时加载更多消息
+  if (container.scrollTop <= 20) {
+    loadMoreMessages()
+  }
+}
+
+// 加载更多消息（向上翻页）
+const loadMoreMessages = async () => {
+  if (loadingMore.value || !pagination.value.hasPrevPage) return
+
+  loadingMore.value = true
+  const sessionId = contactStore.selectedContact?.id
+  if (sessionId) {
+    await loadMessages(sessionId, pagination.value.currentPage + 1, true)
+  }
+  loadingMore.value = false
 }
 
 // 发送消息
@@ -348,6 +402,15 @@ const toggleChat = () => {
   /* 始终显示滚动条 */
 }
 
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 0;
+  color: #909399;
+}
+
 .message-item {
   display: flex;
   flex-direction: column;
@@ -369,16 +432,11 @@ const toggleChat = () => {
 /* 接收的消息样式 */
 .received-message {
   align-self: flex-start;
-  background-color: white;
-  border-top-left-radius: 0;
 }
 
 /* 发送的消息样式 */
 .sent-message {
   align-self: flex-end;
-  background-color: rgb(149, 236, 105);
-  color: black;
-  border-top-right-radius: 0;
 }
 
 /* 消息发送者信息 */
