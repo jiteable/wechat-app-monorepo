@@ -4,6 +4,101 @@ const { db } = require('../db/db');
 const { authenticateToken } = require('../middleware');
 const { broadcastToSession } = require('../websocket/utils/broadcast');
 
+
+/**
+ * 获取聊天记录接口
+ */
+router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { sessionId } = req.params;
+
+    // 验证会话是否存在以及用户是否有权限访问该会话
+    const session = await db.chatSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        ChatSessionUsers: true
+      }
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: '会话不存在'
+      });
+    }
+
+    // 检查用户是否属于该会话
+    const isSessionUser = session.ChatSessionUsers.some(user => user.userId === userId);
+    if (!isSessionUser) {
+      return res.status(403).json({
+        success: false,
+        error: '您无权访问此会话'
+      });
+    }
+
+    // 查询消息记录，按创建时间正序排列（从旧到新）
+    const messages = await db.unifiedMessage.findMany({
+      where: {
+        sessionId: sessionId
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            chatId: true,
+            username: true,
+            email: true,
+            avatar: true
+          }
+        },
+        receiver: {
+          select: {
+            id: true,
+            chatId: true,
+            username: true,
+            email: true,
+            avatar: true
+          }
+        },
+        group: true,
+        file: true
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    });
+
+    // 清零当前用户的未读计数
+    await db.chatSessionUser.update({
+      where: {
+        sessionId_userId: {
+          sessionId: sessionId,
+          userId: userId
+        }
+      },
+      data: {
+        unreadCount: 0
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        messages: messages
+      }
+    });
+  } catch (error) {
+    console.error('获取消息失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取消息失败'
+    });
+  }
+});
+
+
+
 /**
  * 发送聊天消息接口
  */

@@ -79,7 +79,7 @@ import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { Message } from '@element-plus/icons-vue'
 import { ref, nextTick, watch } from 'vue'
-import { sendMessage } from '@/api/sendChat'
+import { sendMessage } from '@/api/chat'
 
 const route = useRoute()
 const contactStore = userContactStore()

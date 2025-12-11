@@ -27,9 +27,7 @@ async function handleChatMessage(ws, data, clients) {
       return;
     }
 
-    // 注意：在这个架构中，实际的消息存储已经在REST API (/sendChat)中完成了
     // 这里的WebSocket只负责实时推送消息
-
     // 构造要广播的消息对象
     const messageToSend = {
       type: 'new_message',

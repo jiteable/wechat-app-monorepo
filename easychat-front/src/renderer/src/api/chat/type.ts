@@ -7,6 +7,41 @@ export enum MessageType {
   VIDEO = 'video'
 }
 
+export interface Message {
+  id: string
+  sessionId: string
+  senderId: string
+  receiverId?: string
+  groupId?: string
+  content: string
+  messageType: MessageType
+  mediaUrl?: string
+  fileName?: string
+  fileSize?: number
+  timestamp: string
+  sender?: {
+    id: string
+    chatId: string
+    username: string
+    email: string
+    avatar: string
+  }
+  receiver?: {
+    id: string
+    chatId: string
+    username: string
+    email: string
+    avatar: string
+  }
+}
+
+export interface GetMessagesResponse {
+  success: boolean
+  data: {
+    messages: Message[]
+  }
+}
+
 // 发送消息请求参数（优化版）
 export interface SendMessageRequest {
   sessionId: string // 会话ID（必传，对应 UnifiedMessage.sessionId）
