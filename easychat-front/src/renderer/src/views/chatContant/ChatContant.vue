@@ -340,6 +340,8 @@ const toggleChat = () => {
 }
 
 .chat-actions {
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -444,12 +446,15 @@ const toggleChat = () => {
 }
 
 .received-message .box {
-  width: 70%;
+  width: 60%;
 }
 
 .received-message .avatar {
   margin-right: 8px;
   border-radius: 3px;
+  width: 35px !important;
+  height: 35px !important;
+  flex-shrink: 0;
 }
 
 .received-message .message-bubble {
@@ -475,13 +480,23 @@ const toggleChat = () => {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  width: 60%;
   margin-left: auto;
+}
+
+.sent-message .box {
+  width: 100%;
 }
 
 .sent-message .avatar {
   margin-left: 8px;
   border-radius: 3px;
+  width: 35px !important;
+  height: 35px !important;
+  flex-shrink: 0;
   order: 2;
+  min-width: 35px;
+  min-height: 35px;
 }
 
 .sent-message .message-bubble {
@@ -517,6 +532,8 @@ const toggleChat = () => {
 .message-content {
   font-size: 14px;
   line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 /* 时间戳样式 */
