@@ -312,7 +312,7 @@ const uploadFile = () => {
 
 // 切换聊天状态
 const toggleChat = () => {
-  console.log('切换聊天状态')
+  window.api.openChatMessageWindow()
 }
 </script>
 
@@ -442,6 +442,7 @@ const toggleChat = () => {
   flex-direction: row;
   align-items: flex-start;
   width: 100%;
+  padding-left: 5px;
   /* 确保容器占满宽度 */
 }
 
@@ -482,6 +483,7 @@ const toggleChat = () => {
   align-items: flex-start;
   width: 60%;
   margin-left: auto;
+  padding-right: 5px;
 }
 
 .sent-message .box {
@@ -491,9 +493,6 @@ const toggleChat = () => {
 .sent-message .avatar {
   margin-left: 8px;
   border-radius: 3px;
-  width: 35px !important;
-  height: 35px !important;
-  flex-shrink: 0;
   order: 2;
   min-width: 35px;
   min-height: 35px;
@@ -502,6 +501,7 @@ const toggleChat = () => {
 .sent-message .message-bubble {
   background-color: #a6e860;
   position: relative;
+  float: right;
 }
 
 .sent-message .message-bubble::after {

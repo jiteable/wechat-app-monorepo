@@ -38,6 +38,10 @@ const api = {
   openCreateGroupWindow: (): void => ipcRenderer.send('open-create-group-window'),
   closeCreateGroupWindow: (): void => ipcRenderer.send('close-create-group-window'),
 
+  // 聊天消息窗口相关
+  openChatMessageWindow: (): void => ipcRenderer.send('open-chat-message-window'),
+  closeChatMessageWindow: (): void => ipcRenderer.send('close-chat-message-window'),
+
   // 用户信息相关
   setUserInfo: (userInfo: UserInfo): void => ipcRenderer.send('set-user-info', userInfo),
   getUserInfo: (): Promise<UserInfo> => ipcRenderer.invoke('get-user-info'),

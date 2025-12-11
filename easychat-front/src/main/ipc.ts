@@ -10,6 +10,7 @@ let contactWindow: BrowserWindow | null = null
 let addFriendWindow: BrowserWindow | null = null
 let setWindow: BrowserWindow | null = null
 let createGroupWindow: BrowserWindow | null = null
+let chatMessageWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 
 // 存储用户信息
@@ -22,7 +23,8 @@ export function setWindows(
   contactWin: BrowserWindow | null,
   addFriendWin: BrowserWindow | null,
   setWin: BrowserWindow | null,
-  createGroupWin: BrowserWindow | null
+  createGroupWin: BrowserWindow | null,
+  chatMessageWin: BrowserWindow | null
 ): void {
   mainWindow = mainWin
   loginWindow = loginWin
@@ -30,6 +32,7 @@ export function setWindows(
   addFriendWindow = addFriendWin
   setWindow = setWin
   createGroupWindow = createGroupWin
+  chatMessageWindow = chatMessageWin
 }
 
 export function setScaleFactor(factor: number): void {
@@ -183,6 +186,43 @@ export function createGroupWindowFunc(icon: string): void {
     createGroupWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/create-group')
   } else {
     createGroupWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/create-group' })
+  }
+}
+
+export function createChatMessageWindow(icon: string): void {
+  // 如果聊天消息窗口已存在，直接显示并获得焦点
+  if (chatMessageWindow) {
+    chatMessageWindow.show()
+    chatMessageWindow.focus()
+    return
+  }
+
+  chatMessageWindow = new BrowserWindow({
+    width: Math.round(688 / scaleFactor),
+    height: Math.round(875 / scaleFactor),
+    frame: false,
+    show: false,
+    autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  chatMessageWindow.on('ready-to-show', () => {
+    chatMessageWindow!.show()
+  })
+
+  chatMessageWindow.on('closed', () => {
+    chatMessageWindow = null
+  })
+
+  // Load the remote URL for development or the local html file for production.
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    chatMessageWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/chat/messages')
+  } else {
+    chatMessageWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/chat/messages' })
   }
 }
 
@@ -441,6 +481,18 @@ export function setupIpcHandlers(icon: string): void {
     if (createGroupWindow) {
       createGroupWindow.close()
       createGroupWindow = null
+    }
+  })
+
+  // 聊天消息窗口相关事件
+  ipcMain.on('open-chat-message-window', () => {
+    createChatMessageWindow(icon)
+  })
+
+  ipcMain.on('close-chat-message-window', () => {
+    if (chatMessageWindow) {
+      chatMessageWindow.close()
+      chatMessageWindow = null
     }
   })
 

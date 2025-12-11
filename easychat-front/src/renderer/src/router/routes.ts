@@ -50,6 +50,10 @@ export const AppRoutes = [
     component: () => import('../views/addFriend/AddFriend.vue')
   },
   {
+    path: '/chat/messages',
+    component: () => import('../views/chatContant/ChatMessages.vue')
+  },
+  {
     path: '/create-group',
     component: () => import('../views/createGroup/CreatGroup.vue')
   },
