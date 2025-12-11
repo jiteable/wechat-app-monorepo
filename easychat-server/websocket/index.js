@@ -1,12 +1,16 @@
 const WebSocket = require('ws');
 const handleMessage = require('./handlers');
 const { initHeartbeat, setupHeartbeatHandlers } = require('./utils/heartbeat');
+const { setWebSocketClients } = require('./clients');
 
 // 存储连接的客户端 (userId -> websocket)
 const clients = new Map();
 
 function createWebSocketServer(server) {
   const wss = new WebSocket.Server({ server });
+
+  // 设置WebSocket客户端映射，供其他模块使用
+  setWebSocketClients(clients);
 
   wss.on('connection', function connection(ws, req) {
     console.log('新的WebSocket连接已建立');

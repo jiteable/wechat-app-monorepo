@@ -8,7 +8,9 @@ const WebSocket = require('ws');
  * @returns {boolean} 是否成功发送
  */
 function broadcastToUser(clients, userId, messageData) {
+  console.log('clients: ', clients)
   const client = clients.get(userId);
+  console.log('client: ', client)
   if (client && client.readyState === WebSocket.OPEN) {
     client.send(JSON.stringify(messageData));
     return true;
@@ -41,18 +43,31 @@ function broadcastToSession(clients, session, messageData, excludeUserId = null)
         }
       });
     }
-  } else if (session.sessionType === 'private' && session.privateWithUserId) {
-    // 私聊会话 - 广播给两个参与者（发送者和接收者）
-    const participants = [session.ownerId, session.privateWithUserId];
-
-    participants.forEach(userId => {
-      // 排除指定用户
-      if (userId !== excludeUserId) {
-        if (broadcastToUser(clients, userId, messageData)) {
-          count++;
+    // 如果群组没有memberIds，但有ChatSessionUsers，则使用它
+    else if (session.ChatSessionUsers && Array.isArray(session.ChatSessionUsers)) {
+      session.ChatSessionUsers.forEach(user => {
+        // 排除指定用户（例如消息发送者）
+        if (user.userId !== excludeUserId) {
+          if (broadcastToUser(clients, user.userId, messageData)) {
+            count++;
+          }
         }
-      }
-    });
+      });
+    }
+  } else if (session.sessionType === 'private' && session.ChatSessionUsers) {
+    // 私聊会话 - 广播给所有参与者
+    console.log('session.ChatSessionUsers: ', session.ChatSessionUsers)
+    if (Array.isArray(session.ChatSessionUsers)) {
+      session.ChatSessionUsers.forEach(user => {
+        // 排除指定用户（例如消息发送者）
+        if (user.userId !== excludeUserId) {
+          console.log('user.userId: ', user.userId)
+          if (broadcastToUser(clients, user.userId, messageData)) {
+            count++;
+          }
+        }
+      });
+    }
   }
 
   console.log(`已向会话 ${session.id} 的 ${count} 个参与者发送消息`);

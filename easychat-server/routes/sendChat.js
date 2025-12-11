@@ -2,7 +2,6 @@ var express = require('express');
 var router = express.Router();
 const { db } = require('../db/db');
 const { authenticateToken } = require('../middleware');
-const { clients } = require('../websocket');
 const { broadcastToSession } = require('../websocket/utils/broadcast');
 
 /**
@@ -214,8 +213,14 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
       }
     };
 
-    // 使用broadcastToSession广播消息
-    broadcastToSession(clients, session, messageToSend, senderId);
+    // 获取WebSocket客户端映射
+    const { getWebSocketClients } = require('../websocket/clients');
+    const clients = getWebSocketClients();
+
+    // 如果成功获取到客户端映射，则使用broadcastToSession广播消息
+    if (clients) {
+      broadcastToSession(clients, session, messageToSend, senderId);
+    }
 
     // 返回成功响应
     res.status(201).json({
