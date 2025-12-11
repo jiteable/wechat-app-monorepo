@@ -15,6 +15,7 @@
         <i class="iconfont icon-close"></i>
       </el-button>
     </div>
+    <slot></slot>
   </div>
 </template>
 

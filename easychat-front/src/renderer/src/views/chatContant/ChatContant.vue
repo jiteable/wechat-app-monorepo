@@ -1,6 +1,17 @@
 <template>
   <div class="chat-contant-container">
-    <WindowControls />
+    <WindowControls>
+      <div v-if="route.params.id" class="top">
+        <div class="user-info">
+          <span class="user-name">{{ getDisplayName }}</span>
+        </div>
+        <div class="chat-actions no-drag">
+          <el-button type="text" @click="toggleChat">
+            <span class="icon iconfont icon-chat"></span>
+          </el-button>
+        </div>
+      </div>
+    </WindowControls>
     <div class="chat-contant">
       <div v-if="route.params.id" class="chat-id">
         <el-splitter layout="vertical">
@@ -22,7 +33,7 @@
                 <div v-else class="message-bubble"
                   :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'">
                   <!-- 接收的消息显示发送者 -->
-                  <div v-if="message.senderId !== userStore.userId" class="message-sender">
+                  <div v-if="shouldShowSenderName(message)" class="message-sender">
                     {{ message.senderName }}
                   </div>
                   <!-- 消息内容 -->
@@ -78,8 +89,8 @@ import { useRoute } from 'vue-router'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { Message } from '@element-plus/icons-vue'
-import { ref, nextTick, watch } from 'vue'
-import { sendMessage } from '@/api/chat'
+import { ref, nextTick, watch, computed } from 'vue'
+import { sendMessage, getMessages } from '@/api/chat'
 
 const route = useRoute()
 const contactStore = userContactStore()
@@ -97,50 +108,87 @@ watch(
       console.log('会话头像:', newSession.avatar)
       console.log('未读消息数:', newSession.unreadCount)
       console.log('更新时间:', newSession.updatedAt)
+
+      // 当选中会话变化时，获取该会话的消息
+      loadMessages(newSession.id)
     }
   },
   { immediate: true }
 )
 
-console.log(route.params.id) // 当前用户ID
+console.log(route.params.id) // 当前会话ID
 
 // 输入框数据
 const message = ref('')
 
-// 消息数据（假数据）
-const messages = ref([
-  {
-    id: 1,
-    type: 'timestamp',
-    content: '今天 10:30'
-  },
-  {
-    id: 2,
-    type: 'system',
-    content: '你已添加了好友，现在可以开始聊天了'
-  },
-  {
-    id: 3,
-    type: 'message',
-    senderId: 'other-user-id', // 不是当前用户ID，显示在左侧
-    senderName: '张三',
-    content: '你好！这个聊天应用看起来不错'
-  },
-  {
-    id: 4,
-    type: 'message',
-    senderId: userStore.userId, // 当前用户ID，显示在右侧
-    senderName: '我',
-    content: '是的，我也觉得很好用！'
-  },
-  {
-    id: 5,
-    type: 'message',
-    senderId: 'other-user-id', // 不是当前用户ID，显示在左侧
-    senderName: '张三',
-    content: '我们可以一起开发更多功能'
+// 消息数据（从API获取）
+const messages = ref([])
+
+// 计算属性：根据会话类型显示不同的名称
+const getDisplayName = computed(() => {
+  const session = contactStore.selectedContact
+  if (!session) return ''
+
+  // 如果是群聊，显示群名称
+  if (session.sessionType === 'group' && session.group) {
+    return session.group.name || '群聊'
   }
-])
+
+  // 如果是私聊，显示对方用户名
+  if (session.sessionType === 'private' && session.name) {
+    return session.name
+  }
+
+  return '聊天'
+})
+
+// 判断是否应该显示发送者名称
+const shouldShowSenderName = (message) => {
+  const session = contactStore.selectedContact
+
+  // 如果没有会话信息，不显示发送者名称
+  if (!session) return false
+
+  // 如果是私聊，不显示发送者名称
+  if (session.sessionType === 'private') {
+    return false
+  }
+
+  // 如果是群聊，检查showMemberNameCard设置
+  if (session.sessionType === 'group') {
+    // 如果showMemberNameCard为false，不显示发送者名称
+    if (session.ChatSessionUsers && session.ChatSessionUsers.length > 0) {
+      const currentUserSession = session.ChatSessionUsers.find(user => user.userId === userStore.userId)
+      if (currentUserSession && currentUserSession.showMemberNameCard === false) {
+        return false
+      }
+    }
+    // 只有当消息不是自己发送时才显示发送者名称
+    return message.senderId !== userStore.userId
+  }
+
+  return false
+}
+
+// 加载消息数据
+const loadMessages = async (sessionId) => {
+  try {
+    const response = await getMessages(sessionId)
+    if (response.data.success) {
+      // 将获取到的消息转换为组件所需格式
+      messages.value = response.data.data.messages.map(msg => ({
+        id: msg.id,
+        type: 'message',
+        senderId: msg.senderId,
+        senderName: msg.sender?.username || '未知用户',
+        content: msg.content,
+        timestamp: msg.timestamp
+      }))
+    }
+  } catch (error) {
+    console.error('获取消息失败:', error)
+  }
+}
 
 // 发送消息
 const sendMessageHandler = async () => {
@@ -205,14 +253,64 @@ const showEmojiPicker = () => {
 const uploadFile = () => {
   console.log('上传文件')
 }
+
+// 切换聊天状态
+const toggleChat = () => {
+  console.log('切换聊天状态')
+}
 </script>
 
 <style scoped>
+.top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  margin-top: 27px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-actions .el-button {
+  padding: 0;
+  min-width: auto;
+  border: none;
+  background: transparent;
+}
+
+.chat-actions .el-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+}
+
+.chat-actions .iconfont {
+  font-size: 20px;
+  color: #606266;
+}
+
 .chat-contant-container {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: rgb(236, 237, 237);
+  background-color: rgb(237, 237, 237);
 }
 
 .chat-contant {
@@ -242,7 +340,7 @@ const uploadFile = () => {
 
 .chat-messages-container {
   height: 100%;
-  background-color: #f5f5f5;
+  background-color: rgb(237, 237, 237);
   display: flex;
   flex-direction: column;
   padding: 15px;
@@ -278,8 +376,8 @@ const uploadFile = () => {
 /* 发送的消息样式 */
 .sent-message {
   align-self: flex-end;
-  background-color: #409eff;
-  color: white;
+  background-color: rgb(149, 236, 105);
+  color: black;
   border-top-right-radius: 0;
 }
 
