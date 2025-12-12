@@ -53,7 +53,7 @@
         日期
       </button>
 
-      <el-popover v-model:visible="datePickerVisible" placement="bottom" width="200" trigger="manual"
+      <el-popover v-model="datePickerVisible" placement="bottom" width="200" trigger="click"
         popper-class="date-picker-popover" :virtual-ref="dateButtonRef" virtual-triggering>
         <el-date-picker v-model="selectedDate" type="date" placeholder="选择日期" format="YYYY-MM-DD"
           value-format="YYYY-MM-DD" style="width: 100%" @change="handleDateChange" />
@@ -106,13 +106,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElDatePicker, ElPopover } from 'element-plus'
-
-// 页面标题和消息数量
-const chatTitle = ref('妈妈、刘里平五金水电批发')
-const messageCount = ref(3)
+import { userContactStore } from '@/store/userContactStore'
+import { getMessages } from '@/api/chat'
 
 // 搜索相关
 const searchText = ref('')
@@ -134,6 +132,76 @@ const tabs = ref([
 ])
 
 const activeTab = ref('all')
+
+// 从Pinia存储中获取当前会话信息
+const contactStore = userContactStore()
+
+const chatTitle = ref('请选择聊天')
+const messageCount = ref(0)
+
+onMounted(async () => {
+  if (contactStore.selectedContact) {
+    chatTitle.value = contactStore.selectedContact.name || '聊天记录'
+    await loadMessages(contactStore.selectedContact.id)
+  }
+})
+
+// 获取真实聊天记录数据
+const loadMessages = async (sessionId) => {
+  try {
+    loading.value = true
+    const response = await getMessages({ sessionId, page: 1, limit: 50 })
+
+    if (response.data.success) {
+      // 更新消息数量
+      messageCount.value = response.data.data.pagination.totalMessages
+
+      // 将获取到的消息转换为组件所需格式
+      messages.value = response.data.data.messages.map(msg => ({
+        id: msg.id,
+        text: msg.content,
+        time: formatTime(msg.timestamp),
+        type: getMessageType(msg.messageType),
+        sender: msg.sender?.username || '未知用户',
+        avatar: msg.sender?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+      }))
+    }
+  } catch (error) {
+    console.error('获取消息失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const formatTime = (timestamp) => {
+  const date = new Date(timestamp)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
+
+// 根据消息类型转换为中文描述
+const getMessageType = (type) => {
+  switch (type) {
+    case 'text':
+      return '文本消息'
+    case 'image':
+      return '图片与视频'
+    case 'file':
+      return '文件'
+    case 'emoji':
+      return '表情'
+    case 'voice':
+      return '语音'
+    case 'video':
+      return '视频'
+    default:
+      return '系统通知'
+  }
+}
 
 // 模拟聊天记录数据
 const messages = ref([
@@ -222,12 +290,6 @@ const handleDateChange = (value: string | null) => {
   datePickerVisible.value = false
 }
 
-// 清除日期筛选
-const clearDateFilter = () => {
-  selectedDate.value = null
-  activeTab.value = 'all'
-}
-
 // 获取当前激活标签对应的消息类型
 const getActiveTabType = () => {
   switch (activeTab.value) {
@@ -270,7 +332,6 @@ const switchTab = (tabId: string) => {
   }
 }
 
-
 // 处理日期标签点击
 const handleDateTabClick = () => {
   if (activeTab.value === 'date') {
@@ -278,20 +339,6 @@ const handleDateTabClick = () => {
     datePickerVisible.value = !datePickerVisible.value
   } else {
     switchTab('date')
-  }
-}
-
-
-// 处理日期选择器失去焦点
-const handleDatePickerBlur = () => {
-  // 可以在这里添加任何需要的逻辑
-}
-
-// 处理Popover隐藏前的事件
-const handlePopoverBeforeHide = () => {
-  // 如果有选中的日期，则应用筛选
-  if (selectedDate.value) {
-    filterByDate()
   }
 }
 
@@ -377,7 +424,6 @@ const closeWindow = () => {
 .minimize-button:hover {
   background-color: #ffbd2e;
   color: white;
-
 }
 
 .search-box {
