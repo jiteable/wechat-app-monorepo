@@ -189,11 +189,16 @@ export function createGroupWindowFunc(icon: string): void {
   }
 }
 
-export function createChatMessageWindow(icon: string): void {
+export function createChatMessageWindow(icon: string, contactData?: any): void {
   // 如果聊天消息窗口已存在，直接显示并获得焦点
   if (chatMessageWindow) {
     chatMessageWindow.show()
     chatMessageWindow.focus()
+
+    // 如果窗口已存在且提供了联系人数据，通过IPC发送联系人数据
+    if (contactData) {
+      chatMessageWindow.webContents.send('set-contact-data', contactData)
+    }
     return
   }
 
@@ -212,6 +217,10 @@ export function createChatMessageWindow(icon: string): void {
 
   chatMessageWindow.on('ready-to-show', () => {
     chatMessageWindow!.show()
+    // 窗口准备好后发送联系人数据
+    if (contactData) {
+      chatMessageWindow!.webContents.send('set-contact-data', contactData)
+    }
   })
 
   chatMessageWindow.on('closed', () => {
@@ -537,5 +546,10 @@ export function setupIpcHandlers(icon: string): void {
 
   ipcMain.handle('get-user-info', () => {
     return userInfo
+  })
+
+  // 修改打开聊天消息窗口的IPC处理程序
+  ipcMain.on('open-chat-message-window', (event, contactData) => {
+    createChatMessageWindow(icon, contactData)
   })
 }

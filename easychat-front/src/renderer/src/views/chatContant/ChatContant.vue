@@ -313,6 +313,7 @@ const uploadFile = () => {
 // 切换聊天状态
 const toggleChat = () => {
   window.api.openChatMessageWindow()
+  window.api.openChatMessageWindow(selectedContact)
 }
 </script>
 

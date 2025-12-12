@@ -106,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElDatePicker, ElPopover } from 'element-plus'
 import { userContactStore } from '@/store/userContactStore'
@@ -139,13 +139,68 @@ const contactStore = userContactStore()
 const chatTitle = ref('请选择聊天')
 const messageCount = ref(0)
 
+// 监听来自主进程的联系人数据
+const handleContactData = (event, contactData) => {
+  console.log('从主进程接收到联系人数据:', contactData)
+  if (contactData) {
+    contactStore.setSelectedContact(contactData)
+    chatTitle.value = contactData.name || '聊天记录'
+    loadMessages(contactData.id)
+  }
+}
+
+// 监听来自其他窗口的store更新事件
+const handleStoreUpdate = (event: CustomEvent) => {
+  console.log('contactStore 状态已更新:', event.detail)
+  // 更新当前窗口的store状态
+  contactStore.syncFromOtherWindows(event.detail)
+
+  // 如果有了选中的联系人，加载消息
+  if (contactStore.selectedContact) {
+    chatTitle.value = contactStore.selectedContact.name || '聊天记录'
+    loadMessages(contactStore.selectedContact.id)
+  }
+}
+
 onMounted(async () => {
+  // 添加IPC监听器
+  if (window.electron && window.electron.ipcRenderer) {
+    window.electron.ipcRenderer.on('set-contact-data', handleContactData)
+  }
+
+  // 添加事件监听器
+  window.addEventListener('contactStoreUpdated', handleStoreUpdate as EventListener)
+
   if (contactStore.selectedContact) {
     chatTitle.value = contactStore.selectedContact.name || '聊天记录'
     await loadMessages(contactStore.selectedContact.id)
+  } else {
+    // 尝试从localStorage恢复状态
+    const savedState = localStorage.getItem('contactStoreUpdated')
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState)
+        contactStore.syncFromOtherWindows(state)
+        if (contactStore.selectedContact) {
+          chatTitle.value = contactStore.selectedContact.name || '聊天记录'
+          await loadMessages(contactStore.selectedContact.id)
+        }
+      } catch (e) {
+        console.error('解析保存的状态时出错:', e)
+      }
+    }
   }
 })
 
+onUnmounted(() => {
+  // 移除IPC监听器
+  if (window.electron && window.electron.ipcRenderer) {
+    window.electron.ipcRenderer.removeListener('set-contact-data', handleContactData)
+  }
+
+  // 移除事件监听器
+  window.removeEventListener('contactStoreUpdated', handleStoreUpdate as EventListener)
+})
 // 获取真实聊天记录数据
 const loadMessages = async (sessionId) => {
   try {
