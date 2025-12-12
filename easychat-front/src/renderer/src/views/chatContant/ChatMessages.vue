@@ -3,6 +3,21 @@
     <!-- 页面标题 -->
     <div class="page-title">
       <span class="title-text">“{{ chatTitle }}”的聊天记录({{ messageCount }})</span>
+      <!-- 窗口控制按钮 -->
+      <div class="window-controls no-drag">
+        <button class="control-button minimize-button" @click="minimizeWindow">
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M0 6h12v1H0z" fill="currentColor" />
+          </svg>
+        </button>
+        <button class="control-button close-button" @click="closeWindow">
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <path
+              d="M6 4.586L1.707.293.293 1.707 4.586 6 .293 10.293l1.414 1.414L6 7.414l4.293 4.293 1.414-1.414L7.414 6l4.293-4.293L10.293.293 6 4.586z"
+              fill="currentColor" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- 搜索框 -->
@@ -13,11 +28,11 @@
       </el-icon>
 
       <!-- 普通输入框 -->
-      <input class="no-drag search-input" v-model="searchText" placeholder="搜索" @input="handleSearch"
+      <input v-model="searchText" class="no-drag search-input" placeholder="搜索" @input="handleSearch"
         @focus="isSearchFocused = true" @blur="isSearchFocused = false" />
 
       <!-- 标签显示区域（在输入框内部） -->
-      <div v-if="activeTab !== 'all'" class="tag-container" slot="suffix">
+      <div v-if="activeTab !== 'all'" slot="suffix" class="tag-container">
         <div class="tag-item">
           <span class="tag-text">{{ getActiveTabName() }}</span>
           <span class="tag-close" @click="clearTag">×</span>
@@ -31,10 +46,22 @@
         @click="switchTab(tab.id)">
         {{ tab.name }}
       </button>
+
+      <!-- 日期标签 -->
+      <button ref="dateButtonRef" :class="['category-tab', { active: activeTab === 'date' }]"
+        @click="handleDateTabClick">
+        日期
+      </button>
+
+      <el-popover v-model:visible="datePickerVisible" placement="bottom" width="200" trigger="manual"
+        popper-class="date-picker-popover" :virtual-ref="dateButtonRef" virtual-triggering>
+        <el-date-picker v-model="selectedDate" type="date" placeholder="选择日期" format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD" style="width: 100%" @change="handleDateChange" />
+      </el-popover>
     </div>
 
     <!-- 聊天记录列表 -->
-    <div class="messages-list">
+    <div class="messages-list no-drag">
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
         <p>加载中...</p>
@@ -79,8 +106,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { Search } from '@element-plus/icons-vue'
+import { ElDatePicker, ElPopover } from 'element-plus'
 
 // 页面标题和消息数量
 const chatTitle = ref('妈妈、刘里平五金水电批发')
@@ -91,6 +119,10 @@ const searchText = ref('')
 const loading = ref(false)
 const isSearchFocused = ref(false)
 
+// 日期选择器相关
+const datePickerVisible = ref(false)
+const dateButtonRef = ref<HTMLElement | null>(null)
+
 // 分类标签
 const tabs = ref([
   { id: 'all', name: '全部' },
@@ -98,7 +130,6 @@ const tabs = ref([
   { id: 'image', name: '图片与视频' },
   { id: 'link', name: '链接' },
   { id: 'audio', name: '音乐与音频' },
-  { id: 'date', name: '日期' },
   { id: 'member', name: '群成员' }
 ])
 
@@ -134,21 +165,29 @@ const messages = ref([
 
 // 过滤后的消息列表
 const filteredMessages = computed(() => {
-  if (!searchText.value) {
-    return messages.value.filter((msg) => {
-      if (activeTab.value === 'all') return true;
-      return msg.type === getActiveTabType();
-    });
+  let result = [...messages.value]
+
+  // 搜索关键词过滤
+  if (searchText.value) {
+    const query = searchText.value.toLowerCase()
+    result = result.filter((msg) => msg.text.toLowerCase().includes(query))
   }
 
-  const query = searchText.value.toLowerCase();
-  return messages.value.filter(
-    (msg) => {
-      const matchesSearch = msg.text.toLowerCase().includes(query);
-      if (activeTab.value === 'all') return matchesSearch;
-      return matchesSearch && msg.type === getActiveTabType();
-    }
-  );
+  // 类型过滤（除了 date 外）
+  if (activeTab.value !== 'all' && activeTab.value !== 'date') {
+    result = result.filter((msg) => msg.type === getActiveTabType())
+  }
+
+  // 日期过滤
+  if (activeTab.value === 'date' && selectedDate.value) {
+    const targetDate = new Date(selectedDate.value).toISOString().split('T')[0]
+    result = result.filter((msg) => {
+      const msgDate = new Date(msg.time).toISOString().split('T')[0]
+      return msgDate === targetDate
+    })
+  }
+
+  return result
 })
 
 // 按时间排序的消息列表（最新的在上面）
@@ -156,12 +195,38 @@ const sortedMessages = computed(() => {
   // 先过滤消息，再按时间排序
   return [...filteredMessages.value].sort((a, b) => {
     // 将时间字符串转换为时间戳进行比较
-    const timeA = new Date(a.time).getTime();
-    const timeB = new Date(b.time).getTime();
+    const timeA = new Date(a.time).getTime()
+    const timeB = new Date(b.time).getTime()
     // 降序排列（最新的在前面）
-    return timeB - timeA;
-  });
-});
+    return timeB - timeA
+  })
+})
+
+// 日期选择器绑定值
+const selectedDate = ref<string | null>(null)
+
+// 过滤消息：按日期筛选
+const filterByDate = () => {
+  if (!selectedDate.value) {
+    activeTab.value = 'all'
+  } else {
+    activeTab.value = 'date'
+  }
+}
+
+// 处理日期变化
+const handleDateChange = (value: string | null) => {
+  selectedDate.value = value
+  filterByDate()
+  // 选择日期后隐藏选择器
+  datePickerVisible.value = false
+}
+
+// 清除日期筛选
+const clearDateFilter = () => {
+  selectedDate.value = null
+  activeTab.value = 'all'
+}
 
 // 获取当前激活标签对应的消息类型
 const getActiveTabType = () => {
@@ -185,13 +250,49 @@ const getActiveTabType = () => {
 
 // 获取当前激活标签的名称
 const getActiveTabName = () => {
-  const tab = tabs.value.find(t => t.id === activeTab.value)
+  const tab = tabs.value.find((t) => t.id === activeTab.value)
   return tab ? tab.name : '全部'
 }
 
 // 切换标签
 const switchTab = (tabId: string) => {
   activeTab.value = tabId
+  // 当切换到日期标签时，清除之前选择的日期，让用户重新选择
+  if (tabId === 'date') {
+    selectedDate.value = null
+    // 显示日期选择器
+    nextTick(() => {
+      datePickerVisible.value = true
+    })
+  } else {
+    // 隐藏日期选择器
+    datePickerVisible.value = false
+  }
+}
+
+
+// 处理日期标签点击
+const handleDateTabClick = () => {
+  if (activeTab.value === 'date') {
+    // 如果已经处于日期标签状态，切换显示/隐藏日期选择器
+    datePickerVisible.value = !datePickerVisible.value
+  } else {
+    switchTab('date')
+  }
+}
+
+
+// 处理日期选择器失去焦点
+const handleDatePickerBlur = () => {
+  // 可以在这里添加任何需要的逻辑
+}
+
+// 处理Popover隐藏前的事件
+const handlePopoverBeforeHide = () => {
+  // 如果有选中的日期，则应用筛选
+  if (selectedDate.value) {
+    filterByDate()
+  }
 }
 
 // 清除标签
@@ -204,6 +305,16 @@ const handleSearch = () => {
   // 可以在这里添加搜索逻辑
   console.log('搜索:', searchText.value)
 }
+
+// 最小化窗口
+const minimizeWindow = () => {
+  window.api.minimizeChatMessageWindow()
+}
+
+// 关闭窗口
+const closeWindow = () => {
+  window.api.closeChatMessageWindow()
+}
 </script>
 
 <style scoped lang="scss">
@@ -213,6 +324,60 @@ const handleSearch = () => {
   padding: 10px;
   background-color: #f5f5f5;
   box-sizing: border-box;
+}
+
+.page-title {
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  position: relative;
+}
+
+.title-text {
+  display: inline-block;
+  max-width: calc(100% - 80px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.window-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
+}
+
+.control-button {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  color: #666;
+}
+
+.control-button:hover {
+  background-color: #e0e0e0;
+}
+
+.close-button:hover {
+  background-color: #ff5f56;
+  color: white;
+}
+
+.minimize-button:hover {
+  background-color: #ffbd2e;
+  color: white;
+
 }
 
 .search-box {
@@ -280,14 +445,6 @@ const handleSearch = () => {
   color: #333;
 }
 
-.page-title {
-  margin-bottom: 20px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
 .category-tabs {
   display: flex;
   gap: 8px;
@@ -295,6 +452,8 @@ const handleSearch = () => {
   overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: #ccc #f5f5f5;
+  position: relative;
+  /* 添加相对定位 */
 }
 
 .category-tab {

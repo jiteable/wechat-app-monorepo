@@ -41,6 +41,7 @@ const api = {
   // 聊天消息窗口相关
   openChatMessageWindow: (): void => ipcRenderer.send('open-chat-message-window'),
   closeChatMessageWindow: (): void => ipcRenderer.send('close-chat-message-window'),
+  minimizeChatMessageWindow: (): void => ipcRenderer.send('minimize-chat-message-window'),
 
   // 用户信息相关
   setUserInfo: (userInfo: UserInfo): void => ipcRenderer.send('set-user-info', userInfo),

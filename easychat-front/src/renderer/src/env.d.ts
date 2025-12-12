@@ -45,6 +45,10 @@ interface Window {
     openCreateGroupWindow: () => void
     closeCreateGroupWindow: () => void
 
+    openChatMessageWindow: () => void
+    closeChatMessageWindow: () => void
+    minimizeChatMessageWindow: () => void
+
     // 用户信息相关
     setUserInfo: (userInfo: import('../renderer/src/api/user/type').UserInfo) => void
     getUserInfo: () => Promise<import('../renderer/src/api/user/type').UserInfo>

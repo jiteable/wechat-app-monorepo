@@ -496,6 +496,13 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
+  // 新增：最小化聊天消息窗口
+  ipcMain.on('minimize-chat-message-window', () => {
+    if (chatMessageWindow) {
+      chatMessageWindow.minimize()
+    }
+  })
+
   // WebSocket 相关事件
   ipcMain.on('init-websocket', (event, userId) => {
     initWs(
