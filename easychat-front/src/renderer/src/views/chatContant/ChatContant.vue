@@ -18,7 +18,7 @@
           <el-splitter-panel size="60%">
             <div class="chat-messages-container" ref="messagesContainer" @scroll="handleScroll">
               <!-- 使用 v-for 渲染消息列表 -->
-              <div v-for="message in messages" :key="message.id" class="message-item">
+              <div v-for="message in [...messages].reverse()" :key="message.id" class="message-item">
                 <!-- 时间戳 -->
                 <div v-if="message.type === 'timestamp'" class="message-timestamp">
                   {{ message.content }}
@@ -178,10 +178,14 @@ const addMessageListener = () => {
 
         messages.value.push(newMessage)
 
-        // 滚动到底部以显示最新消息
+        // 只有在滚动条接近底部时才自动滚动
         nextTick(() => {
           if (messagesContainer.value) {
-            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+            const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
+            // 如果用户接近底部（距离底部小于50像素），则自动滚动
+            if (scrollTop + clientHeight >= scrollHeight - 50) {
+              messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+            }
           }
         })
       }
@@ -204,7 +208,14 @@ watch(
       console.log('更新时间:', newSession.updatedAt)
 
       // 当选中会话变化时，获取该会话的消息
-      loadMessages(newSession.id)
+      loadMessages(newSession.id).then(() => {
+        // 在消息加载完成后，将滚动条重置到底部
+        nextTick(() => {
+          if (messagesContainer.value) {
+            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+          }
+        })
+      })
     }
   },
   { immediate: true }
@@ -215,24 +226,28 @@ window.api.onNewMessage((data) => {
   console.log('getuserMessage:', data)
 
   // 确保消息属于当前会话
-  if (contactStore.selectedContact && data.sessionId === contactStore.selectedContact.id) {
+  if (contactStore.selectedContact && data.data.sessionId === contactStore.selectedContact.id) {
     // 将新消息添加到消息列表
     const newMessage = {
-      id: data.id || Date.now(), // 如果没有id则使用时间戳
+      id: data.data.id || Date.now(), // 如果没有id则使用时间戳
       type: 'message',
-      senderId: data.senderId,
-      senderName: data.sender?.username || data.senderName || '未知用户',
-      senderAvatar: data.sender?.avatar || '',
-      content: data.content,
-      timestamp: data.timestamp || new Date().toISOString()
+      senderId: data.data.sender.id, // 从sender对象中获取senderId
+      senderName: data.data.sender?.username || '未知用户',
+      senderAvatar: data.data.sender?.avatar || '',
+      content: data.data.content,
+      timestamp: data.data.timestamp || new Date().toISOString()
     }
 
     messages.value.push(newMessage)
 
-    // 滚动到底部以显示最新消息
+    // 只有在滚动条接近底部时才自动滚动
     nextTick(() => {
       if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
+        // 如果用户接近底部（距离底部小于50像素），则自动滚动
+        if (scrollTop + clientHeight >= scrollHeight - 50) {
+          messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+        }
       }
     })
   }
@@ -334,7 +349,7 @@ const sendMessageHandler = async () => {
     // 立即显示消息（优化用户体验）
     messages.value.push(localMessage)
 
-    // 滚动到底部
+    // 自动滚动到底部
     nextTick(() => {
       if (messagesContainer.value) {
         messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
@@ -508,7 +523,7 @@ const toggleChat = () => {
   height: 100%;
   background-color: rgb(237, 237, 237);
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   padding: 15px;
   overflow-y: scroll;
   /* 始终显示滚动条 */
@@ -618,10 +633,10 @@ const toggleChat = () => {
   width: 0;
   height: 0;
   border: 4px solid transparent;
-  border-left: 4px solid #a6e860;
+  border-right: 4px solid #a6e860;
   position: absolute;
   top: 6px;
-  right: -8px;
+  left: -8px;
 }
 
 /* 消息发送者信息 */
