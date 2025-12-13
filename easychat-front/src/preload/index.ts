@@ -51,7 +51,10 @@ const api = {
   initWebSocket: (userId: string): void => ipcRenderer.send('init-websocket', userId),
   sendMessage: (message: any): void => ipcRenderer.send('send-websocket-message', message),
   onNewMessage: (callback: (data: any) => void): void => {
-    ipcRenderer.on('new-message', (_event, data) => callback(data))
+    ipcRenderer.on('new-message', (_event, data) => {
+      console.log('收到新消息:', data)
+      callback(data)
+    })
   },
   removeNewMessageListener: (): void => {
     ipcRenderer.removeAllListeners('new-message')

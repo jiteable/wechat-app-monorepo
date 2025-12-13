@@ -21,6 +21,7 @@ function createWebSocketServer(server) {
     // 处理收到的消息
     ws.on('message', function incoming(message) {
       try {
+        // WebSocket默认使用UTF-8编码，直接解析即可
         const data = JSON.parse(message);
 
         // 让处理器处理消息

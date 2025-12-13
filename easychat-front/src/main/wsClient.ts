@@ -102,7 +102,23 @@ const createWs = () => {
     // 从服务器接收到信息的回调函数
     ws.onmessage = async function (e) {
       try {
-        const data = JSON.parse(e.data)
+        // 确保以UTF-8格式解析消息
+        let messageData
+        if (typeof e.data === 'string') {
+          messageData = e.data
+        } else if (e.data instanceof ArrayBuffer) {
+          // 将ArrayBuffer转换为UTF-8字符串
+          const decoder = new TextDecoder('utf-8')
+          messageData = decoder.decode(e.data)
+        } else {
+          // 处理Blob类型的数据
+          const blob = e.data
+          const arrayBuffer = await blob.arrayBuffer()
+          const decoder = new TextDecoder('utf-8')
+          messageData = decoder.decode(arrayBuffer)
+        }
+
+        const data = JSON.parse(messageData)
 
         switch (data.type) {
           case 'connection_success':

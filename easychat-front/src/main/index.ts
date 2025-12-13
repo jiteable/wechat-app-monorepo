@@ -18,6 +18,10 @@ const setWindow: BrowserWindow | null = null
 const createGroupWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 
+process.env.NODE_OPTIONS = '--experimental-fetch'
+process.env.LANG = 'zh_CN.UTF-8'
+process.env.LC_ALL = 'zh_CN.UTF-8'
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -59,7 +63,14 @@ app.whenReady().then(() => {
     // 先创建目标窗口
     if (tokenExists) {
       mainWindow = createMainWindow(icon)
-      setWindows(mainWindow, loginWindow, contactWindow, addFriendWindow, setWindow, createGroupWindow)
+      setWindows(
+        mainWindow,
+        loginWindow,
+        contactWindow,
+        addFriendWindow,
+        setWindow,
+        createGroupWindow
+      )
     } else {
       createLoginWindow(icon)
     }
@@ -99,7 +110,14 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) {
       if (tokenExists) {
         mainWindow = createMainWindow(icon)
-        setWindows(mainWindow, loginWindow, contactWindow, addFriendWindow, setWindow, createGroupWindow)
+        setWindows(
+          mainWindow,
+          loginWindow,
+          contactWindow,
+          addFriendWindow,
+          setWindow,
+          createGroupWindow
+        )
       } else {
         createLoginWindow(icon)
       }

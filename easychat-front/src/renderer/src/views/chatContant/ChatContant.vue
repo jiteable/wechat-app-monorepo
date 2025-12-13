@@ -97,12 +97,15 @@ import { useRoute } from 'vue-router'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { Message } from '@element-plus/icons-vue'
-import { ref, nextTick, watch, computed, onUnmounted } from 'vue'
+import { ref, nextTick, watch, computed, onMounted, onUnmounted } from 'vue'
 import { sendMessage, getMessages } from '@/api/chat'
 
 const route = useRoute()
 const contactStore = userContactStore()
 const userStore = useUserStore()
+
+// 在组件外定义消息监听器，确保不会因为组件重新渲染而丢失
+let isMessageListenerAdded = false
 
 // 输入框数据
 const message = ref('')
@@ -155,6 +158,38 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
   }
 }
 
+const addMessageListener = () => {
+  if (!isMessageListenerAdded) {
+    console.log('添加消息监听器')
+    window.api.onNewMessage((data) => {
+      console.log('getuserMessage:', data)
+
+      if (contactStore.selectedContact && data.data.sessionId === contactStore.selectedContact.id) {
+        // 将新消息添加到消息列表
+        const newMessage = {
+          id: data.data.id || Date.now(), // 如果没有id则使用时间戳
+          type: 'message',
+          senderId: data.data.sender.id, // 从sender对象中获取senderId
+          senderName: data.data.sender?.username || '未知用户',
+          senderAvatar: data.data.sender?.avatar || '',
+          content: data.data.content,
+          timestamp: data.data.timestamp || new Date().toISOString()
+        }
+
+        messages.value.push(newMessage)
+
+        // 滚动到底部以显示最新消息
+        nextTick(() => {
+          if (messagesContainer.value) {
+            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+          }
+        })
+      }
+    })
+    isMessageListenerAdded = true
+  }
+}
+
 // 监听选中会话的变化并打印信息
 watch(
   () => contactStore.selectedContact,
@@ -177,17 +212,19 @@ watch(
 
 // 监听来自WebSocket的新消息
 window.api.onNewMessage((data) => {
+  console.log('getuserMessage:', data)
+
   // 确保消息属于当前会话
   if (contactStore.selectedContact && data.sessionId === contactStore.selectedContact.id) {
     // 将新消息添加到消息列表
     const newMessage = {
-      id: data.id,
+      id: data.id || Date.now(), // 如果没有id则使用时间戳
       type: 'message',
       senderId: data.senderId,
-      senderName: data.sender?.username || '未知用户',
-      senderAvatar: data.sender?.avatar,
+      senderName: data.sender?.username || data.senderName || '未知用户',
+      senderAvatar: data.sender?.avatar || '',
       content: data.content,
-      timestamp: data.timestamp
+      timestamp: data.timestamp || new Date().toISOString()
     }
 
     messages.value.push(newMessage)
@@ -202,6 +239,12 @@ window.api.onNewMessage((data) => {
 })
 
 console.log(route.params.id) // 当前会话ID
+
+onMounted(() => {
+  console.log('ChatContant组件已挂载')
+  // 组件挂载后添加消息监听器
+  addMessageListener()
+})
 
 // 计算属性：根据会话类型显示不同的名称
 const getDisplayName = computed(() => {
@@ -277,6 +320,27 @@ const sendMessageHandler = async () => {
   if (message.value.trim() && contactStore.selectedContact) {
     const selectedContact = contactStore.selectedContact
 
+    // 创建本地消息对象（用于立即显示）
+    const localMessage = {
+      id: Date.now(), // 临时ID
+      type: 'message',
+      senderId: userStore.userId,
+      senderName: userStore.username || '我',
+      senderAvatar: userStore.avatar || '',
+      content: message.value.trim(),
+      timestamp: new Date().toISOString()
+    }
+
+    // 立即显示消息（优化用户体验）
+    messages.value.push(localMessage)
+
+    // 滚动到底部
+    nextTick(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
+    })
+
     try {
       // 构造消息对象
       const messageData = {
@@ -285,10 +349,9 @@ const sendMessageHandler = async () => {
         messageType: 'text',
         content: message.value.trim()
       }
-      console.log('12132aw')
+
       // 如果是私聊
       if (selectedContact.sessionType === 'private') {
-        console.log('selectedContact.contactId: ', selectedContact.contactId)
         messageData.receiverId = selectedContact.contactId
       }
       // 如果是群聊
@@ -297,10 +360,12 @@ const sendMessageHandler = async () => {
       }
 
       // 通过WebSocket发送实时消息
-      window.api.sendWebSocketMessage({
-        type: 'send_message',
-        data: messageData
-      })
+      if (window.api && typeof window.api.sendMessage === 'function') {
+        window.api.sendMessage({
+          type: 'send_message',
+          data: messageData
+        })
+      }
 
       // 通过HTTP API发送消息到后端（用于持久化存储）
       const response = await sendMessage(messageData)
@@ -310,13 +375,19 @@ const sendMessageHandler = async () => {
       message.value = ''
     } catch (error) {
       console.error('发送消息失败:', error)
+      // 可以在这里添加错误处理，比如显示错误消息给用户
     }
   }
 }
 
 onUnmounted(() => {
-  // 移除WebSocket消息监听器（如果API提供了移除方法的话）
-  window.api.removeNewMessageListener()
+  console.log('ChatContant组件将要卸载')
+  // 移除WebSocket消息监听器
+  if (window.api && typeof window.api.removeNewMessageListener === 'function') {
+    console.log('移除WebSocket消息监听器')
+    window.api.removeNewMessageListener()
+    isMessageListenerAdded = false
+  }
 })
 const handleEnterKey = (event) => {
   // 如果按下的是 Ctrl+Enter 或 Shift+Enter，则换行

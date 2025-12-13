@@ -34,8 +34,11 @@ async function handleChatMessage(ws, data, clients) {
       data: {
         id: newMessage.id,
         sessionId: newMessage.sessionId,
-        senderId: newMessage.senderId,
-        sender: newMessage.sender, // 包含发送者信息
+        sender: {
+          id: newMessage.sender.id,
+          username: newMessage.sender.username,
+          avatar: newMessage.sender.avatar
+        },
         content: newMessage.content,
         messageType: newMessage.messageType,
         mediaUrl: newMessage.mediaUrl,

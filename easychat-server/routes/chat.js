@@ -318,7 +318,11 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
       data: {
         id: newMessage.id,
         sessionId: newMessage.sessionId,
-        senderId: newMessage.senderId,
+        sender: {
+          id: newMessage.sender.id,
+          username: newMessage.sender.username,
+          avatar: newMessage.sender.avatar
+        },
         content: newMessage.content,
         messageType: newMessage.messageType,
         mediaUrl: newMessage.mediaUrl,

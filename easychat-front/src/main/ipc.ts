@@ -519,17 +519,23 @@ export function setupIpcHandlers(icon: string): void {
         userId: userId
       },
       {
-        // 处理从服务器接收的新消息
+        // Handle new messages received from the server
         handleNewMessage: (data) => {
-          console.log('收到新消息:', data)
-          // 将消息转发给所有打开的窗口
+          console.log('Received new message (main process):', data)
+          // Forward the message to all open windows
           if (mainWindow) {
+            console.log('Sending message to main window')
             mainWindow.webContents.send('new-message', data)
           }
           if (contactWindow) {
+            console.log('Sending message to contacts window')
             contactWindow.webContents.send('new-message', data)
           }
-          // 可以为其他窗口也添加消息转发
+          // Add support for chat message window
+          if (chatMessageWindow) {
+            console.log('Sending message to chat message window')
+            chatMessageWindow.webContents.send('new-message', data)
+          }
         }
       }
     )
