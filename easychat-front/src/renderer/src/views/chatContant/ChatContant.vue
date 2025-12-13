@@ -97,7 +97,7 @@ import { useRoute } from 'vue-router'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { Message } from '@element-plus/icons-vue'
-import { ref, nextTick, watch, computed } from 'vue'
+import { ref, nextTick, watch, computed, onUnmounted } from 'vue'
 import { sendMessage, getMessages } from '@/api/chat'
 
 const route = useRoute()
@@ -174,6 +174,32 @@ watch(
   },
   { immediate: true }
 )
+
+// 监听来自WebSocket的新消息
+window.api.onNewMessage((data) => {
+  // 确保消息属于当前会话
+  if (contactStore.selectedContact && data.sessionId === contactStore.selectedContact.id) {
+    // 将新消息添加到消息列表
+    const newMessage = {
+      id: data.id,
+      type: 'message',
+      senderId: data.senderId,
+      senderName: data.sender?.username || '未知用户',
+      senderAvatar: data.sender?.avatar,
+      content: data.content,
+      timestamp: data.timestamp
+    }
+
+    messages.value.push(newMessage)
+
+    // 滚动到底部以显示最新消息
+    nextTick(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
+    })
+  }
+})
 
 console.log(route.params.id) // 当前会话ID
 
@@ -270,7 +296,13 @@ const sendMessageHandler = async () => {
         messageData.groupId = selectedContact.groupId
       }
 
-      // 通过HTTP API发送消息到后端
+      // 通过WebSocket发送实时消息
+      window.api.sendWebSocketMessage({
+        type: 'send_message',
+        data: messageData
+      })
+
+      // 通过HTTP API发送消息到后端（用于持久化存储）
       const response = await sendMessage(messageData)
       console.log('消息发送成功:', response)
 
@@ -282,6 +314,10 @@ const sendMessageHandler = async () => {
   }
 }
 
+onUnmounted(() => {
+  // 移除WebSocket消息监听器（如果API提供了移除方法的话）
+  window.api.removeNewMessageListener()
+})
 const handleEnterKey = (event) => {
   // 如果按下的是 Ctrl+Enter 或 Shift+Enter，则换行
   if (event.ctrlKey || event.shiftKey) {

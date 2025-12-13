@@ -39,12 +39,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
 import { getSessions } from '@/api/chatSession'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { onMounted, onUnmounted } from 'vue'
 
 const contactStore = userContactStore()
 const router = useRouter()
@@ -53,17 +52,6 @@ const router = useRouter()
 const refreshSessions = () => {
   fetchSessions()
 }
-
-// 组件挂载时监听事件
-onMounted(() => {
-  window.addEventListener('sessionCreated', refreshSessions)
-  console.log('刷新了')
-})
-
-// 组件卸载时移除监听
-onUnmounted(() => {
-  window.removeEventListener('sessionCreated', refreshSessions)
-})
 
 // 搜索关键词
 const searchText = ref('')
@@ -109,7 +97,7 @@ const formatLastMessage = (msg) => {
   if (msg.messageType === 'file') return `[文件: ${msg.fileName}]`
   if (msg.messageType === 'voice') return '[语音]'
   if (msg.messageType === 'video') return '[视频]'
-  return msg.content.length > 20 ? msg.content.slice(0, 20) + '...' : msg.content
+  return msg.content && msg.content.length > 20 ? msg.content.slice(0, 20) + '...' : msg.content || ''
 }
 
 // 格式化时间
@@ -178,6 +166,54 @@ const getSelectedSessionId = () => {
 
 // 页面加载时获取会话
 fetchSessions()
+
+// 添加WebSocket消息监听器
+const handleNewMessage = (data) => {
+  // 查找对应的会话
+  const sessionIndex = sessions.value.findIndex(session => session.id === data.sessionId)
+
+  if (sessionIndex !== -1) {
+    // 更新会话的最后消息和时间
+    const updatedSession = {
+      ...sessions.value[sessionIndex],
+      lastMessage: {
+        content: data.content,
+        messageType: data.messageType,
+        fileName: data.fileName,
+        isRecalled: false,
+        isDeleted: false
+      },
+      updatedAt: data.timestamp || new Date().toISOString()
+    }
+
+    // 如果消息来自非当前会话，增加未读计数
+    if (selectedSessionId.value !== data.sessionId) {
+      updatedSession.unreadCount = (updatedSession.unreadCount || 0) + 1
+    }
+
+    // 更新会话列表中的该项
+    sessions.value.splice(sessionIndex, 1, updatedSession)
+
+    // 对会话列表按更新时间重新排序（最新的在前面）
+    sessions.value.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+  }
+}
+
+// 组件挂载时监听事件
+onMounted(() => {
+  window.addEventListener('sessionCreated', refreshSessions)
+  // 添加WebSocket消息监听
+  window.api.onNewMessage(handleNewMessage)
+  console.log('刷新了')
+})
+
+
+// 组件卸载时移除监听
+onUnmounted(() => {
+  window.removeEventListener('sessionCreated', refreshSessions)
+  // 如果API提供了移除WebSocket监听的方法，也需要在这里调用
+  // window.api.offNewMessage(handleNewMessage)
+})
 
 // 如果需要在父组件中访问选中ID，可以暴露这个方法
 defineExpose({

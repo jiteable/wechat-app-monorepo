@@ -32,15 +32,16 @@ async function handleChatMessage(ws, data, clients) {
     const messageToSend = {
       type: 'new_message',
       data: {
-        id: data.messageId, // 来自API调用返回的消息ID
-        sessionId: data.sessionId,
-        senderId: ws.userId,
-        content: data.message || '',
-        messageType: data.messageType || 'text',
-        mediaUrl: data.mediaUrl || null,
-        fileName: data.fileName || null,
-        fileSize: data.fileSize || null,
-        timestamp: data.timestamp || new Date()
+        id: newMessage.id,
+        sessionId: newMessage.sessionId,
+        senderId: newMessage.senderId,
+        sender: newMessage.sender, // 包含发送者信息
+        content: newMessage.content,
+        messageType: newMessage.messageType,
+        mediaUrl: newMessage.mediaUrl,
+        fileName: newMessage.fileName,
+        fileSize: newMessage.fileSize,
+        timestamp: newMessage.createdAt
       }
     };
 
