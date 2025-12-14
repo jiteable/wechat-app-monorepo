@@ -19,7 +19,7 @@
       <div v-if="route.params.id" class="chat-id">
         <el-splitter layout="vertical">
           <el-splitter-panel size="60%">
-            <div class="chat-messages-container" ref="messagesContainer" @scroll="handleScroll">
+            <div ref="messagesContainer" class="chat-messages-container" @scroll="handleScroll">
               <!-- 使用 v-for 渲染消息列表 -->
               <div v-for="message in [...messages].reverse()" :key="message.id" class="message-item">
                 <!-- 时间戳 -->
@@ -33,7 +33,8 @@
                 </div>
 
                 <!-- 普通消息 -->
-                <div v-else :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'">
+                <div v-else :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'
+                  ">
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div class="box">
                     <div v-if="shouldShowSenderName(message)" class="message-sender">
@@ -105,6 +106,69 @@
               </div>
             </div>
           </div>
+          <div v-if="isGroupChat" class="group-info-section">
+            <!-- 群聊名称 -->
+            <div class="info-item">
+              <span class="label">群聊名称:</span>
+              <div class="editable-value" @mouseover="showEditIcon('groupName')"
+                @mouseleave="hideEditIcon('groupName')">
+                <input v-if="editingField === 'groupName'" ref="groupNameInput" v-model="groupEditForm.name"
+                  class="edit-input" @blur="saveGroupName" @keyup.enter="saveGroupName" />
+                <span v-else class="value">{{
+                  contactStore.selectedContact?.group?.name || '未知群聊'
+                  }}</span>
+                <el-icon v-if="
+                  isGroupOwnerOrAdmin &&
+                  showEditIconFlags.groupName &&
+                  editingField !== 'groupName'
+                " class="edit-icon" @click="startEditGroupName">
+                  <EditPen />
+                </el-icon>
+              </div>
+            </div>
+
+            <!-- 群公告 -->
+            <div class="info-item">
+              <span class="label">群公告:</span>
+              <span class="value">{{
+                contactStore.selectedContact?.group?.announcement || '暂无公告'
+                }}</span>
+            </div>
+
+            <!-- 备注 -->
+            <div class="info-item">
+              <span class="label">备注:</span>
+              <span class="value">{{ contactStore.selectedContact?.remark || '暂无备注' }}</span>
+            </div>
+
+            <!-- 我在本群的昵称 -->
+            <div class="info-item">
+              <span class="label">我在本群的昵称:</span>
+              <span class="value">{{ contactStore.selectedContact?.nickname || '未设置' }}</span>
+            </div>
+          </div>
+
+          <!-- 查找聊天内容 -->
+          <div class="drawer-item" @click="searchMessages">
+            <span>查找聊天内容</span>
+          </div>
+
+          <!-- 消息免打扰 -->
+          <div class="drawer-item">
+            <span>消息免打扰</span>
+            <el-switch v-model="muteNotifications" />
+          </div>
+
+          <!-- 置顶聊天 -->
+          <div class="drawer-item">
+            <span>置顶聊天</span>
+            <el-switch v-model="pinChat" />
+          </div>
+
+          <div class="drawer-item">
+            <span>显示成员名称</span>
+            <el-switch v-model="muteNotifications" />
+          </div>
         </div>
       </el-drawer>
     </div>
@@ -157,7 +221,7 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
       pagination.value = response.data.data.pagination
 
       // 将获取到的消息转换为组件所需格式
-      const newMessages = response.data.data.messages.map(msg => ({
+      const newMessages = response.data.data.messages.map((msg) => ({
         id: msg.id,
         type: 'message',
         senderId: msg.senderId,
@@ -308,7 +372,9 @@ const shouldShowSenderName = (message) => {
   if (session.sessionType === 'group') {
     // 如果showMemberNameCard为false，不显示发送者名称
     if (session.ChatSessionUsers && session.ChatSessionUsers.length > 0) {
-      const currentUserSession = session.ChatSessionUsers.find(user => user.userId === userStore.userId)
+      const currentUserSession = session.ChatSessionUsers.find(
+        (user) => user.userId === userStore.userId
+      )
       if (currentUserSession && currentUserSession.showMemberNameCard === false) {
         return false
       }
@@ -501,6 +567,83 @@ const getUserDisplayName = (userSession) => {
 const handleAvatarError = () => {
   // 头像加载错误处理
   console.log('头像加载失败')
+}
+
+// 添加新的数据属性
+const muteNotifications = ref(false)
+const pinChat = ref(false)
+
+// 添加新的方法
+const searchMessages = () => {
+  console.log('查找聊天内容')
+  // 发送消息到主进程打开聊天消息窗口
+  window.api.openChatMessageWindow()
+  window.api.openChatMessageWindow(selectedContact)
+}
+
+// 添加响应式数据
+const showEditIconFlags = ref({
+  groupName: false,
+  announcement: false
+})
+
+const editingField = ref('') // 当前正在编辑的字段
+const groupEditForm = ref({
+  name: '',
+  announcement: ''
+})
+
+const groupNameInput = ref(null)
+
+// 计算是否为群主或管理员
+const isGroupOwnerOrAdmin = computed(() => {
+  const session = contactStore.selectedContact
+  if (!session || !session.group) return false
+
+  const userId = userStore.userId
+  const group = session.group
+
+  // 检查是否为群主
+  if (group.ownerId === userId) return true
+
+  // 检查是否为管理员
+  if (group.adminIds && group.adminIds.includes(userId)) return true
+
+  return false
+})
+
+// 控制编辑图标显示的方法
+const showEditIcon = (field) => {
+  if (isGroupOwnerOrAdmin.value) {
+    showEditIconFlags.value[field] = true
+  }
+}
+
+const hideEditIcon = (field) => {
+  showEditIconFlags.value[field] = false
+}
+
+// 开始编辑群名称
+const startEditGroupName = () => {
+  editingField.value = 'groupName'
+  groupEditForm.value.name = contactStore.selectedContact?.group?.name || ''
+  nextTick(() => {
+    groupNameInput.value?.focus()
+  })
+}
+
+// 保存群名称
+const saveGroupName = () => {
+  if (editingField.value === 'groupName') {
+    // 这里可以调用API更新群名称
+    console.log('新群名称:', groupEditForm.value.name)
+
+    // 重置编辑状态
+    editingField.value = ''
+
+    // 显示成功消息
+    ElMessage.success('群名称修改成功')
+  }
 }
 </script>
 
@@ -734,7 +877,6 @@ const handleAvatarError = () => {
 /* 聊天输入区域样式 */
 .chat-input-area {
   height: 100%;
-  padding: 10px;
   background-color: rgb(237, 237, 237);
   display: flex;
   flex-direction: column;
@@ -823,6 +965,63 @@ const handleAvatarError = () => {
   height: 100%;
 }
 
+.group-info-section {
+  margin-bottom: 10px;
+  padding: 5px;
+  border-bottom: 1px solid rgb(242, 242, 242);
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.info-item .label {
+  color: #606266;
+  font-weight: 500;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.info-item .value {
+  color: rgb(158, 158, 158);
+  word-break: break-word;
+  font-size: 12px;
+}
+
+.edit-input {
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+  width: 100%;
+}
+
+.edit-input:focus {
+  border-color: #409eff;
+}
+
+.editable-value {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.editable-value {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.edit-icon {
+  margin-left: 8px;
+  color: #409eff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
 .drawer-content {
   height: 100%;
 }
@@ -831,8 +1030,7 @@ const handleAvatarError = () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 0;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 5px 0;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -846,15 +1044,14 @@ const handleAvatarError = () => {
   color: #606266;
 }
 
-.session-users-section {
-  margin-top: 20px;
+.drawer-item .el-switch {
+  margin-left: auto;
+  margin-right: 10px;
 }
 
-.section-title {
-  font-size: 14px;
-  font-weight: bold;
-  color: #606266;
-  margin-bottom: 10px;
+.session-users-section {
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgb(242, 242, 242);
 }
 
 .users-grid {
