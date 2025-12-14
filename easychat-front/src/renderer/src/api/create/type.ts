@@ -2,7 +2,7 @@
 export interface CreateGroupRequest {
   groupName: string // 群聊名称
   memberIds: string[] // 成员ID列表
-  avatar?: string // 群聊头像（可选）
+  groupAvatar?: string // 群聊头像（可选）
 }
 
 // 创建群聊响应类型

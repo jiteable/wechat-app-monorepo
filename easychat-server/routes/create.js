@@ -9,7 +9,7 @@ const { db } = require('../db/db');
  */
 router.post('/createGroup', authenticateToken, async function (req, res, next) {
   try {
-    const { groupName, memberIds } = req.body;
+    const { groupName, memberIds, groupAvatar } = req.body;
     const currentUserId = req.user.id; // 当前登录用户ID
 
     // 检查参数
@@ -49,6 +49,7 @@ router.post('/createGroup', authenticateToken, async function (req, res, next) {
         adminIds: [currentUserId], // 默认创建者为管理员
         memberIds: memberIds,
         name: groupName,
+        image: groupAvatar, // 添加群组头像
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -59,7 +60,7 @@ router.post('/createGroup', authenticateToken, async function (req, res, next) {
       data: {
         sessionType: 'group',
         name: groupName,
-        avatar: group.image,
+        avatar: group.image, // 使用群组的头像
         ownerId: currentUserId,
         groupId: group.id,
         ChatSessionUsers: {
