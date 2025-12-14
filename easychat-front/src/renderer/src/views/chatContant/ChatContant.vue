@@ -237,38 +237,6 @@ watch(
   { immediate: true }
 )
 
-// 监听来自WebSocket的新消息
-window.api.onNewMessage((data) => {
-  console.log('getuserMessage:', data)
-
-  // 确保消息属于当前会话
-  if (contactStore.selectedContact && data.data.sessionId === contactStore.selectedContact.id) {
-    // 将新消息添加到消息列表
-    const newMessage = {
-      id: data.data.id || Date.now(), // 如果没有id则使用时间戳
-      type: 'message',
-      senderId: data.data.sender.id, // 从sender对象中获取senderId
-      senderName: data.data.sender?.username || '未知用户',
-      senderAvatar: data.data.sender?.avatar || '',
-      content: data.data.content,
-      timestamp: data.data.timestamp || new Date().toISOString()
-    }
-
-    messages.value.push(newMessage)
-
-    // 只有在滚动条接近底部时才自动滚动
-    nextTick(() => {
-      if (messagesContainer.value) {
-        const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
-        // 如果用户接近底部（距离底部小于50像素），则自动滚动
-        if (scrollTop + clientHeight >= scrollHeight - 50) {
-          messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-        }
-      }
-    })
-  }
-})
-
 console.log(route.params.id) // 当前会话ID
 
 onMounted(() => {
@@ -649,10 +617,10 @@ const toggleChat = () => {
   width: 0;
   height: 0;
   border: 4px solid transparent;
-  border-right: 4px solid #a6e860;
+  border-left: 4px solid #a6e860;
   position: absolute;
   top: 6px;
-  left: -8px;
+  right: -8px;
 }
 
 /* 消息发送者信息 */

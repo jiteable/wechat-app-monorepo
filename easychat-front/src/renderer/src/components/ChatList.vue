@@ -19,12 +19,9 @@
         <!-- 信息区域和时间 -->
         <div class="content-wrapper">
           <div class="info">
-            <div class="title">
-              {{ session.name }},1121
-            </div>
+            <div class="title">{{ session.name }},1121</div>
             <div class="last-message">
-              <!-- {{ formatLastMessage(session.lastMessage) }} -->
-              1231
+              {{ formatLastMessage(session.lastMessage) }}
             </div>
           </div>
 
@@ -84,7 +81,7 @@ const sessions = ref([])
 // 过滤后的会话（支持搜索）
 const filteredSessions = computed(() => {
   if (!searchText.value) return sessions.value
-  return sessions.value.filter(session =>
+  return sessions.value.filter((session) =>
     session.name.toLowerCase().includes(searchText.value.toLowerCase())
   )
 })
@@ -98,7 +95,9 @@ const formatLastMessage = (msg) => {
   if (msg.messageType === 'file') return `[文件: ${msg.fileName}]`
   if (msg.messageType === 'voice') return '[语音]'
   if (msg.messageType === 'video') return '[视频]'
-  return msg.content && msg.content.length > 20 ? msg.content.slice(0, 20) + '...' : msg.content || ''
+  return msg.content && msg.content.length > 20
+    ? msg.content.slice(0, 20) + '...'
+    : msg.content || ''
 }
 
 // 格式化时间
@@ -149,7 +148,7 @@ const handleClickSession = async (session) => {
       console.log('会话消息已标记为已读')
 
       // 更新本地会话的未读计数
-      const updatedSessions = sessions.value.map(s =>
+      const updatedSessions = sessions.value.map((s) =>
         s.id === session.id ? { ...s, unreadCount: 0 } : s
       )
       sessions.value = updatedSessions
@@ -193,7 +192,7 @@ fetchSessions()
 // 添加WebSocket消息监听器
 const handleNewMessage = (data) => {
   // 查找对应的会话
-  const sessionIndex = sessions.value.findIndex(session => session.id === data.sessionId)
+  const sessionIndex = sessions.value.findIndex((session) => session.id === data.sessionId)
 
   if (sessionIndex !== -1) {
     // 更新会话的最后消息和时间
@@ -229,7 +228,6 @@ onMounted(() => {
   window.api.onNewMessage(handleNewMessage)
   console.log('刷新了')
 })
-
 
 // 组件卸载时移除监听
 onUnmounted(() => {
