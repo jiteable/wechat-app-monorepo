@@ -41,7 +41,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
-import { getSessions, markAsRead } from '@/api/chatSession'
+import { getSessions } from '@/api/chatSession'
+import { markAsRead } from '@/api/chat'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 

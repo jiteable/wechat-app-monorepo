@@ -365,4 +365,63 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * 标记会话中的消息为已读
+ */
+router.post('/markAsRead/:sessionId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { sessionId } = req.params;
+
+    // 验证会话是否存在以及用户是否有权限访问该会话
+    const session = await db.chatSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        ChatSessionUsers: true
+      }
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: '会话不存在'
+      });
+    }
+
+    // 检查用户是否属于该会话
+    const isSessionUser = session.ChatSessionUsers.some(user => user.userId === userId);
+    if (!isSessionUser) {
+      return res.status(403).json({
+        success: false,
+        error: '您无权访问此会话'
+      });
+    }
+
+    // 更新会话中用户未读计数为0
+    await db.chatSessionUser.update({
+      where: {
+        sessionId_userId: {
+          sessionId: sessionId,
+          userId: userId
+        }
+      },
+      data: {
+        unreadCount: 0
+      }
+    });
+
+    res.json({
+      success: true,
+      message: '消息已标记为已读'
+    });
+  } catch (error) {
+    console.error('标记消息为已读失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '标记消息为已读失败'
+    });
+  }
+});
+
+
 module.exports = router;
