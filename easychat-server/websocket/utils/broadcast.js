@@ -8,9 +8,7 @@ const WebSocket = require('ws');
  * @returns {boolean} 是否成功发送
  */
 function broadcastToUser(clients, userId, messageData) {
-  console.log('clients: ', clients)
   const client = clients.get(userId);
-  console.log('client: ', client)
   if (client && client.readyState === WebSocket.OPEN) {
     client.send(JSON.stringify(messageData));
     return true;

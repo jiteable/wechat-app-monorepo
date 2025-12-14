@@ -191,25 +191,27 @@ fetchSessions()
 
 // 添加WebSocket消息监听器
 const handleNewMessage = (data) => {
+  console.log('收到新消息:', data)
+
   // 查找对应的会话
-  const sessionIndex = sessions.value.findIndex((session) => session.id === data.sessionId)
+  const sessionIndex = sessions.value.findIndex((session) => session.id === data.data.sessionId)
 
   if (sessionIndex !== -1) {
     // 更新会话的最后消息和时间
     const updatedSession = {
       ...sessions.value[sessionIndex],
       lastMessage: {
-        content: data.content,
-        messageType: data.messageType,
-        fileName: data.fileName,
+        content: data.data.content,
+        messageType: data.data.messageType,
+        fileName: data.data.fileName,
         isRecalled: false,
         isDeleted: false
       },
-      updatedAt: data.timestamp || new Date().toISOString()
+      updatedAt: data.data.timestamp || new Date().toISOString()
     }
 
     // 如果消息来自非当前会话，增加未读计数
-    if (selectedSessionId.value !== data.sessionId) {
+    if (selectedSessionId.value !== data.data.sessionId) {
       updatedSession.unreadCount = (updatedSession.unreadCount || 0) + 1
     }
 
@@ -218,6 +220,12 @@ const handleNewMessage = (data) => {
 
     // 对会话列表按更新时间重新排序（最新的在前面）
     sessions.value.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+
+    console.log('会话列表已更新:', updatedSession)
+  } else {
+    console.log('未找到对应会话，可能需要刷新会话列表')
+    // 如果没找到对应会话，可能是新增的会话，需要刷新整个会话列表
+    fetchSessions()
   }
 }
 
