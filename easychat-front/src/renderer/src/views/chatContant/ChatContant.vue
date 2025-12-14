@@ -169,6 +169,18 @@
             <span>显示成员名称</span>
             <el-switch v-model="muteNotifications" />
           </div>
+
+          <!--清空聊天记录-->
+          <div class="drawer-item danger-item" @click="clearChatHistory">
+            <span class="icon iconfont icon-delete"></span>
+            <span>清空聊天记录</span>
+          </div>
+
+          <!--退出群聊-->
+          <div v-if="isGroupChat" class="drawer-item danger-item" @click="leaveGroup">
+            <span class="icon iconfont icon-exit"></span>
+            <span>退出群聊</span>
+          </div>
         </div>
       </el-drawer>
     </div>
@@ -645,6 +657,39 @@ const saveGroupName = () => {
     ElMessage.success('群名称修改成功')
   }
 }
+
+// 添加清空聊天记录和退出群聊的方法
+const clearChatHistory = () => {
+  ElMessageBox.confirm('确定要清空聊天记录吗？此操作不可恢复！', '清空聊天记录', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(() => {
+      // 执行清空聊天记录的逻辑
+      console.log('清空聊天记录')
+      ElMessage.success('聊天记录已清空')
+    })
+    .catch(() => {
+      // 用户取消操作
+    })
+}
+
+const leaveGroup = () => {
+  ElMessageBox.confirm('确定要退出群聊吗？', '退出群聊', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(() => {
+      // 执行退出群聊的逻辑
+      console.log('退出群聊')
+      ElMessage.success('已退出群聊')
+    })
+    .catch(() => {
+      // 用户取消操作
+    })
+}
 </script>
 
 <style scoped>
@@ -1108,5 +1153,17 @@ const saveGroupName = () => {
 
 .add-member-item:hover .user-name {
   color: #409eff;
+}
+
+.drawer-item.danger-item {
+  color: #f56c6c;
+}
+
+.drawer-item.danger-item:hover {
+  background-color: #fef0f0;
+}
+
+.drawer-item.danger-item .iconfont {
+  color: #f56c6c;
 }
 </style>
