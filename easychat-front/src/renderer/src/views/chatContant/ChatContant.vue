@@ -197,7 +197,7 @@ const addMessageListener = () => {
 // 监听选中会话的变化并打印信息
 watch(
   () => contactStore.selectedContact,
-  (newSession) => {
+  async (newSession) => {
     if (newSession) {
       console.log('ChatContant中获取到的会话信息:', newSession)
       console.log('会话ID:', newSession.id)
@@ -208,7 +208,7 @@ watch(
       console.log('更新时间:', newSession.updatedAt)
 
       // 当选中会话变化时，获取该会话的消息
-      loadMessages(newSession.id).then(() => {
+      await loadMessages(newSession.id).then(() => {
         // 在消息加载完成后，将滚动条重置到底部
         nextTick(() => {
           if (messagesContainer.value) {
@@ -216,6 +216,22 @@ watch(
           }
         })
       })
+
+      // 标记会话中的消息为已读
+      if (newSession.unreadCount > 0) {
+        try {
+          await markAsRead(newSession.id)
+          console.log('会话消息已标记为已读')
+
+          // 更新本地会话的未读计数
+          contactStore.setSelectedContact({
+            ...newSession,
+            unreadCount: 0
+          })
+        } catch (error) {
+          console.error('标记消息为已读失败:', error)
+        }
+      }
     }
   },
   { immediate: true }

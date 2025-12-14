@@ -1,11 +1,17 @@
 import config from '../../config'
 import http from '../../utils/http'
-import { SendMessageRequest, SendMessageResponse, GetMessagesResponse, GetMessagesRequest } from './type'
+import {
+  SendMessageRequest,
+  SendMessageResponse,
+  GetMessagesResponse,
+  GetMessagesRequest
+} from './type'
 
 // 枚举地址
 enum API {
   SEND_MESSAGE_URL = '/chat/sendChat',
-  GET_MESSAGES_URL = '/chat/getChat'
+  GET_MESSAGES_URL = '/chat/getChat',
+  MARK_AS_READ_URL = '/chat/markAsRead/'
 }
 
 /**
@@ -30,4 +36,13 @@ export const getMessages = (params: GetMessagesRequest) => {
       limit
     }
   })
+}
+
+/**
+ * 标记会话中的消息为已读
+ * @param sessionId 会话ID
+ * @returns 标记结果
+ */
+export const markAsRead = (sessionId: string) => {
+  return http.post(`${config.api}${API.MARK_AS_READ_URL}${sessionId}`)
 }

@@ -41,7 +41,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
-import { getSessions } from '@/api/chatSession'
+import { getSessions, markAsRead } from '@/api/chatSession'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -137,12 +137,34 @@ const formatDate = (dateStr) => {
 }
 
 // 点击会话跳转
-const handleClickSession = (session) => {
+const handleClickSession = async (session) => {
   // 设置当前选中的会话ID
   selectedSessionId.value = session.id
 
-  // 将当前会话保存到 Pinia 状态
-  contactStore.setSelectedContact(session)
+  // 如果有未读消息，标记为已读
+  if (session.unreadCount > 0) {
+    try {
+      await markAsRead(session.id)
+      console.log('会话消息已标记为已读')
+
+      // 更新本地会话的未读计数
+      const updatedSessions = sessions.value.map(s =>
+        s.id === session.id ? { ...s, unreadCount: 0 } : s
+      )
+      sessions.value = updatedSessions
+
+      // 更新store中的会话信息
+      contactStore.setSelectedContact({
+        ...session,
+        unreadCount: 0
+      })
+    } catch (error) {
+      console.error('标记消息为已读失败:', error)
+    }
+  } else {
+    // 将当前会话保存到 Pinia 状态
+    contactStore.setSelectedContact(session)
+  }
 
   console.log('session: ', session)
 
