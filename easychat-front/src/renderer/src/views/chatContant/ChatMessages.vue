@@ -215,12 +215,14 @@ const loadMessages = async (sessionId) => {
       messages.value = response.data.data.messages.map(msg => ({
         id: msg.id,
         text: msg.content,
-        time: formatTime(msg.timestamp),
+        time: formatTime(msg.updatedAt),
         type: getMessageType(msg.messageType),
         sender: msg.sender?.username || '未知用户',
         avatar: msg.sender?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
       }))
     }
+
+    console.log('messagessss: ', response.data.data.messages)
   } catch (error) {
     console.error('获取消息失败:', error)
   } finally {
@@ -229,13 +231,61 @@ const loadMessages = async (sessionId) => {
 }
 
 const formatTime = (timestamp) => {
-  const date = new Date(timestamp)
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  return `${year}-${month}-${day} ${hours}:${minutes}`
+  // 检查时间戳是否有效
+  if (!timestamp && timestamp !== 0) {
+    console.warn('无效的时间戳:', timestamp)
+    return 'Invalid Time'
+  }
+
+  let date
+
+  try {
+    // 根据不同类型处理时间戳
+    if (typeof timestamp === 'string') {
+      // 处理 ISO 8601 格式的时间字符串
+      if (timestamp.includes('T') && timestamp.endsWith('Z')) {
+        date = new Date(timestamp)
+      } else if (timestamp.includes('-') && timestamp.includes(':')) {
+        // 处理 "YYYY-MM-DD HH:MM" 格式的字符串
+        date = new Date(timestamp.replace(' ', 'T'))
+      } else {
+        // 尝试作为时间戳解析
+        const numericTimestamp = parseInt(timestamp, 10)
+        if (!isNaN(numericTimestamp)) {
+          date = new Date(numericTimestamp)
+        } else {
+          throw new Error('无法解析时间字符串')
+        }
+      }
+    } else if (typeof timestamp === 'number') {
+      // 数字格式的时间戳
+      date = new Date(timestamp)
+
+      // 如果得到的年份不合理（比如小于1970），可能是秒级时间戳
+      if (date.getFullYear() < 1970 && date.getFullYear() > 0) {
+        date = new Date(timestamp * 1000)
+      }
+    } else {
+      // 其他类型
+      date = new Date(timestamp)
+    }
+
+    // 检查日期对象是否有效
+    if (isNaN(date.getTime())) {
+      console.warn('无法解析的时间戳:', timestamp)
+      return 'Invalid Time'
+    }
+
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}`
+  } catch (error) {
+    console.error('时间格式化错误:', error, '时间戳:', timestamp)
+    return 'Invalid Time'
+  }
 }
 
 // 根据消息类型转换为中文描述

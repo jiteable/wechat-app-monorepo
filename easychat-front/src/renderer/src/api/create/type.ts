@@ -1,4 +1,5 @@
 // 创建群聊请求类型
+
 export interface CreateGroupRequest {
   groupName: string // 群聊名称
   memberIds: string[] // 成员ID列表

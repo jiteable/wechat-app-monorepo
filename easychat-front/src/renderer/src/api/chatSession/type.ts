@@ -36,7 +36,7 @@ export interface Group {
   id: string
   ownerId: string
   adminIds: string[]
-  memberIds: string[]
+  members: member[]
   name: string
   announcement: string | null
   createdAt: string
@@ -48,6 +48,11 @@ export interface Group {
   needApprovalToJoin: boolean
   isDismissed: boolean
   dismissedAt: string | null
+}
+export interface member {
+  id: string
+  name: string
+  avatar: string
 }
 
 // 最后一条消息

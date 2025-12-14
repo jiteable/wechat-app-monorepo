@@ -9,6 +9,9 @@
           <el-button type="text" @click="toggleChat">
             <span class="icon iconfont icon-chat"></span>
           </el-button>
+          <el-button class="el-button no-drag" type="text" @click="drawer = true">
+            <span class="icon iconfont icon-more"></span>
+          </el-button>
         </div>
       </div>
     </WindowControls>
@@ -85,6 +88,19 @@
         </el-icon>
         <p>请选择一个聊天</p>
       </div>
+      <el-drawer v-model="drawer" title="更多选项" modal-penetrable :width="300" @close="onDrawerClose">
+        <div class="drawer-content">
+          <div class="session-users-section">
+            <div class="section-title">群成员</div>
+            <div class="users-grid">
+              <div v-for="(user, index) in displayedUsers" :key="user.id" class="user-item">
+                <el-avatar shape="square" :size="40" :src="user.avatar" @error="handleAvatarError" />
+                <div class="user-name">{{ getUserDisplayName(user) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-drawer>
     </div>
 
     <!-- 添加聊天输入区域 -->
@@ -103,6 +119,8 @@ import { sendMessage, getMessages } from '@/api/chat'
 const route = useRoute()
 const contactStore = userContactStore()
 const userStore = useUserStore()
+
+const drawer = ref(false)
 
 // 在组件外定义消息监听器，确保不会因为组件重新渲染而丢失
 let isMessageListenerAdded = false
@@ -263,6 +281,11 @@ const getDisplayName = computed(() => {
   return '聊天'
 })
 
+const isGroupChat = computed(() => {
+  const session = contactStore.selectedContact
+  return session && session.sessionType === 'group'
+})
+
 // 判断是否应该显示发送者名称
 const shouldShowSenderName = (message) => {
   const session = contactStore.selectedContact
@@ -421,6 +444,44 @@ const toggleChat = () => {
   window.api.openChatMessageWindow()
   window.api.openChatMessageWindow(selectedContact)
 }
+
+const sessionUsers = computed(() => {
+  const session = contactStore.selectedContact
+  console.log('sessionaaaaaaaa: ', session.group.members)
+  // 注意：目前前端的 ChatSession 类型定义中缺少 ChatSessionUsers 属性
+  // 需要确认后端是否返回了这部分数据
+  return session && session.group.members ? session.group.members : []
+})
+
+const displayedUsers = computed(() => {
+  console.log('sessionUsers....', sessionUsers.value)
+  return sessionUsers.value.slice(0, 16)
+})
+
+const getUserDisplayName = (userSession) => {
+  // 根据会话用户信息获取显示名称
+  // 针对 member 类型（群成员基本数据结构）
+  if (userSession.name) {
+    return userSession.name
+  }
+
+  // 针对 ChatSessionUser 类型（如果有 user 对象）
+  if (userSession.user && userSession.user.username) {
+    return userSession.user.username
+  }
+
+  // 针对 ChatSessionUser 类型（如果有 nickname）
+  if (userSession.nickname) {
+    return userSession.nickname
+  }
+
+  return '未知用户'
+}
+
+const handleAvatarError = () => {
+  // 头像加载错误处理
+  console.log('头像加载失败')
+}
 </script>
 
 <style scoped>
@@ -440,35 +501,21 @@ const toggleChat = () => {
   gap: 10px;
 }
 
-.user-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
-}
-
-.chat-actions {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.chat-actions .el-button {
-  padding: 0;
-  min-width: auto;
-  border: none;
-  background: transparent;
+.chat-actions .el-button--text {
+  width: 30px;
+  height: 30px;
 }
 
 .chat-actions .el-button:hover {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 50%;
+  background: #e1e1e1;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
 .chat-actions .iconfont {
   font-size: 20px;
   color: #606266;
+  opacity: 1;
 }
 
 .chat-contant-container {
@@ -754,5 +801,65 @@ const toggleChat = () => {
 
 .demo-panel {
   height: 100%;
+}
+
+.drawer-content {
+  height: 100%;
+}
+
+.drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.drawer-item:hover {
+  background-color: #f5f5f5;
+}
+
+.drawer-item .iconfont {
+  font-size: 18px;
+  color: #606266;
+}
+
+.session-users-section {
+  margin-top: 20px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #606266;
+  margin-bottom: 10px;
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+
+.user-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.user-item .el-avatar {
+  margin-bottom: 5px;
+}
+
+.user-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(168, 168, 168);
+  max-width: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
