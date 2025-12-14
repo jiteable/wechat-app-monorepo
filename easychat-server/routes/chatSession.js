@@ -96,6 +96,34 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         contactId = otherUsers[0].userId;
       }
 
+      // 如果是群聊会话，获取群成员的部分信息
+      let groupWithMembers = null;
+      if (session.sessionType === 'group' && session.group) {
+        // 获取群成员信息
+        const memberUsers = await db.user.findMany({
+          where: {
+            id: {
+              in: session.group.memberIds || []
+            }
+          },
+          select: {
+            id: true,
+            username: true,
+            avatar: true
+          }
+        });
+
+        // 构造带有成员信息的群组对象
+        groupWithMembers = {
+          ...session.group,
+          members: memberUsers.map(user => ({
+            id: user.id,
+            name: user.username,
+            avatar: user.avatar
+          }))
+        };
+      }
+
       const sessionData = {
         id: session.id,
         sessionType: session.sessionType,
@@ -108,7 +136,7 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         isMuted: currentUserSessionInfo?.isMuted || false,
         unreadCount: currentUserSessionInfo?.unreadCount || 0,
         lastMessage: session.unifiedMessages.length > 0 ? session.unifiedMessages[0] : null,
-        group: session.group || null,
+        group: groupWithMembers || session.group || null,
         contactId: contactId // 添加联系人ID(限私聊)
       };
 
@@ -157,7 +185,7 @@ router.get('/getSession', authenticateToken, async (req, res) => {
       });
 
       // 处理会话数据，构建返回格式
-      const sessionList = sessions.map(session => {
+      const sessionList = await Promise.all(sessions.map(async session => {
         // 获取当前用户的会话关系信息
         const currentUserSessionInfo = session.ChatSessionUsers.find(userSession => userSession.userId === currentUserId);
 
@@ -186,6 +214,34 @@ router.get('/getSession', authenticateToken, async (req, res) => {
           contactId = otherUsers[0].userId;
         }
 
+        // 如果是群聊会话，获取群成员的部分信息
+        let groupWithMembers = null;
+        if (session.sessionType === 'group' && session.group) {
+          // 获取群成员信息
+          const memberUsers = await db.user.findMany({
+            where: {
+              id: {
+                in: session.group.memberIds || []
+              }
+            },
+            select: {
+              id: true,
+              username: true,
+              avatar: true
+            }
+          });
+
+          // 构造带有成员信息的群组对象
+          groupWithMembers = {
+            ...session.group,
+            members: memberUsers.map(user => ({
+              id: user.id,
+              name: user.username,
+              avatar: user.avatar
+            }))
+          };
+        }
+
         return {
           id: session.id,
           sessionType: session.sessionType,
@@ -198,10 +254,10 @@ router.get('/getSession', authenticateToken, async (req, res) => {
           isMuted: currentUserSessionInfo?.isMuted || false,
           unreadCount: currentUserSessionInfo?.unreadCount || 0,
           lastMessage: session.unifiedMessages.length > 0 ? session.unifiedMessages[0] : null,
-          group: session.group || null,
+          group: groupWithMembers || session.group || null,
           contactId: contactId // 添加联系人ID(限私聊)
         };
-      });
+      }));
 
       res.json({
         success: true,
@@ -399,7 +455,6 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       }
     });
 
-    // 处理返回数据格式，使其与getSession接口一致
     const currentUserSessionInfo = newSession.ChatSessionUsers.find(userSession => userSession.userId === currentUserId);
     const otherUsers = newSession.ChatSessionUsers.filter(userSession => userSession.userId !== currentUserId);
 
@@ -425,6 +480,34 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       contactId = otherUsers[0].userId;
     }
 
+    // 如果是群聊会话，获取群成员的部分信息
+    let groupWithMembers = null;
+    if (newSession.sessionType === 'group' && newSession.group) {
+      // 获取群成员信息
+      const memberUsers = await db.user.findMany({
+        where: {
+          id: {
+            in: newSession.group.memberIds || []
+          }
+        },
+        select: {
+          id: true,
+          username: true,
+          avatar: true
+        }
+      });
+
+      // 构造带有成员信息的群组对象
+      groupWithMembers = {
+        ...newSession.group,
+        members: memberUsers.map(user => ({
+          id: user.id,
+          name: user.username,
+          avatar: user.avatar
+        }))
+      };
+    }
+
     const formattedSession = {
       id: newSession.id,
       sessionType: newSession.sessionType,
@@ -437,7 +520,7 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       isMuted: currentUserSessionInfo?.isMuted || false,
       unreadCount: currentUserSessionInfo?.unreadCount || 0,
       lastMessage: newSession.unifiedMessages.length > 0 ? newSession.unifiedMessages[0] : null,
-      group: newSession.group || null,
+      group: groupWithMembers || newSession.group || null,
       contactId: contactId // 添加联系人ID(限私聊)
     };
 

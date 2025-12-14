@@ -97,6 +97,12 @@
                 <el-avatar shape="square" :size="40" :src="user.avatar" @error="handleAvatarError" />
                 <div class="user-name">{{ getUserDisplayName(user) }}</div>
               </div>
+              <div v-if="shouldShowAddButton" class="user-item add-member-item" @click="addMember">
+                <div class="add-avatar">
+                  <span class="icon iconfont icon-add"></span>
+                </div>
+                <div class="user-name">添加</div>
+              </div>
             </div>
           </div>
         </div>
@@ -455,8 +461,22 @@ const sessionUsers = computed(() => {
 
 const displayedUsers = computed(() => {
   console.log('sessionUsers....', sessionUsers.value)
-  return sessionUsers.value.slice(0, 16)
+  // 最多显示15个成员
+  return sessionUsers.value.slice(0, 15)
 })
+
+// 是否显示添加按钮
+const shouldShowAddButton = computed(() => {
+  const session = contactStore.selectedContact
+  // 只有在群聊中才显示添加按钮
+  return session && session.sessionType === 'group' && sessionUsers.value.length > 0
+})
+
+// 添加成员方法
+const addMember = () => {
+  console.log('添加成员')
+  // 这里可以实现添加成员的逻辑
+}
 
 const getUserDisplayName = (userSession) => {
   // 根据会话用户信息获取显示名称
@@ -855,11 +875,41 @@ const handleAvatarError = () => {
 
 .user-name {
   font-size: 12px;
-  font-weight: 500;
-  color: rgb(168, 168, 168);
-  max-width: 50px;
+  text-align: center;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.add-member-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.add-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+
+.add-avatar .icon-add {
+  font-size: 24px;
+  color: #999;
+}
+
+.add-member-item:hover .add-avatar {
+  background-color: #e0e0e0;
+}
+
+.add-member-item:hover .user-name {
+  color: #409eff;
 }
 </style>
