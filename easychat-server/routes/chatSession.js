@@ -524,6 +524,18 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       contactId: contactId // 添加联系人ID(限私聊)
     };
 
+    // 添加时间戳消息
+    await db.unifiedMessage.create({
+      data: {
+        sessionId: newSession.id,
+        senderId: currentUserId,
+        content: formatTimestamp(newSession.createdAt),
+        messageType: 'timestamp',
+        createdAt: newSession.createdAt,
+        updatedAt: newSession.createdAt
+      }
+    })
+
     // 如果是私聊会话，添加一条系统消息
     if (sessionType === 'private') {
       await db.unifiedMessage.create({

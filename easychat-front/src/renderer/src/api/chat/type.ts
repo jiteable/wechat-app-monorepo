@@ -18,7 +18,7 @@ export interface Message {
   mediaUrl?: string
   fileName?: string
   fileSize?: number
-  timestamp: string
+  createdAt: string
   sender?: {
     id: string
     chatId: string
@@ -86,7 +86,7 @@ export interface SendMessageResponse {
     content: string
     fileName?: string
     fileSize?: number
-    timestamp: string
+    createdAt: string
   }
   message: string
 }

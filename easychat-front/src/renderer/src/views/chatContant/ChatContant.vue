@@ -28,7 +28,7 @@
               >
                 <!-- 时间戳 -->
                 <div v-if="message.type === 'timestamp'" class="message-timestamp">
-                  {{ formatDate(message.timestamp) }}
+                  {{ formatDate(message.content) }}
                 </div>
 
                 <!-- 系统消息 -->
@@ -398,7 +398,7 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         senderName: msg.sender?.username || '未知用户',
         senderAvatar: msg.sender?.avatar,
         content: msg.content,
-        timestamp: msg.timestamp
+        createdAt: msg.createdAt
       }))
 
       // 添加一条测试文件消息（仅用于演示）
@@ -410,7 +410,7 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         senderAvatar: userStore.avatar,
         content: 'example.pdf', // 文件名
         size: '2.1 MB', // 文件大小
-        timestamp: new Date().toISOString()
+        createdAt: new Date().toISOString()
       })
 
       // 添加一条测试图片消息（仅用于演示）
@@ -422,7 +422,7 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         senderAvatar: userStore.avatar,
         imageUrl: 'https://file-dev.document-ai.top/avatar/chatImage/1764941356169-708333963.jpg', // 示例图片链接
         fileName: 'sample.jpg',
-        timestamp: new Date().toISOString()
+        createdAt: new Date().toISOString()
       })
 
       if (prepend) {
@@ -455,7 +455,7 @@ const addMessageListener = () => {
           senderName: data.data.sender?.username || '未知用户',
           senderAvatar: data.data.sender?.avatar || '',
           content: data.data.content,
-          timestamp: data.data.timestamp || new Date().toISOString()
+          createdAt: data.data.createdAt || new Date().toISOString()
         }
 
         messages.value.push(newMessage)
@@ -616,7 +616,7 @@ const sendMessageHandler = async () => {
     for (let i = messages.value.length - 1; i >= 0; i--) {
       const lastMessage = messages.value[i]
       if (lastMessage.type === 'message') {
-        const lastMessageTime = new Date(lastMessage.timestamp)
+        const lastMessageTime = new Date(lastMessage.createdAt)
         const timeDiff = (currentTime - lastMessageTime) / (1000 * 60) // 转换为分钟
         if (timeDiff > 10) {
           shouldAddTimestamp = true
@@ -635,7 +635,7 @@ const sendMessageHandler = async () => {
       const timestampMessage = {
         id: 'timestamp-' + Date.now(),
         type: 'timestamp',
-        timestamp: currentTime.toISOString()
+        content: currentTime.toISOString()
       }
       messages.value.push(timestampMessage)
     }
@@ -647,8 +647,7 @@ const sendMessageHandler = async () => {
       senderId: userStore.userId,
       senderName: userStore.username || '我',
       senderAvatar: userStore.avatar || '',
-      content: message.value.trim(),
-      timestamp: currentTime.toISOString()
+      content: message.value.trim()
     }
 
     // 立即显示消息（优化用户体验）

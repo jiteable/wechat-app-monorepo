@@ -95,6 +95,8 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
       }
     });
 
+    console.log('messsagesss: ', messages)
+
     res.json({
       success: true,
       data: {
@@ -352,7 +354,7 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
         content: newMessage.content,
         fileName: newMessage.fileName,
         fileSize: newMessage.fileSize,
-        timestamp: newMessage.createdAt
+        createdAt: newMessage.createdAt
       },
       message: '消息发送成功'
     });
