@@ -921,6 +921,36 @@ const showCategory = (categoryName) => {
   // 可以在这里滚动到对应分类
   console.log('切换到:', categoryName)
 }
+
+const insertEmoji = (char) => {
+  const inputElement = document.querySelector('.el-textarea__inner')
+  if (inputElement) {
+    const startPos = inputElement.selectionStart
+    const endPos = inputElement.selectionEnd
+    const beforeText = message.value.substring(0, startPos)
+    const afterText = message.value.substring(endPos)
+
+    // 在光标位置插入emoji
+    message.value = beforeText + char + afterText
+
+    // 更新光标位置到插入的emoji之后
+    nextTick(() => {
+      inputElement.selectionStart = startPos + char.length
+      inputElement.selectionEnd = startPos + char.length
+      inputElement.focus()
+    })
+  } else {
+    // 如果无法获取到输入框元素，直接在末尾添加
+    message.value += char
+    nextTick(() => {
+      const textarea = document.querySelector('.el-textarea__inner')
+      if (textarea) {
+        textarea.focus()
+      }
+    })
+  }
+}
+
 </script>
 
 <style scoped>
