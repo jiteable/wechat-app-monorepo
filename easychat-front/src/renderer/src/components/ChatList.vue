@@ -2,8 +2,13 @@
   <div class="chat-list-container">
     <!-- 会话列表 -->
     <div class="chat-list no-drag">
-      <button v-for="session in filteredSessions" :key="session.id" class="chat-item"
-        :class="{ active: selectedSessionId === session.id }" @click="handleClickSession(session)">
+      <button
+        v-for="session in filteredSessions"
+        :key="session.id"
+        class="chat-item"
+        :class="{ active: selectedSessionId === session.id }"
+        @click="handleClickSession(session)"
+      >
         <!-- 头像 -->
 
         <div>
@@ -19,9 +24,9 @@
         <!-- 信息区域和时间 -->
         <div class="content-wrapper">
           <div class="info">
-            <div class="title">{{ session.name }},1121</div>
+            <div class="title">{{ session.name }}</div>
             <div class="last-message">
-              {{ formatLastMessage(session.lastMessage) }}
+              {{ formatLastMessage(session.lastMessage, session.sessionType) }}
             </div>
           </div>
 
@@ -87,14 +92,28 @@ const filteredSessions = computed(() => {
 })
 
 // 格式化最后一条消息
-const formatLastMessage = (msg) => {
+const formatLastMessage = (msg, sessionType) => {
   if (!msg) return ''
   if (msg.isRecalled) return '消息已撤回'
   if (msg.isDeleted) return '消息已删除'
+
+  // 如果是群聊且消息有发送者信息，则显示发送者用户名
+  if (sessionType === 'group' && msg.senderName) {
+    if (msg.messageType === 'image') return `${msg.senderName}: [图片]`
+    if (msg.messageType === 'file') return `${msg.senderName}: [文件]: ${msg.fileName || ''}`
+    if (msg.messageType === 'voice') return `${msg.senderName}: [语音]`
+    if (msg.messageType === 'video') return `${msg.senderName}: [视频]`
+
+    const content = msg.content || ''
+    return `${msg.senderName}: ${content.length > 20 ? content.slice(0, 20) + '...' : content}`
+  }
+
+  // 单聊或其他情况保持原有逻辑
   if (msg.messageType === 'image') return '[图片]'
-  if (msg.messageType === 'file') return `[文件: ${msg.fileName}]`
+  if (msg.messageType === 'file') return `[文件]: ${msg.fileName || ''}`
   if (msg.messageType === 'voice') return '[语音]'
   if (msg.messageType === 'video') return '[视频]'
+
   return msg.content && msg.content.length > 20
     ? msg.content.slice(0, 20) + '...'
     : msg.content || ''
