@@ -524,6 +524,45 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       contactId: contactId // 添加联系人ID(限私聊)
     };
 
+    // 如果是私聊会话，添加一条系统消息
+    if (sessionType === 'private') {
+      await db.unifiedMessage.create({
+        data: {
+          sessionId: newSession.id,
+          senderId: currentUserId,
+          content: '已创建会话，可以开始聊天了',
+          messageType: 'system',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    }
+
+    // 如果是群聊会话，添加一条系统消息，显示所有加入群聊的成员名称
+    if (sessionType === 'group' && usersInfo.length > 0) {
+      // 获取所有用户的名字
+      const userNames = usersInfo.map(user => user.username).filter(name => name);
+
+      // 构造消息内容
+      let content = '';
+      if (userNames.length > 0) {
+        content = `${userNames.join('、')} 加入群聊`;
+      } else {
+        content = '成员加入群聊';
+      }
+
+      await db.unifiedMessage.create({
+        data: {
+          sessionId: newSession.id,
+          senderId: currentUserId,
+          content: content,
+          messageType: 'system',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    }
+
     res.status(201).json({
       success: true,
       data: formattedSession
