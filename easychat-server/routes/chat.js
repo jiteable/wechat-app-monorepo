@@ -188,6 +188,8 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
 
     switch (messageType) {
       case 'text':
+      case 'timestamp':
+      case 'system':
       case 'emoji':
         if (!content) {
           return res.status(400).json({

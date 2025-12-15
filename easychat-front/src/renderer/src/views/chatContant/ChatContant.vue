@@ -405,8 +405,6 @@ const updateInputEmptyState = () => {
 
 // 初始化 MutationObserver
 onMounted(() => {
-
-
   if (messageInputRef.value) {
     richInputObserver.value = new MutationObserver(() => {
       updateInputEmptyState()
@@ -460,13 +458,15 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
       // 将获取到的消息转换为组件所需格式
       const newMessages = response.data.data.messages.map((msg) => ({
         id: msg.id,
-        type: 'message',
+        type: msg.messageType,
         senderId: msg.senderId,
         senderName: msg.sender?.username || '未知用户',
         senderAvatar: msg.sender?.avatar,
         content: msg.content,
         createdAt: msg.createdAt
       }))
+
+      console.log('newMessages: ', newMessages)
 
       // // 添加一条测试文件消息（仅用于演示）
       // newMessages.push({
@@ -725,13 +725,44 @@ const sendMessageHandler = async () => {
       type: 'timestamp',
       content: currentTime.toISOString()
     }
+
+    try {
+      const timeData = {
+        sessionId: selectedContact.id,
+        senderId: userStore.userId,
+        messageType: 'timestamp',
+        content: currentTime.toISOString()
+      }
+
+      if (selectedContact.sessionType === 'private') {
+        timeData.receiverId = selectedContact.contactId
+      }
+      // 如果是群聊
+      else if (selectedContact.sessionType === 'group') {
+        timeData.groupId = selectedContact.group?.id
+      }
+
+      if (window.api && typeof window.api.sendMessage === 'function') {
+        window.api.sendMessage({
+          type: 'send_message',
+          data: timeData
+        })
+      }
+
+      // 通过HTTP API发送消息到后端（用于持久化存储）
+      const response1 = await sendMessage(timeData)
+      console.log('消息发送成功:', response1)
+    } catch (error) {
+      console.error('发送消息失败:', error)
+      // 可以在这里添加错误处理，比如显示错误消息给用户
+    }
     messages.value.push(timestampMessage)
   }
 
   // 创建本地消息对象（用于立即显示）
   const localMessage = {
     id: Date.now(), // 临时ID
-    type: 'message',
+    type: 'text',
     senderId: userStore.userId,
     senderName: userStore.username || '我',
     senderAvatar: userStore.avatar || '',
@@ -763,7 +794,8 @@ const sendMessageHandler = async () => {
     }
     // 如果是群聊
     else if (selectedContact.sessionType === 'group') {
-      messageData.groupId = selectedContact.groupId
+      messageData.groupId = selectedContact.group?.id
+      console.log('selectedContact.groupId: ', selectedContact.group?.id)
     }
 
     // 通过WebSocket发送实时消息
@@ -776,7 +808,7 @@ const sendMessageHandler = async () => {
 
     // 通过HTTP API发送消息到后端（用于持久化存储）
     const response = await sendMessage(messageData)
-    console.log('消息发送成功:', response)
+    console.log('消息2发送成功:', response)
 
     // 清空输入框
     if (messageInputRef.value) {
@@ -836,7 +868,6 @@ const handlePaste = (event) => {
     updateInputEmptyState()
   }, 0)
 }
-
 
 // 切换聊天状态
 const toggleChat = () => {

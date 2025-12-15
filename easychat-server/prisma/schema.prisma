@@ -181,7 +181,7 @@ model UnifiedMessage {
   receiverId   String?                                    // 接收者ID (私聊时使用)
   groupId      String?                                    // 群组ID (群聊时使用)
   content      String                                     // 消息内容
-  messageType  String      @default("text")               // 消息类型: text, image, file, emoji, voice, video
+  messageType  String      @default("text")               // 消息类型: text, image, file, emoji, voice, video timestamp system
   mediaUrl     String?                                    // 媒体文件URL (图片/文件)
   fileName     String?                                    // 文件名 (针对文件类型消息)
   fileSize     Int?                                       // 文件大小 (针对文件类型消息)

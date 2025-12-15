@@ -4,7 +4,9 @@ export enum MessageType {
   FILE = 'file',
   EMOJI = 'emoji',
   VOICE = 'voice',
-  VIDEO = 'video'
+  VIDEO = 'video',
+  TIMESTAMP = 'timestamp',
+  SYSTEM = 'system'
 }
 
 export interface Message {
