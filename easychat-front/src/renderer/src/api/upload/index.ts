@@ -1,10 +1,11 @@
 import config from '../../config'
 import http from '../../utils/http'
-import { UploadAvatarResponse, UploadAvatarError, UploadFileResponse, UploadFileError } from './type'
+import { UploadAvatarResponse, UploadAvatarError, UploadFileResponse, UploadFileError, UploadImageResponse, UploadImageError } from './type'
 
 enum API {
   UPLOAD_AVATAR_URL = '/upload/avatar',
-  UPLOAD_FILE_URL = '/upload/file'
+  UPLOAD_FILE_URL = '/upload/file',
+  UPLOAD_IMAGE_URL = '/upload/image'
 }
 
 /**
@@ -44,6 +45,28 @@ export const uploadFile = async (file: File, fileType?: 'image' | 'video' | 'voi
 
   const response = await http.post<UploadFileResponse & UploadFileError>(
     `${config.api}${API.UPLOAD_FILE_URL}`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }
+  )
+
+  return response.data
+}
+
+/**
+ * 上传图片
+ * @param file 图片文件
+ * @returns 上传结果
+ */
+export const uploadImage = async (file: File): Promise<UploadImageResponse> => {
+  const formData = new FormData()
+  formData.append('image', file)
+
+  const response = await http.post<UploadImageResponse & UploadImageError>(
+    `${config.api}${API.UPLOAD_IMAGE_URL}`,
     formData,
     {
       headers: {

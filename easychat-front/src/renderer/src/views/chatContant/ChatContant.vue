@@ -197,14 +197,14 @@
                 </div>
 
                 <div class="input-content">
-                  <el-input
-                    v-model="message"
-                    type="textarea"
+                  <div
+                    ref="messageInputRef"
+                    class="rich-input"
+                    contenteditable="true"
                     placeholder="输入消息..."
-                    maxlength="2000"
-                    resize="none"
-                    @keydown.enter="handleEnterKey"
-                  />
+                    @keydown="handleInputKeydown"
+                    @paste="handlePaste"
+                  ></div>
                 </div>
 
                 <div class="input-actions">
@@ -355,6 +355,8 @@ import { useUserStore } from '@/store/userStore'
 import { Message } from '@element-plus/icons-vue'
 import { ref, nextTick, watch, computed, onMounted, onUnmounted } from 'vue'
 import { sendMessage, getMessages } from '@/api/chat'
+import { ElMessage } from 'element-plus'
+import { uploadImage } from '@/api/upload'
 
 const route = useRoute()
 const contactStore = userContactStore()
@@ -603,9 +605,22 @@ const loadMoreMessages = async () => {
   loadingMore.value = false
 }
 
+const messageInputRef = ref(null)
+
+// 修改发送消息的方法，从富文本输入框获取内容
+const getMessageContent = () => {
+  if (!messageInputRef.value) return ''
+
+  // 获取输入框内的所有内容
+  const content = messageInputRef.value.innerText || messageInputRef.value.textContent || ''
+  return content
+}
+
+
 // 发送消息
 const sendMessageHandler = async () => {
-  if (message.value.trim() && contactStore.selectedContact) {
+  const content = getMessageContent()
+  if (content.trim() && contactStore.selectedContact) {
     const selectedContact = contactStore.selectedContact
 
     // 检查是否需要添加时间戳
@@ -666,7 +681,7 @@ const sendMessageHandler = async () => {
         sessionId: selectedContact.id,
         senderId: userStore.userId,
         messageType: 'text',
-        content: message.value.trim()
+        content: content.trim()
       }
 
       // 如果是私聊
@@ -708,21 +723,35 @@ onUnmounted(() => {
     isMessageListenerAdded = false
   }
 })
-const handleEnterKey = (event) => {
+const handleInputKeydown = (event) => {
   // 如果按下的是 Ctrl+Enter 或 Shift+Enter，则换行
-  if (event.ctrlKey || event.shiftKey) {
-    const startPos = event.target.selectionStart
-    const endPos = event.target.selectionEnd
-    message.value = message.value.substring(0, startPos) + '\n' + message.value.substring(endPos)
-    // 等待 DOM 更新后再设置光标位置
-    nextTick(() => {
-      event.target.selectionStart = startPos + 1
-      event.target.selectionEnd = startPos + 1
-    })
-  } else {
+  if (event.key === 'Enter' && (event.ctrlKey || event.shiftKey)) {
+    // 允许默认换行行为
+    return
+  } else if (event.key === 'Enter' && !event.ctrlKey && !event.shiftKey) {
     // 单独按 Enter 键发送消息
     event.preventDefault()
-    sendMessageHandler()
+
+    // 获取输入框内容并检查是否为空
+    const content = getMessageContent()
+    if (content.trim()) {
+      sendMessageHandler()
+    }
+  }
+}
+
+// 处理粘贴事件
+const handlePaste = (event) => {
+  event.preventDefault()
+  const text = (event.clipboardData || window.clipboardData).getData('text')
+  const selection = window.getSelection()
+  if (selection.rangeCount) {
+    const range = selection.getRangeAt(0)
+    range.deleteContents()
+    range.insertNode(document.createTextNode(text))
+    range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
   }
 }
 
@@ -1083,11 +1112,68 @@ const handleFileUpload = (event) => {
 }
 
 // 上传文件
-const uploadFile = (file) => {
+const uploadFile = async (file) => {
   console.log('准备上传文件:', file)
 
-  // 临时提醒
-  ElMessage.info(`选择了文件: ${file.name}`)
+  // 获取文件扩展名并转换为小写
+  const fileName = file.name.toLowerCase()
+  const fileExtension = fileName.substring(fileName.lastIndexOf('.'))
+
+  // 定义图片文件扩展名列表
+  const imageExtensions = ['.jpg', '.jpeg', '.jpe', '.jfif', '.png', '.gif']
+
+  // 判断是否为图片文件
+  if (imageExtensions.includes(fileExtension)) {
+    // 如果是图片文件
+    try {
+      const response = await uploadImage(file)
+      if (response.success) {
+        ElMessage.success(`图片上传成功: ${file.name}`)
+        console.log('图片上传成功，URL:', response.imageUrl)
+
+        // 将图片插入到富文本输入框中
+        insertImageToRichInput(response.imageUrl)
+      } else {
+        ElMessage.error(`图片上传失败: ${response.error || '未知错误'}`)
+      }
+    } catch (error) {
+      console.error('图片上传异常:', error)
+      ElMessage.error(`图片上传异常: ${error.message || '网络错误'}`)
+    }
+  } else {
+    // 如果是其他类型文件
+    ElMessage.info(`选择了文件: ${file.name}`)
+    // TODO: 在这里可以处理其他类型文件的上传
+  }
+}
+
+// 在富文本输入框中插入图片
+const insertImageToRichInput = (imageUrl) => {
+  if (!messageInputRef.value) return
+
+  const imgElement = document.createElement('img')
+  imgElement.src = imageUrl
+  imgElement.style.maxWidth = '100px'
+  imgElement.style.maxHeight = '100px'
+  imgElement.style.margin = '2px'
+  imgElement.style.verticalAlign = 'bottom'
+
+  const selection = window.getSelection()
+  if (selection.rangeCount) {
+    const range = selection.getRangeAt(0)
+    range.deleteContents()
+    range.insertNode(imgElement)
+    range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
+  } else {
+    messageInputRef.value.appendChild(imgElement)
+  }
+
+  // 让输入框获得焦点
+  nextTick(() => {
+    messageInputRef.value?.focus()
+  })
 }
 
 const previewImage = (imageUrl) => {
@@ -1461,6 +1547,38 @@ const formatDate = (dateStr) => {
 .input-content .el-textarea {
   flex: 1;
   height: 100%;
+}
+
+.rich-input {
+  width: 100%;
+  height: 100%;
+  min-height: 80px;
+  max-height: 150px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: rgb(237, 237, 237);
+  font-size: 14px;
+  line-height: 1.5;
+  outline: none;
+  overflow-y: auto;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.rich-input:empty:before {
+  content: attr(placeholder);
+  color: #ccc;
+  pointer-events: none;
+}
+
+.rich-input img {
+  max-width: 100px;
+  max-height: 100px;
+  margin: 2px;
+  vertical-align: bottom;
+  border-radius: 4px;
 }
 
 .input-content :deep(.el-textarea__inner) {

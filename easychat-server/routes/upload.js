@@ -143,4 +143,50 @@ router.post('/file', authenticateToken, fileUpload.single('file'), async functio
   }
 });
 
+router.post('/image', authenticateToken, avatarUpload.single('image'), async function (req, res, next) {
+  try {
+    const userId = req.user.id;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: '没有上传文件'
+      });
+    }
+
+    // 生成唯一的文件名
+    const fileName = `EasyChat/images/chatImage/${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(req.file.originalname)}`;
+
+    // 使用 OSS 客户端上传文件
+    if (ossClient) {
+      // 上传到 OSS
+      const result = await ossClient.put(fileName, req.file.buffer);
+
+      // 替换URL前缀为指定的域名
+      const customUrl = `https://file-dev.document-ai.top/${fileName}`;
+
+      // 返回自定义前缀的文件路径
+      res.json({
+        success: true,
+        imageUrl: customUrl,
+        originalName: req.file.originalname,
+        fileSize: req.file.size,
+        message: '图片上传成功'
+      });
+    } else {
+      // 如果 OSS 不可用，则返回错误
+      return res.status(500).json({
+        success: false,
+        error: 'OSS 客户端未配置'
+      });
+    }
+  } catch (error) {
+    console.error('图片上传失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '服务器内部错误'
+    });
+  }
+});
+
 module.exports = router;

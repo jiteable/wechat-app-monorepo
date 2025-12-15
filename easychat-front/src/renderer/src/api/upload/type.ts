@@ -21,3 +21,16 @@ export interface UploadFileError {
   success: boolean
   error: string
 }
+
+export interface UploadImageResponse {
+  success: boolean
+  imageUrl: string
+  originalName: string
+  fileSize: number
+  message: string
+}
+
+export interface UploadImageError {
+  success: boolean
+  error: string
+}
