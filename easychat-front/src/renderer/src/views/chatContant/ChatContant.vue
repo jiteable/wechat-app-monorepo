@@ -208,7 +208,7 @@
                 </div>
 
                 <div class="input-actions">
-                  <el-button type="primary" :disabled="!message" @click="sendMessageHandler">
+                  <el-button type="primary" :disabled="isInputEmpty" @click="sendMessageHandler">
                     发送(S)
                   </el-button>
                 </div>
@@ -353,7 +353,7 @@ import { useRoute } from 'vue-router'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { Message } from '@element-plus/icons-vue'
-import { ref, nextTick, watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick, watch, computed, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { sendMessage, getMessages } from '@/api/chat'
 import { ElMessage } from 'element-plus'
 import { uploadImage } from '@/api/upload'
@@ -363,9 +363,13 @@ const contactStore = userContactStore()
 const userStore = useUserStore()
 
 const drawer = ref(false)
+const richInputObserver = ref(null)
 
 // 在组件外定义消息监听器，确保不会因为组件重新渲染而丢失
 let isMessageListenerAdded = false
+
+// 创建一个响应式变量来跟踪输入框是否为空
+const isInputEmpty = ref(true)
 
 // 输入框数据
 const message = ref('')
@@ -384,6 +388,44 @@ const pagination = ref({
 const loadingMore = ref(false)
 const messagesContainer = ref(null)
 
+// 更新 isInputEmpty 的值
+const updateInputEmptyState = () => {
+  if (!messageInputRef.value) {
+    isInputEmpty.value = true
+    return
+  }
+
+  const content = messageInputRef.value.innerText || messageInputRef.value.textContent || ''
+  isInputEmpty.value = !content.trim()
+}
+
+// 初始化 MutationObserver
+onMounted(() => {
+  addMessageListener()
+
+  if (messageInputRef.value) {
+    richInputObserver.value = new MutationObserver(() => {
+      updateInputEmptyState()
+    })
+
+    richInputObserver.value.observe(messageInputRef.value, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      characterDataOldValue: true
+    })
+
+    // 初始状态检查
+    updateInputEmptyState()
+  }
+})
+
+// 清理 MutationObserver
+onBeforeUnmount(() => {
+  if (richInputObserver.value) {
+    richInputObserver.value.disconnect()
+  }
+})
 // 加载消息数据（带分页）
 const loadMessages = async (sessionId, page = 1, prepend = false) => {
   try {
@@ -403,29 +445,29 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         createdAt: msg.createdAt
       }))
 
-      // 添加一条测试文件消息（仅用于演示）
-      newMessages.push({
-        id: 'fake-file-1',
-        type: 'file',
-        senderId: userStore.userId,
-        senderName: userStore.username,
-        senderAvatar: userStore.avatar,
-        content: 'example.pdf', // 文件名
-        size: '2.1 MB', // 文件大小
-        createdAt: new Date().toISOString()
-      })
+      // // 添加一条测试文件消息（仅用于演示）
+      // newMessages.push({
+      //   id: 'fake-file-1',
+      //   type: 'file',
+      //   senderId: userStore.userId,
+      //   senderName: userStore.username,
+      //   senderAvatar: userStore.avatar,
+      //   content: 'example.pdf', // 文件名
+      //   size: '2.1 MB', // 文件大小
+      //   createdAt: new Date().toISOString()
+      // })
 
-      // 添加一条测试图片消息（仅用于演示）
-      newMessages.push({
-        id: 'fake-image-1',
-        type: 'image',
-        senderId: userStore.userId,
-        senderName: userStore.username,
-        senderAvatar: userStore.avatar,
-        imageUrl: 'https://file-dev.document-ai.top/avatar/chatImage/1764941356169-708333963.jpg', // 示例图片链接
-        fileName: 'sample.jpg',
-        createdAt: new Date().toISOString()
-      })
+      // // 添加一条测试图片消息（仅用于演示）
+      // newMessages.push({
+      //   id: 'fake-image-1',
+      //   type: 'image',
+      //   senderId: userStore.userId,
+      //   senderName: userStore.username,
+      //   senderAvatar: userStore.avatar,
+      //   imageUrl: 'https://file-dev.document-ai.top/avatar/chatImage/1764941356169-708333963.jpg', // 示例图片链接
+      //   fileName: 'sample.jpg',
+      //   createdAt: new Date().toISOString()
+      // })
 
       if (prepend) {
         // 在顶部添加旧消息（加载历史消息）
@@ -523,12 +565,6 @@ watch(
 
 console.log(route.params.id) // 当前会话ID
 
-onMounted(() => {
-  console.log('ChatContant组件已挂载')
-  // 组件挂载后添加消息监听器
-  addMessageListener()
-})
-
 // 计算属性：根据会话类型显示不同的名称
 const getDisplayName = computed(() => {
   const session = contactStore.selectedContact
@@ -611,106 +647,125 @@ const messageInputRef = ref(null)
 const getMessageContent = () => {
   if (!messageInputRef.value) return ''
 
-  // 获取输入框内的所有内容
-  const content = messageInputRef.value.innerText || messageInputRef.value.textContent || ''
-  return content
+  // 获取纯文本内容，排除图片等元素
+  let textContent = ''
+  const childNodes = messageInputRef.value.childNodes
+
+  for (const node of childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      textContent += node.textContent
+    } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'IMG') {
+      textContent += node.textContent || node.innerText
+    }
+    // 忽略 IMG 元素（图片）
+  }
+
+  return textContent
 }
 
 
 // 发送消息
 const sendMessageHandler = async () => {
   const content = getMessageContent()
-  if (content.trim() && contactStore.selectedContact) {
-    const selectedContact = contactStore.selectedContact
+  if (!content.trim() || !contactStore.selectedContact) {
+    // 如果内容为空或者没有选中联系人，则不发送消息
+    return
+  }
 
-    // 检查是否需要添加时间戳
-    const currentTime = new Date()
-    let shouldAddTimestamp = false
+  const selectedContact = contactStore.selectedContact
 
-    // 查找最后一条普通消息的时间
-    for (let i = messages.value.length - 1; i >= 0; i--) {
-      const lastMessage = messages.value[i]
-      if (lastMessage.type === 'message') {
-        const lastMessageTime = new Date(lastMessage.createdAt)
-        const timeDiff = (currentTime - lastMessageTime) / (1000 * 60) // 转换为分钟
-        if (timeDiff > 10) {
-          shouldAddTimestamp = true
-        }
-        break
+  // 检查是否需要添加时间戳
+  const currentTime = new Date()
+  let shouldAddTimestamp = false
+
+  // 查找最后一条普通消息的时间
+  for (let i = messages.value.length - 1; i >= 0; i--) {
+    const lastMessage = messages.value[i]
+    if (lastMessage.type === 'message') {
+      const lastMessageTime = new Date(lastMessage.createdAt)
+      const timeDiff = (currentTime - lastMessageTime) / (1000 * 60) // 转换为分钟
+      if (timeDiff > 10) {
+        shouldAddTimestamp = true
       }
+      break
     }
+  }
 
-    // 如果是第一条消息也添加时间戳
-    if (messages.value.length === 0) {
-      shouldAddTimestamp = true
+  // 如果是第一条消息也添加时间戳
+  if (messages.value.length === 0) {
+    shouldAddTimestamp = true
+  }
+
+  // 添加时间戳消息
+  if (shouldAddTimestamp) {
+    const timestampMessage = {
+      id: 'timestamp-' + Date.now(),
+      type: 'timestamp',
+      content: currentTime.toISOString()
     }
+    messages.value.push(timestampMessage)
+  }
 
-    // 添加时间戳消息
-    if (shouldAddTimestamp) {
-      const timestampMessage = {
-        id: 'timestamp-' + Date.now(),
-        type: 'timestamp',
-        content: currentTime.toISOString()
-      }
-      messages.value.push(timestampMessage)
+  // 创建本地消息对象（用于立即显示）
+  const localMessage = {
+    id: Date.now(), // 临时ID
+    type: 'message',
+    senderId: userStore.userId,
+    senderName: userStore.username || '我',
+    senderAvatar: userStore.avatar || '',
+    content: content.trim()
+  }
+
+  // 立即显示消息（优化用户体验）
+  messages.value.push(localMessage)
+
+  // 自动滚动到底部
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
     }
+  })
 
-    // 创建本地消息对象（用于立即显示）
-    const localMessage = {
-      id: Date.now(), // 临时ID
-      type: 'message',
+  try {
+    // 构造消息对象
+    const messageData = {
+      sessionId: selectedContact.id,
       senderId: userStore.userId,
-      senderName: userStore.username || '我',
-      senderAvatar: userStore.avatar || '',
-      content: message.value.trim()
+      messageType: 'text',
+      content: content.trim()
     }
 
-    // 立即显示消息（优化用户体验）
-    messages.value.push(localMessage)
-
-    // 自动滚动到底部
-    nextTick(() => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-      }
-    })
-
-    try {
-      // 构造消息对象
-      const messageData = {
-        sessionId: selectedContact.id,
-        senderId: userStore.userId,
-        messageType: 'text',
-        content: content.trim()
-      }
-
-      // 如果是私聊
-      if (selectedContact.sessionType === 'private') {
-        messageData.receiverId = selectedContact.contactId
-      }
-      // 如果是群聊
-      else if (selectedContact.sessionType === 'group') {
-        messageData.groupId = selectedContact.groupId
-      }
-
-      // 通过WebSocket发送实时消息
-      if (window.api && typeof window.api.sendMessage === 'function') {
-        window.api.sendMessage({
-          type: 'send_message',
-          data: messageData
-        })
-      }
-
-      // 通过HTTP API发送消息到后端（用于持久化存储）
-      const response = await sendMessage(messageData)
-      console.log('消息发送成功:', response)
-
-      // 清空输入框
-      message.value = ''
-    } catch (error) {
-      console.error('发送消息失败:', error)
-      // 可以在这里添加错误处理，比如显示错误消息给用户
+    // 如果是私聊
+    if (selectedContact.sessionType === 'private') {
+      messageData.receiverId = selectedContact.contactId
     }
+    // 如果是群聊
+    else if (selectedContact.sessionType === 'group') {
+      messageData.groupId = selectedContact.groupId
+    }
+
+    // 通过WebSocket发送实时消息
+    if (window.api && typeof window.api.sendMessage === 'function') {
+      window.api.sendMessage({
+        type: 'send_message',
+        data: messageData
+      })
+    }
+
+    // 通过HTTP API发送消息到后端（用于持久化存储）
+    const response = await sendMessage(messageData)
+    console.log('消息发送成功:', response)
+
+    // 清空输入框
+    if (messageInputRef.value) {
+      messageInputRef.value.innerHTML = ''
+    }
+
+    // 更新输入框状态
+    updateInputEmptyState()
+  } catch (error) {
+    console.error('发送消息失败:', error)
+    // 可以在这里添加错误处理，比如显示错误消息给用户
   }
 }
 
@@ -1061,32 +1116,27 @@ const showCategory = (categoryName) => {
 }
 
 const insertEmoji = (char) => {
-  const inputElement = document.querySelector('.el-textarea__inner')
-  if (inputElement) {
-    const startPos = inputElement.selectionStart
-    const endPos = inputElement.selectionEnd
-    const beforeText = message.value.substring(0, startPos)
-    const afterText = message.value.substring(endPos)
+  if (!messageInputRef.value) return
 
-    // 在光标位置插入emoji
-    message.value = beforeText + char + afterText
-
-    // 更新光标位置到插入的emoji之后
-    nextTick(() => {
-      inputElement.selectionStart = startPos + char.length
-      inputElement.selectionEnd = startPos + char.length
-      inputElement.focus()
-    })
+  const selection = window.getSelection()
+  if (selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0)
+    range.deleteContents()
+    range.insertNode(document.createTextNode(char))
+    range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
   } else {
-    // 如果无法获取到输入框元素，直接在末尾添加
-    message.value += char
-    nextTick(() => {
-      const textarea = document.querySelector('.el-textarea__inner')
-      if (textarea) {
-        textarea.focus()
-      }
-    })
+    // 如果没有选区，直接在末尾添加
+    messageInputRef.value.appendChild(document.createTextNode(char))
   }
+
+  // 聚焦到输入框
+  nextTick(() => {
+    messageInputRef.value?.focus()
+    // 更新输入框状态
+    updateInputEmptyState()
+  })
 }
 
 const fileInput = ref(null)
@@ -1606,6 +1656,8 @@ const formatDate = (dateStr) => {
 
 .input-actions .el-button {
   padding: 0;
+  margin-right: 15px;
+  margin-bottom: 15px;
   min-width: auto;
   border: none;
   background: transparent;

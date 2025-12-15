@@ -138,7 +138,7 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
       fileSize
     } = req.body;
 
-    console.log('message: ', req.body)
+    console.log('messagewaddawdawdwa: ', req.body)
 
     // 参数校验
     if (!sessionId) {
