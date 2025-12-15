@@ -36,6 +36,36 @@
                   {{ message.content }}
                 </div>
 
+                <!-- 图片消息 -->
+                <div
+                  v-else-if="message.type === 'image'"
+                  :class="
+                    message.senderId === userStore.userId ? 'sent-message' : 'received-message'
+                  "
+                >
+                  <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
+                  <div class="box">
+                    <div v-if="shouldShowSenderName(message)" class="message-sender">
+                      {{ message.senderName }}
+                    </div>
+                    <!-- 移除消息气泡容器，直接显示图片 -->
+                    <div
+                      :class="
+                        message.senderId === userStore.userId
+                          ? 'sender-image-container'
+                          : 'receive-image-container'
+                      "
+                    >
+                      <img
+                        :src="message.imageUrl"
+                        :alt="message.fileName || '图片'"
+                        class="image-preview"
+                        @click="previewImage(message.imageUrl)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 文件消息 -->
                 <div
                   v-else-if="message.type === 'file'"
@@ -380,6 +410,18 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         senderAvatar: userStore.avatar,
         content: 'example.pdf', // 文件名
         size: '2.1 MB', // 文件大小
+        timestamp: new Date().toISOString()
+      })
+
+      // 添加一条测试图片消息（仅用于演示）
+      newMessages.push({
+        id: 'fake-image-1',
+        type: 'image',
+        senderId: userStore.userId,
+        senderName: userStore.username,
+        senderAvatar: userStore.avatar,
+        imageUrl: 'https://file-dev.document-ai.top/avatar/chatImage/1764941356169-708333963.jpg', // 示例图片链接
+        fileName: 'sample.jpg',
         timestamp: new Date().toISOString()
       })
 
@@ -1016,6 +1058,69 @@ const uploadFile = (file) => {
   // 临时提醒
   ElMessage.info(`选择了文件: ${file.name}`)
 }
+
+const previewImage = (imageUrl) => {
+  // 创建一个模态框来显示大图
+  const imagePreviewModal = document.createElement('div')
+  imagePreviewModal.className = 'image-preview-modal'
+  imagePreviewModal.innerHTML = `
+    <div class="image-preview-overlay" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    ">
+      <div style="
+        position: relative;
+        max-width: 90%;
+        max-height: 90%;
+      ">
+        <img src="${imageUrl}" style="
+          max-width: 100%;
+          max-height: 80vh;
+          border-radius: 4px;
+        "/>
+        <button style="
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: white;
+          border: none;
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          cursor: pointer;
+          font-size: 18px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        ">×</button>
+      </div>
+    </div>
+  `
+
+  // 添加关闭功能
+  const closeBtn = imagePreviewModal.querySelector('button')
+  closeBtn.onclick = () => {
+    document.body.removeChild(imagePreviewModal)
+  }
+
+  // 点击遮罩层关闭
+  const overlay = imagePreviewModal.querySelector('.image-preview-overlay')
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      document.body.removeChild(imagePreviewModal)
+    }
+  }
+
+  document.body.appendChild(imagePreviewModal)
+}
 </script>
 
 <style scoped>
@@ -1106,7 +1211,7 @@ const uploadFile = (file) => {
 .message-item {
   display: flex;
   flex-direction: column;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 /* 消息气泡基础样式 */
@@ -1135,7 +1240,8 @@ const uploadFile = (file) => {
 }
 
 .received-message .box {
-  width: 60%;
+  width: calc(100% - 43px);
+  /* 减去头像宽度和间距 */
 }
 
 .received-message .avatar {
@@ -1175,7 +1281,8 @@ const uploadFile = (file) => {
 }
 
 .sent-message .box {
-  width: 100%;
+  width: calc(100% - 43px);
+  /* 减去头像宽度和间距 */
 }
 
 .sent-message .avatar {
@@ -1633,5 +1740,48 @@ const uploadFile = (file) => {
 .file-size {
   font-size: 12px;
   color: #999;
+}
+
+.image-message-bubble {
+  background-color: white;
+  border-radius: 7px;
+  padding: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  max-width: 300px;
+  word-wrap: break-word;
+}
+
+.sender-image-container {
+  float: right;
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.receive-image-container {
+  float: left;
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.image-preview {
+  max-width: 200px;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.image-preview:hover {
+  transform: scale(1.02);
+}
+
+.image-name {
+  font-size: 12px;
+  color: #606266;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

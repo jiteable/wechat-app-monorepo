@@ -35,7 +35,6 @@ export interface Message {
   }
 }
 
-
 export interface GetMessagesResponse {
   success: boolean
   data: {
