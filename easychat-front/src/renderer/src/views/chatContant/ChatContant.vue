@@ -21,7 +21,11 @@
           <el-splitter-panel size="60%">
             <div ref="messagesContainer" class="chat-messages-container" @scroll="handleScroll">
               <!-- 使用 v-for 渲染消息列表 -->
-              <div v-for="message in [...messages].reverse()" :key="message.id" class="message-item">
+              <div
+                v-for="message in [...messages].reverse()"
+                :key="message.id"
+                class="message-item"
+              >
                 <!-- 时间戳 -->
                 <div v-if="message.type === 'timestamp'" class="message-timestamp">
                   {{ message.content }}
@@ -33,8 +37,12 @@
                 </div>
 
                 <!-- 普通消息 -->
-                <div v-else :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'
-                  ">
+                <div
+                  v-else
+                  :class="
+                    message.senderId === userStore.userId ? 'sent-message' : 'received-message'
+                  "
+                >
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div class="box">
                     <div v-if="shouldShowSenderName(message)" class="message-sender">
@@ -60,17 +68,79 @@
             <div class="demo-panel">
               <div class="chat-input-area">
                 <div class="input-icons">
-                  <el-button type="text" @click="showEmojiPicker">
-                    <span class="icon iconfont icon-xiaolian"></span>
-                  </el-button>
+                  <el-popover
+                    placement="top"
+                    :width="300"
+                    trigger="click"
+                    popper-class="emoji-popover"
+                  >
+                    <template #reference>
+                      <el-button type="text">
+                        <span class="icon iconfont icon-xiaolian"></span>
+                      </el-button>
+                    </template>
+
+                    <div class="emoji-container">
+                      <!-- 表情分类 -->
+                      <div
+                        v-for="(category, categoryName) in emojiData"
+                        :key="categoryName"
+                        class="emoji-category"
+                      >
+                        <h4>{{ categoryName === 'recent' ? '最近使用' : categoryName }}</h4>
+                        <div class="emoji-grid">
+                          <el-tooltip
+                            v-for="emoji in category"
+                            :key="emoji.id"
+                            :content="emoji.desc"
+                            placement="top"
+                            :show-after="500"
+                          >
+                            <div class="emoji-item" @click="insertEmoji(emoji.char)">
+                              {{ emoji.char }}
+                            </div>
+                          </el-tooltip>
+                        </div>
+                      </div>
+
+                      <!-- 底部快捷栏 -->
+                      <div class="emoji-footer">
+                        <div class="emoji-search">
+                          <el-input
+                            v-model="searchQuery"
+                            placeholder="搜索表情..."
+                            size="small"
+                            prefix-icon="Search"
+                            @input="filterEmojis"
+                          />
+                        </div>
+                        <div class="emoji-shortcuts">
+                          <div
+                            v-for="shortcut in shortcuts"
+                            :key="shortcut.name"
+                            class="shortcut-item"
+                            @click="showCategory(shortcut.category)"
+                          >
+                            {{ shortcut.icon }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-popover>
                   <el-button type="text" @click="uploadFile">
                     <span class="icon iconfont icon-wenjian"></span>
                   </el-button>
                 </div>
 
                 <div class="input-content">
-                  <el-input v-model="message" type="textarea" placeholder="输入消息..." maxlength="2000" resize="none"
-                    @keydown.enter="handleEnterKey" />
+                  <el-input
+                    v-model="message"
+                    type="textarea"
+                    placeholder="输入消息..."
+                    maxlength="2000"
+                    resize="none"
+                    @keydown.enter="handleEnterKey"
+                  />
                 </div>
 
                 <div class="input-actions">
@@ -89,13 +159,24 @@
         </el-icon>
         <p>请选择一个聊天</p>
       </div>
-      <el-drawer v-model="drawer" title="更多选项" modal-penetrable :width="300" @close="onDrawerClose">
+      <el-drawer
+        v-model="drawer"
+        title="更多选项"
+        modal-penetrable
+        :width="300"
+        @close="onDrawerClose"
+      >
         <div class="drawer-content">
           <div class="session-users-section">
             <div class="section-title">群成员</div>
             <div class="users-grid">
               <div v-for="(user, index) in displayedUsers" :key="user.id" class="user-item">
-                <el-avatar shape="square" :size="40" :src="user.avatar" @error="handleAvatarError" />
+                <el-avatar
+                  shape="square"
+                  :size="40"
+                  :src="user.avatar"
+                  @error="handleAvatarError"
+                />
                 <div class="user-name">{{ getUserDisplayName(user) }}</div>
               </div>
               <div v-if="shouldShowAddButton" class="user-item add-member-item" @click="addMember">
@@ -110,18 +191,31 @@
             <!-- 群聊名称 -->
             <div class="info-item">
               <span class="label">群聊名称:</span>
-              <div class="editable-value" @mouseover="showEditIcon('groupName')"
-                @mouseleave="hideEditIcon('groupName')">
-                <input v-if="editingField === 'groupName'" ref="groupNameInput" v-model="groupEditForm.name"
-                  class="edit-input" @blur="saveGroupName" @keyup.enter="saveGroupName" />
+              <div
+                class="editable-value"
+                @mouseover="showEditIcon('groupName')"
+                @mouseleave="hideEditIcon('groupName')"
+              >
+                <input
+                  v-if="editingField === 'groupName'"
+                  ref="groupNameInput"
+                  v-model="groupEditForm.name"
+                  class="edit-input"
+                  @blur="saveGroupName"
+                  @keyup.enter="saveGroupName"
+                />
                 <span v-else class="value">{{
                   contactStore.selectedContact?.group?.name || '未知群聊'
-                  }}</span>
-                <el-icon v-if="
-                  isGroupOwnerOrAdmin &&
-                  showEditIconFlags.groupName &&
-                  editingField !== 'groupName'
-                " class="edit-icon" @click="startEditGroupName">
+                }}</span>
+                <el-icon
+                  v-if="
+                    isGroupOwnerOrAdmin &&
+                    showEditIconFlags.groupName &&
+                    editingField !== 'groupName'
+                  "
+                  class="edit-icon"
+                  @click="startEditGroupName"
+                >
                   <EditPen />
                 </el-icon>
               </div>
@@ -132,7 +226,7 @@
               <span class="label">群公告:</span>
               <span class="value">{{
                 contactStore.selectedContact?.group?.announcement || '暂无公告'
-                }}</span>
+              }}</span>
             </div>
 
             <!-- 备注 -->
@@ -690,6 +784,143 @@ const leaveGroup = () => {
       // 用户取消操作
     })
 }
+
+const emojiData = {
+  recent: [], // 最近使用
+  smileys: [
+    // 笑脸与情感
+    { id: 'smile', char: '😊', desc: '羞涩微笑' },
+    { id: 'laughing', char: '😆', desc: '大笑' },
+    { id: 'wink', char: '😉', desc: '眨眼' },
+    { id: 'innocent', char: '😇', desc: '微笑天使' },
+    { id: 'heart_eyes', char: '😍', desc: '花痴' },
+    { id: 'kissing', char: '😗', desc: '亲亲' },
+    { id: 'kissing_smiling_eyes', char: '😙', desc: '微笑亲亲' },
+    { id: 'kissing_closed_eyes', char: '😚', desc: '闭眼亲亲' },
+    { id: 'yum', char: '😋', desc: '好吃' },
+    { id: 'stuck_out_tongue', char: '😛', desc: '吐舌' },
+    { id: 'stuck_out_tongue_winking_eye', char: '😜', desc: '眨眼吐舌' },
+    { id: 'money_mouth', char: '🤑', desc: '金钱嘴' },
+    { id: 'hugging', char: '🤗', desc: '抱抱' },
+    { id: 'sunglasses', char: '😎', desc: '酷' },
+    { id: 'clown', char: '🤡', desc: '小丑脸' },
+    { id: 'cowboy', char: '🤠', desc: '牛仔' },
+    { id: 'imp', char: '👿', desc: '生气的恶魔' }
+  ],
+  gestures: [
+    // 手势
+    { id: 'wave', char: '👋', desc: '挥手' },
+    { id: 'raised_back_of_hand', char: '🤚', desc: '立起的手背' },
+    { id: 'raised_hand', char: '✋', desc: '举起手' },
+    { id: 'vulcan_salute', char: '🖖', desc: '瓦肯举手礼' },
+    { id: 'ok_hand', char: '👌', desc: 'ok' },
+    { id: 'thumbs_down', char: '👎', desc: '拇指向下' },
+    { id: 'middle_finger', char: '🖕', desc: '中指' },
+    { id: 'victory', char: '✌️', desc: '胜利' },
+    { id: 'crossed_fingers', char: '🤞', desc: '交叉手指' },
+    { id: 'love_you_gesture', char: '🤟', desc: '爱你手势' },
+    { id: 'metal', char: '🤘', desc: '摇滚' },
+    { id: 'call_me', char: '🤙', desc: '打电话' },
+    { id: 'point_left', char: '👈', desc: '指向左' },
+    { id: 'point_right', char: '👉', desc: '指向右' },
+    { id: 'point_up_2', char: '👆', desc: '指向上' },
+    { id: 'middle_finger', char: '🖕', desc: '中指' },
+    { id: 'point_down', char: '👇', desc: '指向下' },
+    { id: 'point_up', char: '☝️', desc: '向上指' }
+  ],
+  animals: [
+    // 动物与自然
+    { id: 'dog', char: '🐶', desc: '狗' },
+    { id: 'cat', char: '🐱', desc: '猫' },
+    { id: 'monkey_face', char: '🐵', desc: '猴脸' },
+    { id: 'see_no_evil', char: '🙈', desc: '非礼勿视' },
+    { id: 'hear_no_evil', char: '🙉', desc: '非礼勿听' },
+    { id: 'speak_no_evil', char: '🙊', desc: '非礼勿言' }
+  ],
+  emotions: [
+    // 情感表达
+    { id: 'confused', char: '😕', desc: '困扰' },
+    { id: 'thinking', char: '🤔', desc: '思考' },
+    { id: 'frowning_face', char: '☹️', desc: '不满' },
+    { id: 'confounded', char: '😖', desc: '困惑' },
+    { id: 'weary', char: '😩', desc: '累死了' },
+    { id: 'pleading_face', char: '🥺', desc: '恳求' },
+    { id: 'cry', char: '😢', desc: '哭' },
+    { id: 'sob', char: '😭', desc: '大哭' },
+    { id: 'triumph', char: '😤', desc: '傲慢' },
+    { id: 'angry', char: '😠', desc: '生气' },
+    { id: 'face_with_symbols_on_mouth', char: '🤬', desc: '嘴上有符号的脸' },
+    { id: 'flushed', char: '😳', desc: '脸红' },
+    { id: 'disappointed', char: '😞', desc: '失望' },
+    { id: 'worried', char: '😟', desc: '担心' },
+    { id: 'expressionless', char: '😑', desc: '面无表情' },
+    { id: 'no_mouth', char: '😶', desc: '没有嘴' },
+    { id: 'grimacing', char: '😬', desc: '龇牙咧嘴' },
+    { id: 'rolling_eyes', char: '🙄', desc: '翻白眼' },
+    { id: 'hushed', char: '😯', desc: '缄默' },
+    { id: 'frowning', char: '😦', desc: '皱眉' },
+    { id: 'anguished', char: '😧', desc: '痛苦' },
+    { id: 'open_mouth', char: '😮', desc: '吃惊' },
+    { id: 'sleeping', char: '😴', desc: '睡觉' },
+    { id: 'drooling_face', char: '🤤', desc: '流口水' },
+    { id: 'sleepy', char: '😪', desc: '困' },
+    { id: 'dizzy_face', char: '😵', desc: '晕' },
+    { id: 'zipper_mouth', char: '🤐', desc: '拉链嘴' },
+    { id: 'nauseated_face', char: '🤢', desc: '恶心' },
+    { id: 'sneezing_face', char: '🤧', desc: '打喷嚏' },
+    { id: 'mask', char: '😷', desc: '戴口罩' },
+    { id: 'face_with_thermometer', char: '🤒', desc: '发烧' },
+    { id: 'face_with_head_bandage', char: '🤕', desc: '受伤' },
+    { id: 'woozy_face', char: '🥴', desc: '眩晕' },
+    { id: 'lying_face', char: '🤥', desc: '说谎' },
+    { id: 'sunglasses', char: '😎', desc: '戴墨镜' },
+    { id: 'star_struck', char: '🤩', desc: '星星眼' },
+    { id: 'partying_face', char: '🥳', desc: '派对脸' },
+    { id: 'shushing_face', char: '🤫', desc: '嘘' },
+    { id: 'face_with_hand_over_mouth', char: '🤭', desc: '捂嘴' },
+    { id: 'face_vomiting', char: '🤮', desc: '呕吐' },
+    { id: 'exploding_head', char: '🤯', desc: '爆炸头' },
+    { id: 'hot_face', char: '🥵', desc: '脸发烧' },
+    { id: 'cold_face', char: '🥶', desc: '冷脸' },
+    { id: 'zany_face', char: '🤪', desc: '搞怪' },
+    { id: 'money_mouth_face', char: '🤑', desc: '钱嘴' },
+    { id: 'smiling_imp', char: '😈', desc: '恶魔微笑' },
+    { id: 'imp', char: '👿', desc: '愤怒的小鬼' },
+    { id: 'skull', char: '💀', desc: '头骨' },
+    { id: 'skull_and_crossbones', char: '☠️', desc: '骷髅' },
+    { id: 'hankey', char: '💩', desc: '大便' }
+  ]
+}
+
+// 搜索关键词
+const searchQuery = ref('')
+
+// 过滤表情
+const filteredEmojiData = computed(() => {
+  if (!searchQuery.value) return emojiData
+
+  const result = {}
+  Object.keys(emojiData).forEach((categoryName) => {
+    result[categoryName] = emojiData[categoryName].filter(
+      (emoji) => emoji.desc.includes(searchQuery.value) || emoji.char.includes(searchQuery.value)
+    )
+  })
+  return result
+})
+
+// 快捷按钮配置
+const shortcuts = [
+  { name: '笑脸', category: 'smileys', icon: '😊' },
+  { name: '手势', category: 'gestures', icon: '👋' },
+  { name: '动物', category: 'animals', icon: '🐶' },
+  { name: '情感', category: 'emotions', icon: '😢' }
+]
+
+// 显示指定分类
+const showCategory = (categoryName) => {
+  // 可以在这里滚动到对应分类
+  console.log('切换到:', categoryName)
+}
 </script>
 
 <style scoped>
@@ -1165,5 +1396,96 @@ const leaveGroup = () => {
 
 .drawer-item.danger-item .iconfont {
   color: #f56c6c;
+}
+
+/* 弹窗整体样式 */
+.emoji-popover {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background-color: white;
+  width: 300px;
+  /* 设置固定宽度 */
+  max-width: 300px;
+}
+
+/* 表情容器 */
+.emoji-container {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* 分类标题 */
+.emoji-category h4 {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 8px;
+  font-weight: normal;
+}
+
+/* 表情网格 */
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.emoji-item {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  transition: transform 0.2s ease;
+  border-radius: 4px;
+}
+
+.emoji-item:hover {
+  transform: scale(1.1);
+  background-color: #f5f5f5;
+}
+
+/* 底部快捷栏 */
+.emoji-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #f9f9f9;
+}
+
+.emoji-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emoji-shortcuts {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.shortcut-item {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.shortcut-item:hover {
+  background-color: #e0e0e0;
+  transform: scale(1.05);
 }
 </style>
