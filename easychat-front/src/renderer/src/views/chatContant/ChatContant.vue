@@ -203,6 +203,7 @@
                     contenteditable="true"
                     placeholder="输入消息..."
                     @keydown="handleInputKeydown"
+                    @input="debouncedUpdateInputEmptyState"
                     @paste="handlePaste"
                   ></div>
                 </div>
@@ -395,13 +396,16 @@ const updateInputEmptyState = () => {
     return
   }
 
-  const content = messageInputRef.value.innerText || messageInputRef.value.textContent || ''
-  isInputEmpty.value = !content.trim()
+  // 获取输入框的文本内容
+  const textContent = messageInputRef.value.innerText || messageInputRef.value.textContent || ''
+
+  // 检查是否只有空白字符
+  isInputEmpty.value = !textContent || textContent.trim().length === 0
 }
 
 // 初始化 MutationObserver
 onMounted(() => {
-  addMessageListener()
+
 
   if (messageInputRef.value) {
     richInputObserver.value = new MutationObserver(() => {
@@ -412,12 +416,31 @@ onMounted(() => {
       childList: true,
       subtree: true,
       characterData: true,
-      characterDataOldValue: true
+      attributes: true
     })
 
     // 初始状态检查
     updateInputEmptyState()
   }
+})
+
+const debounce = (func, wait) => {
+  let timeout
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout)
+      func(...args)
+    }
+    clearTimeout(timeout)
+    timeout = setTimeout(later, wait)
+  }
+}
+
+// 创建防抖版本的更新函数
+const debouncedUpdateInputEmptyState = debounce(updateInputEmptyState, 100)
+
+onMounted(() => {
+  addMessageListener()
 })
 
 // 清理 MutationObserver
@@ -663,7 +686,6 @@ const getMessageContent = () => {
   return textContent
 }
 
-
 // 发送消息
 const sendMessageHandler = async () => {
   const content = getMessageContent()
@@ -808,7 +830,13 @@ const handlePaste = (event) => {
     selection.removeAllRanges()
     selection.addRange(range)
   }
+
+  // 粘贴后更新状态
+  setTimeout(() => {
+    updateInputEmptyState()
+  }, 0)
 }
+
 
 // 切换聊天状态
 const toggleChat = () => {
@@ -1131,10 +1159,9 @@ const insertEmoji = (char) => {
     messageInputRef.value.appendChild(document.createTextNode(char))
   }
 
-  // 聚焦到输入框
+  // 插入表情后聚焦到输入框并更新状态
   nextTick(() => {
     messageInputRef.value?.focus()
-    // 更新输入框状态
     updateInputEmptyState()
   })
 }
@@ -1220,9 +1247,10 @@ const insertImageToRichInput = (imageUrl) => {
     messageInputRef.value.appendChild(imgElement)
   }
 
-  // 让输入框获得焦点
+  // 插入图片后聚焦到输入框并更新状态
   nextTick(() => {
     messageInputRef.value?.focus()
+    updateInputEmptyState()
   })
 }
 
