@@ -36,6 +36,33 @@
                   {{ message.content }}
                 </div>
 
+                <!-- 文件消息 -->
+                <div
+                  v-else-if="message.type === 'file'"
+                  :class="
+                    message.senderId === userStore.userId ? 'sent-message' : 'received-message'
+                  "
+                >
+                  <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
+                  <div class="box">
+                    <div v-if="shouldShowSenderName(message)" class="message-sender">
+                      {{ message.senderName }}
+                    </div>
+                    <div class="message-bubble file-message-bubble">
+                      <div class="file-container">
+                        <div class="file-icon">
+                          <!-- 使用通用文件图标 -->
+                          <span class="icon iconfont icon-wenjian"></span>
+                        </div>
+                        <div class="file-info">
+                          <div class="file-name">{{ message.content }}</div>
+                          <div class="file-size">{{ message.size || '未知大小' }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 普通消息 -->
                 <div
                   v-else
@@ -127,9 +154,16 @@
                       </div>
                     </div>
                   </el-popover>
-                  <el-button type="text" @click="uploadFile">
+                  <el-button type="text" @click="triggerFileSelect">
                     <span class="icon iconfont icon-wenjian"></span>
                   </el-button>
+                  <!-- 隐藏的文件输入框 -->
+                  <input
+                    ref="fileInput"
+                    type="file"
+                    style="display: none"
+                    @change="handleFileUpload"
+                  />
                 </div>
 
                 <div class="input-content">
@@ -336,6 +370,18 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         content: msg.content,
         timestamp: msg.timestamp
       }))
+
+      // 添加一条测试文件消息（仅用于演示）
+      newMessages.push({
+        id: 'fake-file-1',
+        type: 'file',
+        senderId: userStore.userId,
+        senderName: userStore.username,
+        senderAvatar: userStore.avatar,
+        content: 'example.pdf', // 文件名
+        size: '2.1 MB', // 文件大小
+        timestamp: new Date().toISOString()
+      })
 
       if (prepend) {
         // 在顶部添加旧消息（加载历史消息）
@@ -605,16 +651,6 @@ const handleEnterKey = (event) => {
     event.preventDefault()
     sendMessageHandler()
   }
-}
-
-// 显示表情选择器
-const showEmojiPicker = () => {
-  console.log('显示表情选择器')
-}
-
-// 上传文件
-const uploadFile = () => {
-  console.log('上传文件')
 }
 
 // 切换聊天状态
@@ -951,6 +987,35 @@ const insertEmoji = (char) => {
   }
 }
 
+const fileInput = ref(null)
+
+// 触发文件选择
+const triggerFileSelect = () => {
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+// 处理文件上传
+const handleFileUpload = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    console.log('选择的文件:', file)
+    // 这里可以添加文件上传的逻辑
+    // 例如显示预览、上传到服务器等
+    uploadFile(file)
+  }
+  // 清空文件输入框，以便下次选择相同文件也能触发change事件
+  event.target.value = ''
+}
+
+// 上传文件
+const uploadFile = (file) => {
+  console.log('准备上传文件:', file)
+
+  // 临时提醒
+  ElMessage.info(`选择了文件: ${file.name}`)
+}
 </script>
 
 <style scoped>
@@ -1517,5 +1582,56 @@ const insertEmoji = (char) => {
 .shortcut-item:hover {
   background-color: #e0e0e0;
   transform: scale(1.05);
+}
+
+/* 文件消息气泡 */
+.file-message-bubble {
+  background-color: white;
+  border-radius: 7px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+/* 文件容器 */
+.file-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 文件图标 */
+.file-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  font-size: 16px;
+  color: #606266;
+}
+
+/* 文件信息 */
+.file-info {
+  flex: 1;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #999;
 }
 </style>
