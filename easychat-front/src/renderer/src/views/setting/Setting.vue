@@ -291,12 +291,6 @@ const handleAvatarUpload = async (event) => {
     return
   }
 
-  // // 检查文件大小 (限制为2MB)
-  // if (file.size > 2 * 1024 * 1024) {
-  //   ElMessage.error('图片大小不能超过2MB')
-  //   return
-  // }
-
   try {
     // 压缩图片
     const compressedFile = await compressImage(file)

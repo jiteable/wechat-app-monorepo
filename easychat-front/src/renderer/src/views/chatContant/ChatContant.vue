@@ -357,7 +357,7 @@ import { Message } from '@element-plus/icons-vue'
 import { ref, nextTick, watch, computed, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { sendMessage, getMessages } from '@/api/chat'
 import { ElMessage } from 'element-plus'
-import { uploadImage } from '@/api/upload'
+import { uploadImage, uploadFile } from '@/api/upload'
 
 const route = useRoute()
 const contactStore = userContactStore()
@@ -1388,7 +1388,7 @@ const handleFileUpload = (event) => {
     console.log('选择的文件:', file)
     // 这里可以添加文件上传的逻辑
     // 例如显示预览、上传到服务器等
-    uploadFile(file)
+    uploadFiles(file)
   }
   // 清空文件输入框，以便下次选择相同文件也能触发change事件
   event.target.value = ''
@@ -1407,6 +1407,13 @@ const uploadFile = async (file) => {
 
   // 判断是否为图片文件
   if (imageExtensions.includes(fileExtension)) {
+    // 如果是图片文件，限制不能超过5MB
+    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    if (file.size > maxSize) {
+      ElMessage.error(`图片大小不能超过5MB，当前图片大小为 ${(file.size / (1024 * 1024)).toFixed(2)}MB`)
+      return
+    }
+
     // 如果是图片文件
     try {
       const response = await uploadImage(file)
@@ -1428,9 +1435,27 @@ const uploadFile = async (file) => {
       ElMessage.error(`图片上传异常: ${error.message || '网络错误'}`)
     }
   } else {
+    // 如果是其他类型文件，限制不能超过1GB
+    const maxSize = 1 * 1024 * 1024 * 1024 // 1GB in bytes
+    if (file.size > maxSize) {
+      ElMessage.error(`文件大小不能超过1GB，当前文件大小为 ${(file.size / (1024 * 1024 * 1024)).toFixed(2)}GB`)
+      return
+    }
+
     // 如果是其他类型文件
-    ElMessage.info(`选择了文件: ${file.name}`)
-    // TODO: 在这里可以处理其他类型文件的上传
+    try {
+      const response = await uploadFileApi(file)
+      if (response.success) {
+        ElMessage.success(`文件上传成功: ${file.name}`)
+        console.log('文件上传成功，URL:', response.mediaUrl)
+        // TODO: 可以在这里处理文件上传后的操作
+      } else {
+        ElMessage.error(`文件上传失败: ${response.error || '未知错误'}`)
+      }
+    } catch (error) {
+      console.error('文件上传异常:', error)
+      ElMessage.error(`文件上传异常: ${error.message || '网络错误'}`)
+    }
   }
 }
 
