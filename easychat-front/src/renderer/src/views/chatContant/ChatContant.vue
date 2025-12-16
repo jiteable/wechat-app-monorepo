@@ -399,8 +399,11 @@ const updateInputEmptyState = () => {
   // 获取输入框的文本内容
   const textContent = messageInputRef.value.innerText || messageInputRef.value.textContent || ''
 
+  // 检查是否有图片元素
+  const hasImages = messageInputRef.value.querySelectorAll('img').length > 0
+
   // 检查是否只有空白字符
-  isInputEmpty.value = !textContent || textContent.trim().length === 0
+  isInputEmpty.value = (!textContent || textContent.trim().length === 0) && !hasImages
 }
 
 // 初始化 MutationObserver
@@ -715,8 +718,8 @@ const getOrderedRichContent = () => {
         }
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
-      if (node.tagName === 'IMG') {
-        // 处理图片节点
+      if (node.tagName === 'IMG' && node.hasAttribute('data-input-image')) {
+        // 处理图片节点，只处理输入框中的图片
         contentItems.push({
           type: 'image',
           imageUrl: node.src,
@@ -771,7 +774,6 @@ const getOrderedRichContent = () => {
 
   return mergedContentItems
 }
-
 // 发送消息
 const sendMessageHandler = async () => {
   const orderedContent = getOrderedRichContent()
@@ -858,7 +860,7 @@ const sendMessageHandler = async () => {
         senderId: userStore.userId,
         senderName: userStore.username || '我',
         senderAvatar: userStore.avatar || '',
-        mediaUrl: item.imageUrl,
+        imageUrl: item.imageUrl,
         fileName: item.fileName,
         createdAt: new Date().toISOString()
       }
@@ -872,8 +874,8 @@ const sendMessageHandler = async () => {
           sessionId: selectedContact.id,
           senderId: userStore.userId,
           messageType: 'image',
-          mediaUrl: item.imageUrl,
-          fileName: item.fileName
+          contant: `[图片]:${item.fileName}`,
+          mediaUrl: item.imageUrl
         }
 
         // 如果是私聊
@@ -901,14 +903,16 @@ const sendMessageHandler = async () => {
         const lastMessageData = {
           sessionId: selectedContact.id,
           lastMessage: {
-            content: '[图片]',
+            content: `[图片]`,
             messageType: 'image',
             fileName: item.fileName,
+            senderName: userStore.username || '我',
             isRecalled: false,
             isDeleted: false
           },
           timestamp: new Date().toISOString()
-        };
+        }
+        console.log('lastMessageData: ', lastMessageData)
         window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }));
       } catch (error) {
         console.error('发送图片消息失败:', error)
@@ -1410,6 +1414,10 @@ const uploadFile = async (file) => {
         ElMessage.success(`图片上传成功: ${file.name}`)
         console.log('图片上传成功，URL:', response.imageUrl)
 
+        // 清除错误位置的图片（保险措施）
+        const wrongImages = document.querySelectorAll('img[data-input-image="true"]:not(.rich-input img)')
+        wrongImages.forEach(img => img.remove())
+
         // 将图片插入到富文本输入框中
         insertImageToRichInput(response.imageUrl)
       } else {
@@ -1430,28 +1438,42 @@ const uploadFile = async (file) => {
 const insertImageToRichInput = (imageUrl) => {
   if (!messageInputRef.value) return
 
+  // 确保我们操作的是正确的输入框元素
+  const inputElement = messageInputRef.value
+  if (!inputElement.classList.contains('rich-input')) {
+    console.error('Rich input element not found or incorrect element targeted')
+    return
+  }
+
   const imgElement = document.createElement('img')
   imgElement.src = imageUrl
   imgElement.style.maxWidth = '100px'
   imgElement.style.maxHeight = '100px'
   imgElement.style.margin = '2px'
   imgElement.style.verticalAlign = 'bottom'
+  imgElement.setAttribute('data-input-image', 'true')
 
   const selection = window.getSelection()
   if (selection.rangeCount) {
     const range = selection.getRangeAt(0)
-    range.deleteContents()
-    range.insertNode(imgElement)
-    range.collapse(false)
-    selection.removeAllRanges()
-    selection.addRange(range)
+    // 确保选区在正确的输入框内
+    if (inputElement.contains(range.commonAncestorContainer)) {
+      range.deleteContents()
+      range.insertNode(imgElement)
+      range.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    } else {
+      // 如果选区不在输入框内，则直接添加到输入框末尾
+      inputElement.appendChild(imgElement)
+    }
   } else {
-    messageInputRef.value.appendChild(imgElement)
+    inputElement.appendChild(imgElement)
   }
 
   // 插入图片后聚焦到输入框并更新状态
   nextTick(() => {
-    messageInputRef.value?.focus()
+    inputElement.focus()
     updateInputEmptyState()
   })
 }

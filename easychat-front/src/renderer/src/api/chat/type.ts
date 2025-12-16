@@ -9,6 +9,14 @@ export enum MessageType {
   SYSTEM = 'system'
 }
 
+export interface File {
+  fileName: string
+  size: number
+  url: string
+  mimeType: string
+  fileType: string
+}
+
 export interface Message {
   id: string
   sessionId: string
@@ -18,8 +26,7 @@ export interface Message {
   content: string
   messageType: MessageType
   mediaUrl?: string
-  fileName?: string
-  fileSize?: number
+  file?: File
   createdAt: string
   sender?: {
     id: string
