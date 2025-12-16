@@ -463,7 +463,9 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         senderName: msg.sender?.username || '未知用户',
         senderAvatar: msg.sender?.avatar,
         content: msg.content,
-        createdAt: msg.createdAt
+        createdAt: msg.createdAt,
+        imageUrl: msg.mediaUrl,
+        fileName: msg.fileName
       }))
 
       console.log('newMessages: ', newMessages)
@@ -686,11 +688,96 @@ const getMessageContent = () => {
   return textContent
 }
 
+// 获取富文本输入框中的内容（包括图片）
+const getOrderedRichContent = () => {
+  if (!messageInputRef.value) return []
+
+  const contentItems = []
+  const childNodes = messageInputRef.value.childNodes
+
+  for (const node of childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      // 处理文本节点，按行分割
+      const textParts = node.textContent.split('\n')
+      for (let i = 0; i < textParts.length; i++) {
+        if (textParts[i].trim() !== '') {
+          contentItems.push({
+            type: 'text',
+            content: textParts[i]
+          })
+        }
+        // 如果不是最后一部分，添加换行符
+        if (i < textParts.length - 1) {
+          contentItems.push({
+            type: 'text',
+            content: '\n'
+          })
+        }
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      if (node.tagName === 'IMG') {
+        // 处理图片节点
+        contentItems.push({
+          type: 'image',
+          imageUrl: node.src,
+          fileName: node.src.split('/').pop()
+        })
+      } else {
+        // 处理其他元素节点中的文本
+        const text = node.textContent || node.innerText
+        if (text.trim() !== '') {
+          contentItems.push({
+            type: 'text',
+            content: text
+          })
+        }
+      }
+    }
+  }
+
+  // 合并相邻的文本节点
+  const mergedContentItems = []
+  let currentTextItem = null
+
+  for (const item of contentItems) {
+    if (item.type === 'text') {
+      if (currentTextItem) {
+        // 合并到当前文本项
+        currentTextItem.content += item.content
+      } else {
+        // 开始一个新的文本项
+        currentTextItem = { ...item }
+      }
+    } else {
+      // 遇到非文本项，先保存当前文本项（如果存在）
+      if (currentTextItem) {
+        // 只有当文本不为空时才添加
+        if (currentTextItem.content.trim() !== '' || currentTextItem.content === '\n') {
+          mergedContentItems.push(currentTextItem)
+        }
+        currentTextItem = null
+      }
+      // 添加非文本项
+      mergedContentItems.push(item)
+    }
+  }
+
+  // 添加最后一个文本项（如果存在）
+  if (currentTextItem) {
+    if (currentTextItem.content.trim() !== '' || currentTextItem.content === '\n') {
+      mergedContentItems.push(currentTextItem)
+    }
+  }
+
+  return mergedContentItems
+}
+
 // 发送消息
 const sendMessageHandler = async () => {
-  const content = getMessageContent()
-  if (!content.trim() || !contactStore.selectedContact) {
-    // 如果内容为空或者没有选中联系人，则不发送消息
+  const orderedContent = getOrderedRichContent()
+
+  // 如果内容为空或者没有选中联系人，则不发送消息
+  if (orderedContent.length === 0 || !contactStore.selectedContact) {
     return
   }
 
@@ -759,18 +846,110 @@ const sendMessageHandler = async () => {
     messages.value.push(timestampMessage)
   }
 
-  // 创建本地消息对象（用于立即显示）
-  const localMessage = {
-    id: Date.now(), // 临时ID
-    type: 'text',
-    senderId: userStore.userId,
-    senderName: userStore.username || '我',
-    senderAvatar: userStore.avatar || '',
-    content: content.trim()
-  }
+  // 按顺序发送消息项
+  for (const item of orderedContent) {
+    console.log('item.name: ', item.fileName)
+    if (item.type === 'image') {
+      // 处理图片消息
+      // 创建本地图片消息对象（用于立即显示）
+      const localImageMessage = {
+        id: Date.now() + Math.random(), // 临时ID
+        type: 'image',
+        senderId: userStore.userId,
+        senderName: userStore.username || '我',
+        senderAvatar: userStore.avatar || '',
+        mediaUrl: item.imageUrl,
+        fileName: item.fileName,
+        createdAt: new Date().toISOString()
+      }
 
-  // 立即显示消息（优化用户体验）
-  messages.value.push(localMessage)
+      // 立即显示图片消息（优化用户体验）
+      messages.value.push(localImageMessage)
+
+      try {
+        // 构造图片消息对象
+        const imageMessageData = {
+          sessionId: selectedContact.id,
+          senderId: userStore.userId,
+          messageType: 'image',
+          mediaUrl: item.imageUrl,
+          fileName: item.fileName
+        }
+
+        // 如果是私聊
+        if (selectedContact.sessionType === 'private') {
+          imageMessageData.receiverId = selectedContact.contactId
+        }
+        // 如果是群聊
+        else if (selectedContact.sessionType === 'group') {
+          imageMessageData.groupId = selectedContact.group?.id
+        }
+
+        // 通过WebSocket发送实时消息
+        if (window.api && typeof window.api.sendMessage === 'function') {
+          window.api.sendMessage({
+            type: 'send_message',
+            data: imageMessageData
+          })
+        }
+
+        // 通过HTTP API发送消息到后端（用于持久化存储）
+        const response = await sendMessage(imageMessageData)
+        console.log('图片消息发送成功:', response)
+      } catch (error) {
+        console.error('发送图片消息失败:', error)
+        // 可以在这里添加错误处理，比如显示错误消息给用户
+      }
+    } else if (item.type === 'text' && (item.content.trim() !== '' || item.content === '\n')) {
+      // 处理文本消息
+      // 创建本地消息对象（用于立即显示）
+      const localMessage = {
+        id: Date.now() + Math.random(), // 临时ID
+        type: 'text',
+        senderId: userStore.userId,
+        senderName: userStore.username || '我',
+        senderAvatar: userStore.avatar || '',
+        content: item.content
+      }
+
+      // 立即显示消息（优化用户体验）
+      messages.value.push(localMessage)
+
+      try {
+        // 构造消息对象
+        const messageData = {
+          sessionId: selectedContact.id,
+          senderId: userStore.userId,
+          messageType: 'text',
+          content: item.content
+        }
+
+        // 如果是私聊
+        if (selectedContact.sessionType === 'private') {
+          messageData.receiverId = selectedContact.contactId
+        }
+        // 如果是群聊
+        else if (selectedContact.sessionType === 'group') {
+          messageData.groupId = selectedContact.group?.id
+        }
+
+        // 通过WebSocket发送实时消息
+        if (window.api && typeof window.api.sendMessage === 'function') {
+          window.api.sendMessage({
+            type: 'send_message',
+            data: messageData
+          })
+        }
+
+        // 通过HTTP API发送消息到后端（用于持久化存储）
+        const response = await sendMessage(messageData)
+        console.log('文本消息发送成功:', response)
+      } catch (error) {
+        console.error('发送文本消息失败:', error)
+        // 可以在这里添加错误处理，比如显示错误消息给用户
+      }
+    }
+  }
 
   // 自动滚动到底部
   nextTick(() => {
@@ -779,48 +958,13 @@ const sendMessageHandler = async () => {
     }
   })
 
-  try {
-    // 构造消息对象
-    const messageData = {
-      sessionId: selectedContact.id,
-      senderId: userStore.userId,
-      messageType: 'text',
-      content: content.trim()
-    }
-
-    // 如果是私聊
-    if (selectedContact.sessionType === 'private') {
-      messageData.receiverId = selectedContact.contactId
-    }
-    // 如果是群聊
-    else if (selectedContact.sessionType === 'group') {
-      messageData.groupId = selectedContact.group?.id
-      console.log('selectedContact.groupId: ', selectedContact.group?.id)
-    }
-
-    // 通过WebSocket发送实时消息
-    if (window.api && typeof window.api.sendMessage === 'function') {
-      window.api.sendMessage({
-        type: 'send_message',
-        data: messageData
-      })
-    }
-
-    // 通过HTTP API发送消息到后端（用于持久化存储）
-    const response = await sendMessage(messageData)
-    console.log('消息2发送成功:', response)
-
-    // 清空输入框
-    if (messageInputRef.value) {
-      messageInputRef.value.innerHTML = ''
-    }
-
-    // 更新输入框状态
-    updateInputEmptyState()
-  } catch (error) {
-    console.error('发送消息失败:', error)
-    // 可以在这里添加错误处理，比如显示错误消息给用户
+  // 清空输入框
+  if (messageInputRef.value) {
+    messageInputRef.value.innerHTML = ''
   }
+
+  // 更新输入框状态
+  updateInputEmptyState()
 }
 
 onUnmounted(() => {
