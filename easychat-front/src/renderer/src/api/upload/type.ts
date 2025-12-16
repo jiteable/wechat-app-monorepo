@@ -22,6 +22,13 @@ export interface UploadFileError {
   error: string
 }
 
+export interface UploadFileParams {
+  file: File
+  fileName: string
+  sessionId: string
+  fileType?: 'video' | 'file'
+}
+
 export interface UploadImageResponse {
   success: boolean
   imageUrl: string

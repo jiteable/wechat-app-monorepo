@@ -356,7 +356,7 @@ import { useUserStore } from '@/store/userStore'
 import { Message } from '@element-plus/icons-vue'
 import { ref, nextTick, watch, computed, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { sendMessage, getMessages } from '@/api/chat'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElLoading } from 'element-plus'
 import { uploadImage, uploadFile } from '@/api/upload'
 
 const route = useRoute()
@@ -913,7 +913,7 @@ const sendMessageHandler = async () => {
           timestamp: new Date().toISOString()
         }
         console.log('lastMessageData: ', lastMessageData)
-        window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }));
+        window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }))
       } catch (error) {
         console.error('发送图片消息失败:', error)
         // 可以在这里添加错误处理，比如显示错误消息给用户
@@ -973,8 +973,8 @@ const sendMessageHandler = async () => {
             isDeleted: false
           },
           timestamp: new Date().toISOString()
-        };
-        window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }));
+        }
+        window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }))
       } catch (error) {
         console.error('发送文本消息失败:', error)
         // 可以在这里添加错误处理，比如显示错误消息给用户
@@ -1395,8 +1395,15 @@ const handleFileUpload = (event) => {
 }
 
 // 上传文件
-const uploadFile = async (file) => {
+const uploadFiles = async (file) => {
   console.log('准备上传文件:', file)
+
+  // 显示上传状态
+  const loading = ElLoading.service({
+    lock: true,
+    text: '文件上传中...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
 
   // 获取文件扩展名并转换为小写
   const fileName = file.name.toLowerCase()
@@ -1410,27 +1417,36 @@ const uploadFile = async (file) => {
     // 如果是图片文件，限制不能超过5MB
     const maxSize = 5 * 1024 * 1024 // 5MB in bytes
     if (file.size > maxSize) {
-      ElMessage.error(`图片大小不能超过5MB，当前图片大小为 ${(file.size / (1024 * 1024)).toFixed(2)}MB`)
+      loading.close()
+      ElMessage.error(
+        `图片大小不能超过5MB，当前图片大小为 ${(file.size / (1024 * 1024)).toFixed(2)}MB`
+      )
       return
     }
 
     // 如果是图片文件
     try {
       const response = await uploadImage(file)
+      loading.close()
       if (response.success) {
         ElMessage.success(`图片上传成功: ${file.name}`)
         console.log('图片上传成功，URL:', response.imageUrl)
 
         // 清除错误位置的图片（保险措施）
-        const wrongImages = document.querySelectorAll('img[data-input-image="true"]:not(.rich-input img)')
-        wrongImages.forEach(img => img.remove())
+        const wrongImages = document.querySelectorAll(
+          'img[data-input-image="true"]:not(.rich-input img)'
+        )
+        wrongImages.forEach((img) => img.remove())
 
         // 将图片插入到富文本输入框中
-        insertImageToRichInput(response.imageUrl)
+        // 解码URL中的特殊字符（包括中文）
+        const decodedImageUrl = decodeURIComponent(response.imageUrl)
+        insertImageToRichInput(decodedImageUrl)
       } else {
         ElMessage.error(`图片上传失败: ${response.error || '未知错误'}`)
       }
     } catch (error) {
+      loading.close()
       console.error('图片上传异常:', error)
       ElMessage.error(`图片上传异常: ${error.message || '网络错误'}`)
     }
@@ -1438,21 +1454,31 @@ const uploadFile = async (file) => {
     // 如果是其他类型文件，限制不能超过1GB
     const maxSize = 1 * 1024 * 1024 * 1024 // 1GB in bytes
     if (file.size > maxSize) {
-      ElMessage.error(`文件大小不能超过1GB，当前文件大小为 ${(file.size / (1024 * 1024 * 1024)).toFixed(2)}GB`)
+      loading.close()
+      ElMessage.error(
+        `文件大小不能超过1GB，当前文件大小为 ${(file.size / (1024 * 1024 * 1024)).toFixed(2)}GB`
+      )
       return
     }
 
     // 如果是其他类型文件
     try {
-      const response = await uploadFileApi(file)
+      console.log('file: ', file)
+      const response = await uploadFile({
+        file,
+        fileName: file.name,
+        sessionId: contactStore.selectedContact.id,
+        fileType: 'file'
+      })
+      loading.close()
       if (response.success) {
         ElMessage.success(`文件上传成功: ${file.name}`)
         console.log('文件上传成功，URL:', response.mediaUrl)
-        // TODO: 可以在这里处理文件上传后的操作
       } else {
         ElMessage.error(`文件上传失败: ${response.error || '未知错误'}`)
       }
     } catch (error) {
+      loading.close()
       console.error('文件上传异常:', error)
       ElMessage.error(`文件上传异常: ${error.message || '网络错误'}`)
     }

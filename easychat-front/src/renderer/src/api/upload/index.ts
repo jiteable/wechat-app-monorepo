@@ -1,6 +1,14 @@
 import config from '../../config'
 import http from '../../utils/http'
-import { UploadAvatarResponse, UploadAvatarError, UploadFileResponse, UploadFileError, UploadImageResponse, UploadImageError } from './type'
+import {
+  UploadAvatarResponse,
+  UploadAvatarError,
+  UploadFileResponse,
+  UploadFileError,
+  UploadImageResponse,
+  UploadImageError,
+  UploadFileParams
+} from './type'
 
 enum API {
   UPLOAD_AVATAR_URL = '/upload/avatar',
@@ -36,12 +44,19 @@ export const uploadAvatar = async (file: File): Promise<UploadAvatarResponse> =>
  * @param fileType 文件类型(image/video/voice/file)
  * @returns 上传结果
  */
-export const uploadFile = async (file: File, fileType?: 'image' | 'video' | 'voice' | 'file'): Promise<UploadFileResponse> => {
+export const uploadFile = async (params: UploadFileParams): Promise<UploadFileResponse> => {
+  const { file, fileName, sessionId, fileType } = params
   const formData = new FormData()
   formData.append('file', file)
+  formData.append('fileName', fileName)
+  formData.append('sessionId', sessionId)
   if (fileType) {
     formData.append('fileType', fileType)
   }
+
+  // 根据文件大小计算超时时间，每MB增加1秒，最少10秒，最多5分钟
+  const fileSizeMB = file.size / (1024 * 1024)
+  const timeout = Math.min(Math.max(10000, fileSizeMB * 1000), 300000)
 
   const response = await http.post<UploadFileResponse & UploadFileError>(
     `${config.api}${API.UPLOAD_FILE_URL}`,
@@ -49,7 +64,8 @@ export const uploadFile = async (file: File, fileType?: 'image' | 'video' | 'voi
     {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: timeout
     }
   )
 
@@ -65,13 +81,18 @@ export const uploadImage = async (file: File): Promise<UploadImageResponse> => {
   const formData = new FormData()
   formData.append('image', file)
 
+  // 根据文件大小计算超时时间，每MB增加1秒，最少10秒，最多5分钟
+  const fileSizeMB = file.size / (1024 * 1024)
+  const timeout = Math.min(Math.max(10000, fileSizeMB * 1000), 300000)
+
   const response = await http.post<UploadImageResponse & UploadImageError>(
     `${config.api}${API.UPLOAD_IMAGE_URL}`,
     formData,
     {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: timeout
     }
   )
 
