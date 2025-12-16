@@ -248,11 +248,37 @@ const handleNewMessage = (data) => {
   }
 }
 
+const handleLocalNewMessage = (event) => {
+  const { sessionId, lastMessage, timestamp } = event.detail;
+
+  // 查找对应的会话
+  const sessionIndex = sessions.value.findIndex((session) => session.id === sessionId)
+
+  if (sessionIndex !== -1) {
+    // 更新会话的最后消息和时间
+    const updatedSession = {
+      ...sessions.value[sessionIndex],
+      lastMessage: lastMessage,
+      updatedAt: timestamp
+    }
+
+    // 更新会话列表中的该项
+    sessions.value.splice(sessionIndex, 1, updatedSession)
+
+    // 对会话列表按更新时间重新排序（最新的在前面）
+    sessions.value.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+
+    console.log('会话列表已更新:', updatedSession)
+  }
+}
+
 // 组件挂载时监听事件
 onMounted(() => {
   window.addEventListener('sessionCreated', refreshSessions)
   // 添加WebSocket消息监听
   window.api.onNewMessage(handleNewMessage)
+  // 添加本地消息监听
+  window.addEventListener('newMessageSent', handleLocalNewMessage)
   console.log('刷新了')
 })
 
@@ -261,6 +287,7 @@ onUnmounted(() => {
   window.removeEventListener('sessionCreated', refreshSessions)
   // 如果API提供了移除WebSocket监听的方法，也需要在这里调用
   // window.api.offNewMessage(handleNewMessage)
+  window.removeEventListener('newMessageSent', handleLocalNewMessage)
 })
 
 // 如果需要在父组件中访问选中ID，可以暴露这个方法

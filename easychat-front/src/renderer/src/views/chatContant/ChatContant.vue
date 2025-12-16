@@ -896,6 +896,20 @@ const sendMessageHandler = async () => {
         // 通过HTTP API发送消息到后端（用于持久化存储）
         const response = await sendMessage(imageMessageData)
         console.log('图片消息发送成功:', response)
+
+        // 发送自定义事件更新ChatList中的lastMessage
+        const lastMessageData = {
+          sessionId: selectedContact.id,
+          lastMessage: {
+            content: '[图片]',
+            messageType: 'image',
+            fileName: item.fileName,
+            isRecalled: false,
+            isDeleted: false
+          },
+          timestamp: new Date().toISOString()
+        };
+        window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }));
       } catch (error) {
         console.error('发送图片消息失败:', error)
         // 可以在这里添加错误处理，比如显示错误消息给用户
@@ -944,6 +958,19 @@ const sendMessageHandler = async () => {
         // 通过HTTP API发送消息到后端（用于持久化存储）
         const response = await sendMessage(messageData)
         console.log('文本消息发送成功:', response)
+
+        // 发送自定义事件更新ChatList中的lastMessage
+        const lastMessageData = {
+          sessionId: selectedContact.id,
+          lastMessage: {
+            content: item.content,
+            messageType: 'text',
+            isRecalled: false,
+            isDeleted: false
+          },
+          timestamp: new Date().toISOString()
+        };
+        window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }));
       } catch (error) {
         console.error('发送文本消息失败:', error)
         // 可以在这里添加错误处理，比如显示错误消息给用户

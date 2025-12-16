@@ -183,7 +183,7 @@ model UnifiedMessage {
   content      String                                     // 消息内容
   messageType  String      @default("text")               // 消息类型: text, image, file, emoji, voice, video timestamp system
   mediaUrl     String?                                    // 媒体文件URL (图片/文件)
-  fileName     String?                                    // 文件名 (针对文件类型消息)
+  fileName     String?                                    // 文件名 (针对图片/文件类型消息)
   fileSize     Int?                                       // 文件大小 (针对文件类型消息)
   isRecalled   Boolean     @default(false)                // 是否已撤回
   isDeleted    Boolean     @default(false)                // 是否已删除
@@ -221,15 +221,18 @@ model File {
   unifiedMessageId String?    @unique                    // 关联的统一消息ID
   createdAt       DateTime    @default(now())            // 上传时间
   expireAt        DateTime?                              // 过期时间 (可选)
+   sessionId       String?                               // 可选的会话ID，用于快速查询
   
   // 关系
   uploader         User           @relation(fields: [uploaderId], references: [id])
   unifiedMessage   UnifiedMessage? @relation(fields: [unifiedMessageId], references: [id])
+  session         ChatSession? @relation(fields: [sessionId], references: [id])
   
   @@index([uploaderId])
   @@index([unifiedMessageId])
   @@index([createdAt])
   @@index([fileType])
+  @@index([sessionId])
 }
 
 
