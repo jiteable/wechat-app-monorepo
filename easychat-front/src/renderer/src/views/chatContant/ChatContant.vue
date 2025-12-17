@@ -72,14 +72,16 @@
                   :class="
                     message.senderId === userStore.userId ? 'sent-message' : 'received-message'
                   "
-                  @click="handleFileDownload(message)"
                 >
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div class="box">
                     <div v-if="shouldShowSenderName(message)" class="message-sender">
                       {{ message.senderName }}
                     </div>
-                    <div class="message-bubble file-message-bubble">
+                    <div
+                      class="message-bubble file-message-bubble"
+                      @click="handleFileDownload(message)"
+                    >
                       <div class="file-container">
                         <div class="file-icon">
                           <img
@@ -1774,33 +1776,124 @@ const formatFileSize = (bytes) => {
 
 const handleFileDownload = async (fileMessage) => {
   try {
+    console.log('文件消息数据:', fileMessage) // 调试信息
+
     // 获取用户设置中的存储路径
     const storageLocation = userSetStore.StorageLocation || 'D:\\EasyChat\\files\\'
 
-    // 通过IPC发送下载文件请求到主进程
-    if (window.api && typeof window.api.downloadFile === 'function') {
-      const result = await window.api.downloadFile(
-        fileMessage.mediaUrl,
-        fileMessage.content,
-        storageLocation
-      )
+    // 验证文件URL
+    let fileUrl = fileMessage.mediaUrl
 
-      if (result.success) {
-        ElMessage.success(`文件已保存到: ${result.filePath}`)
-      } else {
-        ElMessage.error(`文件下载失败: ${result.error}`)
+    // 检查是否有多种可能的URL字段
+    if (!fileUrl && fileMessage.imageUrl) {
+      fileUrl = fileMessage.imageUrl
+    }
+
+    if (!fileUrl && fileMessage.url) {
+      fileUrl = fileMessage.url
+    }
+
+    // 如果仍然没有有效的URL
+    if (!fileUrl) {
+      ElMessage.error('文件链接无效')
+      console.error('无法找到有效的文件链接:', fileMessage)
+      return
+    }
+
+    // 确保URL是完整的
+    if (fileUrl.startsWith('//')) {
+      fileUrl = 'http:' + fileUrl
+    } else if (fileUrl.startsWith('/')) {
+      // 如果是相对路径，尝试补全为完整URL
+      fileUrl = window.location.origin + fileUrl
+    }
+
+    // 获取文件名
+    let fileName = fileMessage.content || fileMessage.fileName
+    if (!fileName) {
+      // 尝试从URL中提取文件名
+      try {
+        const urlObj = new URL(fileUrl)
+        const pathname = urlObj.pathname
+        fileName = pathname.split('/').pop() || 'downloaded_file'
+      } catch (urlError) {
+        fileName = 'downloaded_file'
       }
-    } else {
-      // 如果没有downloadFile方法，则使用浏览器默认下载
-      const link = document.createElement('a')
-      link.href = fileMessage.mediaUrl
-      link.download = fileMessage.content
-      link.click()
-      ElMessage.success('开始下载文件')
+    }
+
+    // 显示正在下载提示
+    const loading = ElLoading.service({
+      text: '正在下载文件...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    try {
+      // 通过IPC发送下载文件请求到主进程
+      if (window.api && typeof window.api.downloadFile === 'function') {
+        const result = await window.api.downloadFile(fileUrl, fileName, storageLocation)
+
+        loading.close()
+
+        if (result.success) {
+          ElMessage.success(`文件已保存到: ${result.filePath}`)
+        } else {
+          ElMessage.error(`文件下载失败: ${result.error}`)
+
+          // 如果是网络错误，提供备选方案
+          if (
+            result.error.includes('网络请求失败') ||
+            result.error.includes('CONNECTION_REFUSED')
+          ) {
+            ElMessage.info('正在尝试浏览器下载...')
+            // 尝试使用浏览器默认下载
+            attemptBrowserDownload(fileUrl, fileName)
+          }
+        }
+      } else {
+        loading.close()
+        // 如果没有downloadFile方法，则使用浏览器默认下载
+        ElMessage.info('正在使用浏览器下载...')
+        attemptBrowserDownload(fileUrl, fileName)
+      }
+    } catch (ipcError) {
+      loading.close()
+      console.error('IPC通信错误:', ipcError)
+      ElMessage.error('下载服务暂时不可用，正在尝试浏览器下载...')
+      // IPC通信失败时使用浏览器默认下载
+      attemptBrowserDownload(fileUrl, fileName)
     }
   } catch (error) {
     console.error('文件下载出错:', error)
-    ElMessage.error('文件下载出错')
+    ElMessage.error('文件下载出错: ' + (error.message || '未知错误'))
+  }
+}
+
+/**
+ * 尝试使用浏览器默认下载
+ * @param url 文件URL
+ * @param filename 文件名
+ */
+const attemptBrowserDownload = (url, filename) => {
+  try {
+    // 创建一个隐藏的链接元素来触发下载
+    const link = document.createElement('a')
+    link.style.display = 'none'
+    link.href = url
+    link.download = filename // 设置下载文件名
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    ElMessage.success('已启动浏览器下载')
+  } catch (error) {
+    console.error('浏览器下载失败:', error)
+    try {
+      // 备选方案：在新窗口中打开
+      window.open(url, '_blank')
+      ElMessage.info('已在新窗口中打开文件链接')
+    } catch (openError) {
+      console.error('打开新窗口也失败:', openError)
+      ElMessage.error('无法下载文件，请检查网络连接或稍后再试')
+    }
   }
 }
 </script>

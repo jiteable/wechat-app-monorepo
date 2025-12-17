@@ -9,8 +9,20 @@ import * as path from 'path'
  * @param savePath 保存路径
  * @returns 保存的完整文件路径
  */
-export async function downloadFile(url: string, fileName: string, savePath: string): Promise<string> {
+export async function downloadFile(
+  url: string,
+  fileName: string,
+  savePath: string
+): Promise<string> {
   return new Promise((resolve, reject) => {
+    // 验证URL有效性
+    try {
+      new URL(url)
+    } catch (err) {
+      reject(new Error(`无效的URL: ${url}`))
+      return
+    }
+
     // 确保保存目录存在
     if (!fs.existsSync(savePath)) {
       try {
@@ -28,21 +40,40 @@ export async function downloadFile(url: string, fileName: string, savePath: stri
     const finalPath = getUniqueFilePath(fullPath)
 
     // 发起网络请求
-    const request = net.request(url)
+    const request = net.request({
+      url: url,
+      redirect: 'follow' // 自动跟随重定向
+    })
 
     request.on('response', (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error(`下载失败，HTTP状态码: ${response.statusCode}`))
+      // 检查状态码
+      if (response.statusCode >= 400) {
+        reject(new Error(`下载失败，HTTP状态码: ${response.statusCode} ${response.statusMessage}`))
         return
       }
 
+      // 对于重定向响应，我们需要处理Location头部
+      if (response.statusCode >= 300 && response.statusCode < 400) {
+        const location = response.headers.location
+        if (location && location.length > 0) {
+          // 递归调用下载函数处理重定向
+          downloadFile(location[0], fileName, savePath).then(resolve).catch(reject)
+          return
+        }
+      }
+
       const fileStream = fs.createWriteStream(finalPath)
+      let receivedBytes = 0
 
-      response.pipe(fileStream)
+      response.on('data', (chunk) => {
+        receivedBytes += chunk.length
+        fileStream.write(chunk)
+      })
 
-      fileStream.on('finish', () => {
-        fileStream.close()
-        resolve(finalPath)
+      response.on('end', () => {
+        fileStream.end(() => {
+          resolve(finalPath)
+        })
       })
 
       fileStream.on('error', (err) => {
