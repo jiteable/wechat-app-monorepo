@@ -15,6 +15,7 @@ export interface UploadFileResponse {
   originalName: string
   fileSize: number
   mimeType: string
+  fileExtension: string
   message: string
 }
 
@@ -36,6 +37,7 @@ export interface UploadImageResponse {
   originalName: string
   fileSize: number
   mimeType: string
+  fileExtension: string
   message: string
 }
 

@@ -216,12 +216,13 @@ model File {
   thumbnailUrl    String?                                // 缩略图URL (适用于图片)
   size            Int                                    // 文件大小 (字节)
   mimeType        String                                 // MIME类型
+  fileExtension   String?                                // 文件类型后缀
   fileType        String                                 // 文件类型分类 (image/document/video/audio等)
   uploaderId      String                                 // 上传者ID
   unifiedMessageId String?    @unique                    // 关联的统一消息ID
   createdAt       DateTime    @default(now())            // 上传时间
   expireAt        DateTime?                              // 过期时间 (可选)
-   sessionId       String?                               // 可选的会话ID，用于快速查询
+  sessionId       String?                               // 可选的会话ID，用于快速查询
   
   // 关系
   uploader         User           @relation(fields: [uploaderId], references: [id])
@@ -256,6 +257,7 @@ model ChatSession {
   groupId         String?                                                    // 群组ID (仅群聊)
   ChatSessionUsers           ChatSessionUser[]                                          // 参与此会话的用户
   unifiedMessages UnifiedMessage[]    @relation("SessionMessages")
+  files           File[]                              // 与此会话关联的文件
   
   @@index([sessionType])
   @@index([ownerId])

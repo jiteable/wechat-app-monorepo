@@ -136,8 +136,10 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
       mediaUrl,
       fileName,
       fileSize,
-      mimeType
+      mimeType,
+      fileExtension
     } = req.body;
+
 
     console.log('messagewaddawdawdwa: ', req.body)
 
@@ -264,8 +266,9 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
           name: fileName,
           url: mediaUrl,
           size: fileSize,
-          mimeType: mimeType, // 前端暂未提供，可后续补充
+          mimeType: mimeType || '', // 使用传入的mimeType，如果没有则为空字符串
           fileType: fileType,
+          fileExtension: fileExtension || path.extname(fileName).toLowerCase(), // 使用传入的扩展名或从文件名提取
           uploaderId: senderId
         }
       });
@@ -333,6 +336,8 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
         mediaUrl: newMessage.mediaUrl,
         fileName: newMessage.fileName,
         fileSize: newMessage.fileSize,
+        mimeType: newMessage.file?.mimeType, // 添加mimeType字段
+        fileExtension: newMessage.file?.fileExtension, // 添加fileExtension字段
         timestamp: newMessage.createdAt
       }
     };
@@ -357,6 +362,8 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
         content: newMessage.content,
         fileName: newMessage.fileName,
         fileSize: newMessage.fileSize,
+        mimeType: newMessage.file?.mimeType, // 添加mimeType字段
+        fileExtension: newMessage.file?.fileExtension, // 添加fileExtension字段
         createdAt: newMessage.createdAt
       },
       message: '消息发送成功'

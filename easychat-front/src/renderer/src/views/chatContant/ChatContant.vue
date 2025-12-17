@@ -1488,6 +1488,7 @@ const uploadFiles = async (file) => {
           content: response.originalName, // 文件名
           size: formatFileSize(response.fileSize), // 文件大小
           mimeType: response.mimeType, // MIME类型
+          fileExtension: response.fileExtension, // 文件扩展名
           createdAt: new Date().toISOString()
         }
 
@@ -1504,9 +1505,9 @@ const uploadFiles = async (file) => {
             mediaUrl: response.mediaUrl,
             fileName: response.originalName,
             fileSize: response.fileSize,
-            mimeType: response.mimeType
+            mimeType: response.mimeType,
+            fileExtension: response.fileExtension
           }
-
           // 如果是私聊
           if (selectedContact.sessionType === 'private') {
             fileMessageData.receiverId = selectedContact.contactId

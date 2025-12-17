@@ -15,6 +15,7 @@ export interface File {
   url: string
   mimeType: string
   fileType: string
+  fileExtension: string
 }
 
 export interface Message {
@@ -29,6 +30,7 @@ export interface Message {
   file?: File
   createdAt: string
   mimeType?: string
+  fileExtension?: string
   sender?: {
     id: string
     chatId: string
@@ -84,6 +86,7 @@ export interface SendMessageRequest {
   fileName?: string // 文件名（file类型必传）
   fileSize?: number // 文件大小（file类型必传，单位字节）
   mimeType?: string // MIME类型（file类型可选）
+  fileExtension?: string // 文件扩展名（file类型可选）
 }
 
 // 发送消息响应
@@ -98,6 +101,7 @@ export interface SendMessageResponse {
     fileName?: string
     fileSize?: number
     mimeType?: string
+    fileExtension?: string
     createdAt: string
   }
   message: string

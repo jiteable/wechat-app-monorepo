@@ -127,6 +127,8 @@ router.post('/file', authenticateToken, fileUpload.single('file'), async functio
       const customUrl = `https://file-dev.document-ai.top/${filename}`;
 
       // 返回自定义前缀的文件路径和其他文件信息
+      const fileExtension = path.extname(fileName).toLowerCase();
+      console.log('fileExtension: ', fileExtension)
       // 解码文件名用于显示
       res.json({
         success: true,
@@ -134,6 +136,7 @@ router.post('/file', authenticateToken, fileUpload.single('file'), async functio
         originalName: fileName,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
+        fileExtension: fileExtension, // 添加文件扩展名
         message: '文件上传成功'
       });
     } else {
