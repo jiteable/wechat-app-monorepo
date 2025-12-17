@@ -16,6 +16,7 @@ interface UserSetState {
   openFileInReadonlyMode: boolean // 是否以只读的方式打开聊天中的文件
   showWebSearchHistory: boolean // 是否显示网络搜索历史
   autoConvertVoiceToText: boolean // 是否将聊天语音自动转成文字
+  StorageLocation: string // 文件下载路径
 }
 
 // 定义事件名称常量
@@ -37,7 +38,8 @@ export const useUserSetStore = defineStore('userSet', {
     fontSize: 14, // 字体大小设置
     openFileInReadonlyMode: false, // 是否以只读的方式打开聊天中的文件
     showWebSearchHistory: true, // 是否显示网络搜索历史
-    autoConvertVoiceToText: true // 是否将聊天语音自动转成文字
+    autoConvertVoiceToText: true, // 是否将聊天语音自动转成文字
+    StorageLocation: 'D:\\EasyChat\\files\\'
   }),
 
   actions: {
@@ -53,7 +55,7 @@ export const useUserSetStore = defineStore('userSet', {
      */
     updateSetting<K extends keyof UserSetState>(key: K, value: UserSetState[K]) {
       // 使用类型断言解决 TypeScript 类型检查问题
-      ; (this.$state as UserSetState)[key] = value
+      ;(this.$state as UserSetState)[key] = value
 
       // 同步到其他窗口
       this.syncToOtherWindows()
@@ -65,7 +67,7 @@ export const useUserSetStore = defineStore('userSet', {
     updateSettings(settings: Partial<UserSetState>) {
       // 遍历设置对象并逐个更新属性，确保触发响应式更新
       for (const [key, value] of Object.entries(settings)) {
-        ; (this as unknown as UserSetState)[key] = value
+        ;(this as unknown as UserSetState)[key] = value
       }
 
       // 同步到其他窗口

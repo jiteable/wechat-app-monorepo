@@ -123,6 +123,7 @@ model UserSetting{
   openFileInReadonlyMode        Boolean  @default(false)        // 是否以只读的方式打开聊天中的文件
   showWebSearchHistory          Boolean  @default(true)         // 是否显示网络搜索历史
   autoConvertVoiceToText        Boolean  @default(true)         // 是否将聊天语音自动转成文字
+  StorageLocation               String   @default("D:\\EasyChat\\files\\")  // 文件保存路径
   
   createdAt                     DateTime @default(now())        // 设置创建时间
   updatedAt                     DateTime @updatedAt             // 设置更新时间

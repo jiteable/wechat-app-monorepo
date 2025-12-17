@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, dialog, app } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { initWs, sendMessage } from './wsClient'
+import { downloadFile } from './fileDownloader'
 
 let mainWindow: BrowserWindow | null = null
 let loginWindow: BrowserWindow | null = null
@@ -552,6 +553,16 @@ export function setupIpcHandlers(icon: string): void {
 
   ipcMain.handle('get-user-info', () => {
     return userInfo
+  })
+
+  ipcMain.handle('download-file', async (_event, url, fileName, savePath) => {
+    try {
+      const result = await downloadFile(url, fileName, savePath)
+      return { success: true, filePath: result }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      return { success: false, error: errorMessage }
+    }
   })
 
   // 修改打开聊天消息窗口的IPC处理程序

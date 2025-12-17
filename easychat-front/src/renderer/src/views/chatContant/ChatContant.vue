@@ -72,6 +72,7 @@
                   :class="
                     message.senderId === userStore.userId ? 'sent-message' : 'received-message'
                   "
+                  @click="handleFileDownload(message)"
                 >
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div class="box">
@@ -81,7 +82,6 @@
                     <div class="message-bubble file-message-bubble">
                       <div class="file-container">
                         <div class="file-icon">
-                          <!-- 使用通用文件图标 -->
                           <img
                             :src="getFileIconPath(message.fileExtension)"
                             :alt="message.fileExtension + ' file icon'"
@@ -356,10 +356,10 @@
 </template>
 
 <script setup>
-import WindowControls from '@/components/WindowControls.vue'
 import { useRoute } from 'vue-router'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
+import { useUserSetStore } from '@/store/userSetStore'
 import { Message } from '@element-plus/icons-vue'
 import { ref, nextTick, watch, computed, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { sendMessage, getMessages } from '@/api/chat'
@@ -369,6 +369,7 @@ import { uploadImage, uploadFile } from '@/api/upload'
 const route = useRoute()
 const contactStore = userContactStore()
 const userStore = useUserStore()
+const userSetStore = useUserSetStore()
 
 const drawer = ref(false)
 const richInputObserver = ref(null)
@@ -1769,6 +1770,38 @@ const formatFileSize = (bytes) => {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const handleFileDownload = async (fileMessage) => {
+  try {
+    // 获取用户设置中的存储路径
+    const storageLocation = userSetStore.StorageLocation || 'D:\\EasyChat\\files\\'
+
+    // 通过IPC发送下载文件请求到主进程
+    if (window.api && typeof window.api.downloadFile === 'function') {
+      const result = await window.api.downloadFile(
+        fileMessage.mediaUrl,
+        fileMessage.content,
+        storageLocation
+      )
+
+      if (result.success) {
+        ElMessage.success(`文件已保存到: ${result.filePath}`)
+      } else {
+        ElMessage.error(`文件下载失败: ${result.error}`)
+      }
+    } else {
+      // 如果没有downloadFile方法，则使用浏览器默认下载
+      const link = document.createElement('a')
+      link.href = fileMessage.mediaUrl
+      link.download = fileMessage.content
+      link.click()
+      ElMessage.success('开始下载文件')
+    }
+  } catch (error) {
+    console.error('文件下载出错:', error)
+    ElMessage.error('文件下载出错')
+  }
 }
 </script>
 

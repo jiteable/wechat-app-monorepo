@@ -62,5 +62,8 @@ interface Window {
     // 设置更新相关
     onSettingsUpdated: (callback: () => void) => void
     removeSettingsUpdatedListener: () => void
+
+    // 文件下载相关
+    downloadFile: (url: string, fileName: string, savePath: string) => Promise<any>
   }
 }

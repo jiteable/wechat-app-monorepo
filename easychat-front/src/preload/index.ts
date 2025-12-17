@@ -66,7 +66,11 @@ const api = {
   },
   removeSettingsUpdatedListener: (): void => {
     ipcRenderer.removeAllListeners('settings-updated')
-  }
+  },
+
+  // 文件下载相关
+  downloadFile: (url: string, fileName: string, savePath: string): Promise<any> =>
+    ipcRenderer.invoke('download-file', url, fileName, savePath)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
