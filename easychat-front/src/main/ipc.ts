@@ -290,6 +290,15 @@ export function createMainWindow(icon: string): BrowserWindow {
     }
   })
 
+  // 监听窗口最大化和取消最大化事件
+  newMainWindow.on('maximize', () => {
+    newMainWindow.webContents.send('window-maximized')
+  })
+
+  newMainWindow.on('unmaximize', () => {
+    newMainWindow.webContents.send('window-unmaximized')
+  })
+
   newMainWindow.on('ready-to-show', () => {
     newMainWindow.show()
   })
