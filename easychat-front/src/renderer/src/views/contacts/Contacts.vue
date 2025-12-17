@@ -6,7 +6,11 @@
           <div class="panel-content">
             <div class="left-header drag">通讯录管理</div>
             <div class="left-content">
-              <el-button class="button" :class="{ active: activeButton === 'all' }" @click="handleButtonClick('all')">
+              <el-button
+                class="button"
+                :class="{ active: activeButton === 'all' }"
+                @click="handleButtonClick('all')"
+              >
                 <span class="button-text1">全部({{ tableData.length }})</span>
               </el-button>
               <div class="filter-section">
@@ -20,8 +24,13 @@
 
                 <!-- 添加的朋友权限列表 -->
                 <div v-show="iconStates.friend" class="friend-authority-list">
-                  <el-button v-for="item in friendAuthorityList" :key="item.id" class="button authority-item-button"
-                    :class="{ active: activeButton === 'authority-' + item.id }" @click="selectAuthority(item)">
+                  <el-button
+                    v-for="item in friendAuthorityList"
+                    :key="item.id"
+                    class="button authority-item-button"
+                    :class="{ active: activeButton === 'authority-' + item.id }"
+                    @click="selectAuthority(item)"
+                  >
                     <span class="button-text2">{{ item.name }}</span>
                   </el-button>
                 </div>
@@ -35,8 +44,13 @@
 
                 <!-- 添加的标签列表 -->
                 <div v-show="iconStates.tag" class="label-list">
-                  <el-button v-for="item in labelList" :key="item.id" class="button label-item-button"
-                    :class="{ active: activeButton === 'label-' + item.id }" @click="selectLabel(item)">
+                  <el-button
+                    v-for="item in labelList"
+                    :key="item.id"
+                    class="button label-item-button"
+                    :class="{ active: activeButton === 'label-' + item.id }"
+                    @click="selectLabel(item)"
+                  >
                     <span class="button-text2">{{ item.name }}</span>
                   </el-button>
                 </div>
@@ -50,8 +64,13 @@
 
                 <!-- 添加的群聊列表 -->
                 <div v-show="iconStates.group" class="chat-group-list">
-                  <el-button v-for="item in chatGroupList" :key="item.id" class="button group-item-button"
-                    :class="{ active: activeButton === 'group-' + item.id }" @click="selectGroup(item)">
+                  <el-button
+                    v-for="item in chatGroupList"
+                    :key="item.id"
+                    class="button group-item-button"
+                    :class="{ active: activeButton === 'group-' + item.id }"
+                    @click="selectGroup(item)"
+                  >
                     <img :src="item.avatar" :alt="item.name" class="group-avatar button-text2" />
                     <span class="button-text1 group-name">{{ item.name }}</span>
                   </el-button>
@@ -64,8 +83,13 @@
           <div class="panel-content">
             <div class="right-header drag">
               <div class="header-search">
-                <el-input v-model="searchKeyword" placeholder="搜索联系人" clearable class="no-drag"
-                  style="width: 200px; height: 30px; margin-left: 10px; margin-top: 5px">
+                <el-input
+                  v-model="searchKeyword"
+                  placeholder="搜索联系人"
+                  clearable
+                  class="no-drag"
+                  style="width: 200px; height: 30px; margin-left: 10px; margin-top: 5px"
+                >
                   <template #prefix>
                     <el-icon>
                       <Search />
@@ -87,17 +111,23 @@
               </div>
             </div>
             <div class="right-content">
-              <el-table v-if="
-                activeButton === 'all' ||
-                activeButton.startsWith('authority-') ||
-                activeButton.startsWith('label-')
-              " :data="filteredTableData" style="width: 100%">
+              <el-table
+                v-if="
+                  activeButton === 'all' ||
+                  activeButton.startsWith('authority-') ||
+                  activeButton.startsWith('label-')
+                "
+                :data="filteredTableData"
+                style="width: 100%"
+              >
                 <el-table-column type="selection" width="40" />
                 <el-table-column label="名称" width="120" show-overflow-tooltip>
                   <template #default="scope">
                     <div style="display: flex; align-items: center">
-                      <img :src="scope.row.avatar"
-                        style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px" />
+                      <img
+                        :src="scope.row.avatar"
+                        style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px"
+                      />
                       <span>{{ scope.row.name }}</span>
                     </div>
                   </template>
@@ -107,13 +137,19 @@
                 <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
               </el-table>
               <!-- 群聊筛选模式下显示的数据 -->
-              <el-table v-else-if="activeButton.startsWith('group-')" :data="filteredGroupContacts" style="width: 100%">
+              <el-table
+                v-else-if="activeButton.startsWith('group-')"
+                :data="filteredGroupContacts"
+                style="width: 100%"
+              >
                 <el-table-column type="selection" width="40" />
                 <el-table-column label="名称" width="120" show-overflow-tooltip>
                   <template #default="scope">
                     <div style="display: flex; align-items: center">
-                      <img :src="scope.row.avatar"
-                        style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px" />
+                      <img
+                        :src="scope.row.avatar"
+                        style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px"
+                      />
                       <span>{{ scope.row.name }}</span>
                     </div>
                   </template>
@@ -217,10 +253,12 @@ const fetchContacts = async () => {
     const response = await getContact()
     if (response && response.contacts) {
       // 将后端返回的数据转换为前端需要的格式，同时保留 chatId 字段
-      tableData.value = response.contacts.map(contact => ({
+      tableData.value = response.contacts.map((contact) => ({
         id: contact.id,
         name: contact.username || contact.chatId,
-        avatar: contact.avatar || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+        avatar:
+          contact.avatar ||
+          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
         remark: contact.remark || '',
         tag: contact.tag || '',
         permission: '仅聊天', // 默认权限
@@ -240,10 +278,12 @@ const fetchGroups = async () => {
     const response = await getGroup()
     if (response && response.groups) {
       // 将后端返回的数据转换为前端需要的格式
-      chatGroupList.value = response.groups.map(group => ({
+      chatGroupList.value = response.groups.map((group) => ({
         id: group.id,
         name: group.name,
-        avatar: group.image || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+        avatar:
+          group.image ||
+          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
         memberIds: group.memberIds || []
       }))
     }
@@ -305,7 +345,7 @@ const filteredGroupContacts = computed(() => {
 
   // 获取当前选中的群组
   const groupId = activeButton.value.split('-')[1]
-  const group = chatGroupList.value.find(g => g.id === groupId)
+  const group = chatGroupList.value.find((g) => g.id === groupId)
 
   if (!group) {
     return []
@@ -315,7 +355,7 @@ const filteredGroupContacts = computed(() => {
   const groupMemberIds = group.memberIds || []
 
   // 筛选出既是群成员又是我的好友的联系人
-  let data = tableData.value.filter(contact => groupMemberIds.includes(contact.id))
+  let data = tableData.value.filter((contact) => groupMemberIds.includes(contact.id))
 
   // 应用搜索关键词筛选
   if (searchKeyword.value) {
@@ -490,7 +530,7 @@ const selectGroup = (item) => {
   right: 10px;
 }
 
-.button+.button {
+.button + .button {
   margin-left: 0 !important;
 }
 

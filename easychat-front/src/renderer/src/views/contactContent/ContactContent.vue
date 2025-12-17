@@ -16,8 +16,14 @@
           </div>
         </div>
         <div class="popover-container">
-          <el-popover ref="popoverRef" placement="bottom-end" :width="200" trigger="click"
-            popper-class="contact-popover" :hide-after="0">
+          <el-popover
+            ref="popoverRef"
+            placement="bottom-end"
+            :width="200"
+            trigger="click"
+            popper-class="contact-popover"
+            :hide-after="0"
+          >
             <template #reference>
               <button class="chat-contant-button no-drag" @click.stop>...</button>
             </template>

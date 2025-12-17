@@ -10,9 +10,20 @@
       <h3 v-if="!isLogin" class="form-title">注册</h3>
 
       <!-- 登录表单 -->
-      <el-form v-if="isLogin" ref="formDataRef" :model="loginFormData" :rules="loginRules" @submit.prevent>
+      <el-form
+        v-if="isLogin"
+        ref="formDataRef"
+        :model="loginFormData"
+        :rules="loginRules"
+        @submit.prevent
+      >
         <el-form-item label="" prop="email">
-          <el-input class="no-drag" v-model.trim="loginFormData.email" clearable placeholder="请输入邮箱">
+          <el-input
+            v-model.trim="loginFormData.email"
+            class="no-drag"
+            clearable
+            placeholder="请输入邮箱"
+          >
             <template #prefix>
               <el-icon>
                 <Message />
@@ -22,7 +33,13 @@
         </el-form-item>
 
         <el-form-item label="" prop="password">
-          <el-input class="no-drag" v-model.trim="loginFormData.password" clearable placeholder="请输入密码" type="password">
+          <el-input
+            v-model.trim="loginFormData.password"
+            class="no-drag"
+            clearable
+            placeholder="请输入密码"
+            type="password"
+          >
             <template #prefix>
               <el-icon>
                 <Lock />
@@ -37,9 +54,20 @@
       </el-form>
 
       <!-- 注册表单 -->
-      <el-form v-else ref="registerFormRef" :model="registerFormData" :rules="registerRules" @submit.prevent>
+      <el-form
+        v-else
+        ref="registerFormRef"
+        :model="registerFormData"
+        :rules="registerRules"
+        @submit.prevent
+      >
         <el-form-item label="" prop="email">
-          <el-input class="no-drag" v-model.trim="registerFormData.email" clearable placeholder="请输入邮箱">
+          <el-input
+            v-model.trim="registerFormData.email"
+            class="no-drag"
+            clearable
+            placeholder="请输入邮箱"
+          >
             <template #prefix>
               <el-icon>
                 <Message />
@@ -49,7 +77,12 @@
         </el-form-item>
 
         <el-form-item label="" prop="username">
-          <el-input class="no-drag" v-model.trim="registerFormData.username" clearable placeholder="请输入用户名">
+          <el-input
+            v-model.trim="registerFormData.username"
+            class="no-drag"
+            clearable
+            placeholder="请输入用户名"
+          >
             <template #prefix>
               <el-icon>
                 <User />
@@ -59,8 +92,13 @@
         </el-form-item>
 
         <el-form-item label="" prop="password">
-          <el-input class="no-drag" v-model.trim="registerFormData.password" clearable placeholder="请输入密码"
-            type="password">
+          <el-input
+            v-model.trim="registerFormData.password"
+            class="no-drag"
+            clearable
+            placeholder="请输入密码"
+            type="password"
+          >
             <template #prefix>
               <el-icon>
                 <Lock />
@@ -70,8 +108,13 @@
         </el-form-item>
 
         <el-form-item label="" prop="confirmPassword">
-          <el-input class="no-drag" v-model.trim="registerFormData.confirmPassword" clearable placeholder="请再次输入密码"
-            type="password">
+          <el-input
+            v-model.trim="registerFormData.confirmPassword"
+            class="no-drag"
+            clearable
+            placeholder="请再次输入密码"
+            type="password"
+          >
             <template #prefix>
               <el-icon>
                 <Lock />
@@ -82,14 +125,19 @@
 
         <el-form-item label="" prop="verifyCode">
           <div style="display: flex; gap: 10px">
-            <el-input class="no-drag" v-model.trim="registerFormData.verifyCode" clearable placeholder="请输入验证码">
+            <el-input
+              v-model.trim="registerFormData.verifyCode"
+              class="no-drag"
+              clearable
+              placeholder="请输入验证码"
+            >
               <template #prefix>
                 <el-icon>
                   <Key />
                 </el-icon>
               </template>
             </el-input>
-            <el-button class="no-drag" @click="sendVerifyCodeHandler" :disabled="isCountingDown">
+            <el-button class="no-drag" :disabled="isCountingDown" @click="sendVerifyCodeHandler">
               {{ countDownText }}
             </el-button>
           </div>

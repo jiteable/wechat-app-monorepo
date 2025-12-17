@@ -6,14 +6,23 @@
           <el-icon class="search-icon">
             <Search />
           </el-icon>
-          <input v-model="searchText" placeholder="搜索" class="search-input" @input="handleSearch" />
+          <input
+            v-model="searchText"
+            placeholder="搜索"
+            class="search-input"
+            @input="handleSearch"
+          />
         </div>
       </div>
       <div class="contacts-container">
         <div v-for="(group, index) in contactGroups" :key="index" class="section">
           <div class="section-title">{{ group.letter }}</div>
-          <div v-for="contact in group.contacts" :key="contact.id" class="contact-item"
-            @click="toggleContactSelection(contact)">
+          <div
+            v-for="contact in group.contacts"
+            :key="contact.id"
+            class="contact-item"
+            @click="toggleContactSelection(contact)"
+          >
             <div class="contact-avatar">
               <img :src="contact.avatar" :alt="contact.name" />
             </div>
@@ -54,8 +63,13 @@
             <span>群聊头像:</span>
             <el-avatar v-if="groupAvatar" :src="groupAvatar" shape="square" :size="60" />
             <el-button size="small" @click="changeGroupAvatar">更改头像</el-button>
-            <input ref="groupAvatarInput" type="file" accept="image/*" style="display: none"
-              @change="handleGroupAvatarUpload" />
+            <input
+              ref="groupAvatarInput"
+              type="file"
+              accept="image/*"
+              style="display: none"
+              @change="handleGroupAvatarUpload"
+            />
           </div>
         </div>
 
@@ -132,7 +146,7 @@ export default defineComponent({
 
         if (response && response.contacts) {
           const contactMap = new Map<string, Contact>()
-          response.contacts.forEach(contact => {
+          response.contacts.forEach((contact) => {
             const id = contact.id?.toString()
             if (!id || id.trim() === '') {
               console.warn('Invalid contact ID:', contact)
@@ -147,7 +161,9 @@ export default defineComponent({
             contactMap.set(id, {
               id,
               name: contact.remark || contact.username,
-              avatar: contact.avatar || 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+              avatar:
+                contact.avatar ||
+                'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
               tag: '',
               selected: false
             })
@@ -233,7 +249,7 @@ export default defineComponent({
 
     // 切换联系人选择状态
     const toggleContactSelection = (contact: Contact) => {
-      const originalContact = contacts.value.find(c => c.id === contact.id)
+      const originalContact = contacts.value.find((c) => c.id === contact.id)
       if (originalContact) {
         originalContact.selected = !originalContact.selected
       }
@@ -295,7 +311,7 @@ export default defineComponent({
       }
 
       try {
-        const memberIds = selectedContacts.value.map(contact => contact.id)
+        const memberIds = selectedContacts.value.map((contact) => contact.id)
         const response = await createGroup({
           groupName: groupName.value,
           memberIds: memberIds,

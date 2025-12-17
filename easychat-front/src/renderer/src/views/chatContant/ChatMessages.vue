@@ -14,7 +14,8 @@
           <svg width="12" height="12" viewBox="0 0 12 12">
             <path
               d="M6 4.586L1.707.293.293 1.707 4.586 6 .293 10.293l1.414 1.414L6 7.414l4.293 4.293 1.414-1.414L7.414 6l4.293-4.293L10.293.293 6 4.586z"
-              fill="currentColor" />
+              fill="currentColor"
+            />
           </svg>
         </button>
       </div>
@@ -28,8 +29,14 @@
       </el-icon>
 
       <!-- 普通输入框 -->
-      <input v-model="searchText" class="no-drag search-input" placeholder="搜索" @input="handleSearch"
-        @focus="isSearchFocused = true" @blur="isSearchFocused = false" />
+      <input
+        v-model="searchText"
+        class="no-drag search-input"
+        placeholder="搜索"
+        @input="handleSearch"
+        @focus="isSearchFocused = true"
+        @blur="isSearchFocused = false"
+      />
 
       <!-- 标签显示区域（在输入框内部） -->
       <div v-if="activeTab !== 'all'" slot="suffix" class="tag-container">
@@ -42,21 +49,42 @@
 
     <!-- 分类标签 -->
     <div class="category-tabs no-drag">
-      <button v-for="tab in tabs" :key="tab.id" :class="['category-tab', { active: activeTab === tab.id }]"
-        @click="switchTab(tab.id)">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        :class="['category-tab', { active: activeTab === tab.id }]"
+        @click="switchTab(tab.id)"
+      >
         {{ tab.name }}
       </button>
 
       <!-- 日期标签 -->
-      <button ref="dateButtonRef" :class="['category-tab', { active: activeTab === 'date' }]"
-        @click="handleDateTabClick">
+      <button
+        ref="dateButtonRef"
+        :class="['category-tab', { active: activeTab === 'date' }]"
+        @click="handleDateTabClick"
+      >
         日期
       </button>
 
-      <el-popover v-model="datePickerVisible" placement="bottom" width="200" trigger="click"
-        popper-class="date-picker-popover" :virtual-ref="dateButtonRef" virtual-triggering>
-        <el-date-picker v-model="selectedDate" type="date" placeholder="选择日期" format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD" style="width: 100%" @change="handleDateChange" />
+      <el-popover
+        v-model="datePickerVisible"
+        placement="bottom"
+        width="200"
+        trigger="click"
+        popper-class="date-picker-popover"
+        :virtual-ref="dateButtonRef"
+        virtual-triggering
+      >
+        <el-date-picker
+          v-model="selectedDate"
+          type="date"
+          placeholder="选择日期"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+          style="width: 100%"
+          @change="handleDateChange"
+        />
       </el-popover>
     </div>
 
@@ -68,7 +96,13 @@
       </div>
 
       <div v-else-if="filteredMessages.length === 0" class="empty-state">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          width="48"
+          height="48"
+          viewBox="0 0 48 48"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path d="M24 4H12V8H24V4Z" fill="#E0E0E0" />
           <path d="M44 12H36V16H44V12Z" fill="#E0E0E0" />
           <path d="M44 20H36V24H44V20Z" fill="#E0E0E0" />
@@ -212,13 +246,15 @@ const loadMessages = async (sessionId) => {
       messageCount.value = response.data.data.pagination.totalMessages
 
       // 将获取到的消息转换为组件所需格式
-      messages.value = response.data.data.messages.map(msg => ({
+      messages.value = response.data.data.messages.map((msg) => ({
         id: msg.id,
         text: msg.content,
         time: formatTime(msg.updatedAt),
         type: getMessageType(msg.messageType),
         sender: msg.sender?.username || '未知用户',
-        avatar: msg.sender?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+        avatar:
+          msg.sender?.avatar ||
+          'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
       }))
     }
 

@@ -3,16 +3,35 @@
     <el-container class="full-height">
       <el-aside width="64px" class="aside-full-height">
         <div class="home-left">
-          <el-avatar style="margin-left: 12px; margin-top: 10px" shape="square" :size="40" :src="squareUrl"
-            @error="handleAvatarError" />
-          <el-button class="box no-drag first-box" :class="{ 'active': activeButton === 'chat' }" @click="goToChat">
+          <el-avatar
+            style="margin-left: 12px; margin-top: 10px"
+            shape="square"
+            :size="40"
+            :src="squareUrl"
+            @error="handleAvatarError"
+          />
+          <el-button
+            class="box no-drag first-box"
+            :class="{ active: activeButton === 'chat' }"
+            @click="goToChat"
+          >
             <i class="iconfont icon-chat2"></i>
           </el-button>
-          <el-button class="box no-drag" :class="{ 'active': activeButton === 'contact' }" @click="goToContact">
+          <el-button
+            class="box no-drag"
+            :class="{ active: activeButton === 'contact' }"
+            @click="goToContact"
+          >
             <i class="iconfont icon-user"></i>
           </el-button>
           <div class="drawer-toggle-wrapper">
-            <el-popover ref="popoverRef" placement="right-end" :width="200" trigger="click" popper-class="grid-popover">
+            <el-popover
+              ref="popoverRef"
+              placement="right-end"
+              :width="200"
+              trigger="click"
+              popper-class="grid-popover"
+            >
               <div class="popover-menu no-drag">
                 <el-button class="menu-button" @click="handleChatFiles">聊天文件</el-button>
                 <el-button class="menu-button" @click="handleChatHistory">聊天记录管理</el-button>
@@ -244,9 +263,7 @@ const handleAvatarError = () => {
 
 .home-left {
   background-color: rgb(247, 247, 247);
-  border: 1px solid rgb(219,
-      219,
-      219);
+  border: 1px solid rgb(219, 219, 219);
   height: 100%;
   padding: 10px 0;
   display: flex;

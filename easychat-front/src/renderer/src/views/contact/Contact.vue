@@ -2,7 +2,13 @@
   <div class="contact-container">
     <div class="contact-left-title">
       <div class="search-box">
-        <el-input v-model="searchText" class="no-drag search-input" placeholder="搜索" clearable prefix-icon="Search" />
+        <el-input
+          v-model="searchText"
+          class="no-drag search-input"
+          placeholder="搜索"
+          clearable
+          prefix-icon="Search"
+        />
       </div>
     </div>
     <div class="chat-left-content no-drag">
@@ -12,8 +18,11 @@
       </button>
 
       <!-- 新的朋友 -->
-      <button class="contact-button" :class="{ 'contact-button-selected': isItemSelected('newFriend', 'newFriend') }"
-        @click="showContactApply">
+      <button
+        class="contact-button"
+        :class="{ 'contact-button-selected': isItemSelected('newFriend', 'newFriend') }"
+        @click="showContactApply"
+      >
         <i class="iconfont icon-user"></i>
         新的朋友
       </button>
@@ -27,9 +36,16 @@
           群聊
         </button>
         <div v-show="buttonStates[1]" class="sub-list">
-          <button v-for="group in filteredGroups" :key="group.id" class="contact-item no-drag"
-            :style="{ marginLeft: '0px' }" :class="{ 'contact-item-selected': isItemSelected(group.id, 'group') }"
-            @click="selectGroup(group)" @mouseenter="hoveredGroup = group.id" @mouseleave="hoveredGroup = null">
+          <button
+            v-for="group in filteredGroups"
+            :key="group.id"
+            class="contact-item no-drag"
+            :style="{ marginLeft: '0px' }"
+            :class="{ 'contact-item-selected': isItemSelected(group.id, 'group') }"
+            @click="selectGroup(group)"
+            @mouseenter="hoveredGroup = group.id"
+            @mouseleave="hoveredGroup = null"
+          >
             <el-avatar shape="square" class="avatar-left" :size="30" :src="group.avatar" />
             <span class="contact-name">{{ group.name }}</span>
           </button>
@@ -45,16 +61,25 @@
           联系人
         </button>
         <div v-show="buttonStates[2]" class="sub-list">
-          <div v-for="(item, index) in sortedContactsWithHeaders" :key="item.id || item.header"
-            :style="{ marginLeft: '0px' }" class="contact-item-wrapper">
+          <div
+            v-for="(item, index) in sortedContactsWithHeaders"
+            :key="item.id || item.header"
+            :style="{ marginLeft: '0px' }"
+            class="contact-item-wrapper"
+          >
             <!-- 字母或数字标题 -->
             <div v-if="item.isHeader" class="contact-header">
               {{ item.header }}
             </div>
             <!-- 联系人项 -->
-            <button v-else class="contact-item no-drag"
-              :class="{ 'contact-item-selected': isItemSelected(item.id, 'contact') }" @click="selectContact(item)"
-              @mouseenter="hoveredContact = item.id" @mouseleave="hoveredContact = null">
+            <button
+              v-else
+              class="contact-item no-drag"
+              :class="{ 'contact-item-selected': isItemSelected(item.id, 'contact') }"
+              @click="selectContact(item)"
+              @mouseenter="hoveredContact = item.id"
+              @mouseleave="hoveredContact = null"
+            >
               <el-avatar shape="square" class="avatar-left" :size="30" :src="item.avatar" />
               <span class="contact-name">{{ item.name }}</span>
             </button>

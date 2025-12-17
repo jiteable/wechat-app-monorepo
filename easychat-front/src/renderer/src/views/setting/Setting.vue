@@ -22,8 +22,13 @@
                 <span>头像:</span>
                 <el-avatar :src="avatar" shape="square" :size="60" />
                 <el-button size="small" @click="changeAvatar">更改头像</el-button>
-                <input ref="avatarInput" type="file" accept="image/*" style="display: none"
-                  @change="handleAvatarUpload" />
+                <input
+                  ref="avatarInput"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  @change="handleAvatarUpload"
+                />
               </div>
             </div>
 
@@ -49,7 +54,12 @@
               <div class="setting-label">
                 <span>语言设置</span>
               </div>
-              <el-select v-model="settings.language" size="small" class="setting-select" @change="onSettingChange">
+              <el-select
+                v-model="settings.language"
+                size="small"
+                class="setting-select"
+                @change="onSettingChange"
+              >
                 <el-option label="中文" value="zh" />
                 <el-option label="English" value="en" />
               </el-select>
@@ -59,7 +69,12 @@
               <div class="setting-label">
                 <span>字体大小</span>
               </div>
-              <el-select v-model="settings.fontSize" size="small" class="setting-select" @change="onSettingChange">
+              <el-select
+                v-model="settings.fontSize"
+                size="small"
+                class="setting-select"
+                @change="onSettingChange"
+              >
                 <el-option label="小 (12px)" :value="12" />
                 <el-option label="中 (14px)" :value="14" />
                 <el-option label="大 (16px)" :value="16" />

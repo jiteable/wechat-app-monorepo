@@ -5,23 +5,40 @@
 
     <!-- 页面主要内容 -->
     <div class="contact-apply-content">
-      <ContentPanel v-infinite-scroll="loadApply" :show-top-border="true" :infinite-scroll-immediate="false">
+      <ContentPanel
+        v-infinite-scroll="loadApply"
+        :show-top-border="true"
+        :infinite-scroll-immediate="false"
+      >
         <!-- 好友申请 -->
         <div class="section">
           <div class="section-title">好友申请</div>
           <div v-if="friendApplyList.length > 0" class="apply-list">
             <div v-for="apply in friendApplyList" :key="apply.id" class="apply-item">
-              <el-avatar shape="square" class="avatar" :size="50" :src="apply.fromUser.avatar || defaultAvatar" />
+              <el-avatar
+                shape="square"
+                class="avatar"
+                :size="50"
+                :src="apply.fromUser.avatar || defaultAvatar"
+              />
               <div class="apply-info">
                 <div class="user-name">{{ apply.fromUser.username || apply.fromUser.chatId }}</div>
                 <div class="request-message">{{ apply.requestMessage || '请求添加您为好友' }}</div>
               </div>
               <div class="apply-actions">
-                <el-button size="small" type="primary" :disabled="apply.status !== 'pending'"
-                  @click="handleAcceptFriend(apply)">
+                <el-button
+                  size="small"
+                  type="primary"
+                  :disabled="apply.status !== 'pending'"
+                  @click="handleAcceptFriend(apply)"
+                >
                   {{ apply.status === 'accepted' ? '已同意' : '同意' }}
                 </el-button>
-                <el-button size="small" :disabled="apply.status !== 'pending'" @click="handleRejectFriend(apply)">
+                <el-button
+                  size="small"
+                  :disabled="apply.status !== 'pending'"
+                  @click="handleRejectFriend(apply)"
+                >
                   {{ apply.status === 'rejected' ? '已拒绝' : '拒绝' }}
                 </el-button>
               </div>
@@ -35,7 +52,12 @@
           <div class="section-title">群组邀请</div>
           <div v-if="groupInviteList.length > 0" class="apply-list">
             <div v-for="invite in groupInviteList" :key="invite.id" class="apply-item">
-              <el-avatar shape="square" class="avatar" :size="50" :src="invite.group.image || defaultGroupAvatar" />
+              <el-avatar
+                shape="square"
+                class="avatar"
+                :size="50"
+                :src="invite.group.image || defaultGroupAvatar"
+              />
               <div class="apply-info">
                 <div class="user-name">{{ invite.inviter.username || invite.inviter.chatId }}</div>
                 <div class="request-message">
@@ -44,11 +66,19 @@
                 </div>
               </div>
               <div class="apply-actions">
-                <el-button size="small" type="primary" :disabled="invite.status !== 'pending'"
-                  @click="handleAcceptGroup(invite)">
+                <el-button
+                  size="small"
+                  type="primary"
+                  :disabled="invite.status !== 'pending'"
+                  @click="handleAcceptGroup(invite)"
+                >
                   {{ invite.status === 'accepted' ? '已加入' : '加入' }}
                 </el-button>
-                <el-button size="small" :disabled="invite.status !== 'pending'" @click="handleRejectGroup(invite)">
+                <el-button
+                  size="small"
+                  :disabled="invite.status !== 'pending'"
+                  @click="handleRejectGroup(invite)"
+                >
                   {{ invite.status === 'rejected' ? '已拒绝' : '拒绝' }}
                 </el-button>
               </div>

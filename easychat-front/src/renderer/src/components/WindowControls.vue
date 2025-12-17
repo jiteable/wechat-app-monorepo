@@ -8,8 +8,11 @@
         <i class="iconfont icon-min"></i>
       </el-button>
       <el-button link class="button" @click="toggleMaximize">
-        <i class="iconfont" :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
-          :style="{ color: isMaximized ? '#87CEEB' : '' }"></i>
+        <i
+          class="iconfont"
+          :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
+          :style="{ color: isMaximized ? '#87CEEB' : '' }"
+        ></i>
       </el-button>
       <el-button link class="button" @click="closeWindow">
         <i class="iconfont icon-close"></i>
