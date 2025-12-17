@@ -92,6 +92,9 @@
                           <div class="file-name">{{ message.content }}</div>
                           <div class="file-size">{{ message.size || '未知大小' }}</div>
                         </div>
+                        <div class="file-extension-overlay">
+                          {{ message.fileExtension }}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2376,6 +2379,7 @@ const formatFileSize = (bytes) => {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
 }
 
 /* 文件图标 */
@@ -2402,11 +2406,23 @@ const formatFileSize = (bytes) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 250px;
 }
 
 .file-size {
   font-size: 12px;
   color: #999;
+}
+
+.file-extension-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  color: rgb(8, 12, 246);
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
 }
 
 .image-message-bubble {
