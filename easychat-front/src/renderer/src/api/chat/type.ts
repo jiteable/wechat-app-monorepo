@@ -12,10 +12,10 @@ export enum MessageType {
 export interface File {
   fileName: string
   size: number
-  url: string
-  mimeType: string
-  fileType: string
-  fileExtension: string
+  url?: string
+  mimeType?: string
+  fileType?: string
+  fileExtension?: string
 }
 
 export interface Message {

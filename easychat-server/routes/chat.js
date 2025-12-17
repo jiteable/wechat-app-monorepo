@@ -95,7 +95,7 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
       }
     });
 
-    console.log('messsagesss: ', messages)
+    console.log('messsagesssaaaaaaaaaaaaaaaa: ', messages)
 
     res.json({
       success: true,

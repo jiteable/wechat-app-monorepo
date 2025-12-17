@@ -82,7 +82,11 @@
                       <div class="file-container">
                         <div class="file-icon">
                           <!-- 使用通用文件图标 -->
-                          <span class="icon iconfont icon-wenjian"></span>
+                          <img
+                            :src="getFileIconPath(message.fileExtension)"
+                            :alt="message.fileExtension + ' file icon'"
+                            class="file-extension-icon"
+                          />
                         </div>
                         <div class="file-info">
                           <div class="file-name">{{ message.content }}</div>
@@ -459,17 +463,30 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
       pagination.value = response.data.data.pagination
 
       // 将获取到的消息转换为组件所需格式
-      const newMessages = response.data.data.messages.map((msg) => ({
-        id: msg.id,
-        type: msg.messageType,
-        senderId: msg.senderId,
-        senderName: msg.sender?.username || '未知用户',
-        senderAvatar: msg.sender?.avatar,
-        content: msg.content,
-        createdAt: msg.createdAt,
-        imageUrl: msg.mediaUrl,
-        fileName: msg.fileName
-      }))
+      const newMessages = response.data.data.messages.map((msg) => {
+        const baseMessage = {
+          id: msg.id,
+          type: msg.messageType,
+          senderId: msg.senderId,
+          senderName: msg.sender?.username || '未知用户',
+          senderAvatar: msg.sender?.avatar,
+          content: msg.content,
+          createdAt: msg.createdAt,
+          imageUrl: msg.mediaUrl,
+          fileName: msg.fileName
+        }
+
+        // 如果是文件类型消息，添加文件扩展名属性
+        if (msg.messageType === 'file') {
+          return {
+            ...baseMessage,
+            fileExtension: msg.file?.fileExtension || msg.fileExtension, // 从文件对象或直接从消息获取扩展名
+            size: formatFileSize(msg.fileSize) // 格式化文件大小
+          }
+        }
+
+        return baseMessage
+      })
 
       console.log('newMessages: ', newMessages)
 
@@ -1566,6 +1583,25 @@ const uploadFiles = async (file) => {
   }
 }
 
+const getFileIconPath = (fileExtension) => {
+  // 如果没有文件扩展名，使用默认的文件图标
+  if (!fileExtension) {
+    return new URL('@/assets/filetypeicon/unknown.png', import.meta.url).href
+  }
+
+  // 确保扩展名以点号开头并且是小写
+  const normalizedExtension = fileExtension.startsWith('.')
+    ? fileExtension.toLowerCase()
+    : `.${fileExtension.toLowerCase()}`
+
+  const newNormalizedExtension = normalizedExtension.split('.').join('')
+
+  console.log('newNormalizedExtension: ', newNormalizedExtension)
+
+  // 返回图标的路径
+  return `${import.meta.env.BASE_URL}src/assets/filetypeicon/${newNormalizedExtension}.png`
+}
+
 // 在富文本输入框中插入图片
 const insertImageToRichInput = (imageUrl) => {
   if (!messageInputRef.value) return
@@ -2414,5 +2450,23 @@ const formatFileSize = (bytes) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.file-extension-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.file-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  font-size: 16px;
+  color: #606266;
 }
 </style>
