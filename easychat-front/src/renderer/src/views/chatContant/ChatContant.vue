@@ -354,6 +354,7 @@
     </div>
 
     <!-- 添加聊天输入区域 -->
+    <PreviewImage :image-url="previewImageUrl" :visible="isPreviewVisible" @close="closePreview" />
   </div>
 </template>
 
@@ -368,6 +369,7 @@ import { sendMessage, getMessages } from '@/api/chat'
 import { ElMessage, ElLoading } from 'element-plus'
 import { uploadImage, uploadFile } from '@/api/upload'
 import WindowControls from '@/components/WindowControls.vue'
+import PreviewImage from '@/components/previewImage.vue'
 
 const route = useRoute()
 const contactStore = userContactStore()
@@ -376,6 +378,10 @@ const userSetStore = useUserSetStore()
 
 const drawer = ref(false)
 const richInputObserver = ref(null)
+
+// 图片预览相关
+const isPreviewVisible = ref(false)
+const previewImageUrl = ref('')
 
 // 在组件外定义消息监听器，确保不会因为组件重新渲染而丢失
 let isMessageListenerAdded = false
@@ -1359,19 +1365,6 @@ const emojiData = {
 // 搜索关键词
 const searchQuery = ref('')
 
-// 过滤表情
-const filteredEmojiData = computed(() => {
-  if (!searchQuery.value) return emojiData
-
-  const result = {}
-  Object.keys(emojiData).forEach((categoryName) => {
-    result[categoryName] = emojiData[categoryName].filter(
-      (emoji) => emoji.desc.includes(searchQuery.value) || emoji.char.includes(searchQuery.value)
-    )
-  })
-  return result
-})
-
 // 快捷按钮配置
 const shortcuts = [
   { name: '笑脸', category: 'smileys', icon: '😊' },
@@ -1667,67 +1660,15 @@ const insertImageToRichInput = (imageUrl) => {
   })
 }
 
+// 使用PreviewImage组件替换原来的previewImage函数
 const previewImage = (imageUrl) => {
-  // 创建一个模态框来显示大图
-  const imagePreviewModal = document.createElement('div')
-  imagePreviewModal.className = 'image-preview-modal'
-  imagePreviewModal.innerHTML = `
-    <div class="image-preview-overlay" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    ">
-      <div style="
-        position: relative;
-        max-width: 90%;
-        max-height: 90%;
-      ">
-        <img src="${imageUrl}" style="
-          max-width: 100%;
-          max-height: 80vh;
-          border-radius: 4px;
-        "/>
-        <button style="
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background: white;
-          border: none;
-          border-radius: 50%;
-          width: 30px;
-          height: 30px;
-          cursor: pointer;
-          font-size: 18px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        ">×</button>
-      </div>
-    </div>
-  `
+  previewImageUrl.value = imageUrl
+  isPreviewVisible.value = true
+}
 
-  // 添加关闭功能
-  const closeBtn = imagePreviewModal.querySelector('button')
-  closeBtn.onclick = () => {
-    document.body.removeChild(imagePreviewModal)
-  }
-
-  // 点击遮罩层关闭
-  const overlay = imagePreviewModal.querySelector('.image-preview-overlay')
-  overlay.onclick = (e) => {
-    if (e.target === overlay) {
-      document.body.removeChild(imagePreviewModal)
-    }
-  }
-
-  document.body.appendChild(imagePreviewModal)
+const closePreview = () => {
+  isPreviewVisible.value = false
+  previewImageUrl.value = ''
 }
 
 const formatDate = (dateStr) => {
@@ -1778,48 +1719,48 @@ const formatFileSize = (bytes) => {
 
 const handleFileDownload = async (fileMessage) => {
   try {
-    console.log('文件消息数据:', fileMessage); // 调试信息
+    console.log('文件消息数据:', fileMessage) // 调试信息
 
     // 获取用户设置中的存储路径
     const storageLocation = userSetStore.StorageLocation || 'D:\\EasyChat\\files\\'
 
     // 验证文件URL
-    let fileUrl = fileMessage.mediaUrl;
+    let fileUrl = fileMessage.mediaUrl
 
     // 检查是否有多种可能的URL字段
     if (!fileUrl && fileMessage.imageUrl) {
-      fileUrl = fileMessage.imageUrl;
+      fileUrl = fileMessage.imageUrl
     }
 
     if (!fileUrl && fileMessage.url) {
-      fileUrl = fileMessage.url;
+      fileUrl = fileMessage.url
     }
 
     // 如果仍然没有有效的URL
     if (!fileUrl) {
-      ElMessage.error('文件链接无效');
-      console.error('无法找到有效的文件链接:', fileMessage);
-      return;
+      ElMessage.error('文件链接无效')
+      console.error('无法找到有效的文件链接:', fileMessage)
+      return
     }
 
     // 确保URL是完整的
     if (fileUrl.startsWith('//')) {
-      fileUrl = 'http:' + fileUrl;
+      fileUrl = 'http:' + fileUrl
     } else if (fileUrl.startsWith('/')) {
       // 如果是相对路径，尝试补全为完整URL
-      fileUrl = window.location.origin + fileUrl;
+      fileUrl = window.location.origin + fileUrl
     }
 
     // 获取文件名
-    let fileName = fileMessage.content || fileMessage.fileName;
+    let fileName = fileMessage.content || fileMessage.fileName
     if (!fileName) {
       // 尝试从URL中提取文件名
       try {
-        const urlObj = new URL(fileUrl);
-        const pathname = urlObj.pathname;
-        fileName = pathname.split('/').pop() || 'downloaded_file';
+        const urlObj = new URL(fileUrl)
+        const pathname = urlObj.pathname
+        fileName = pathname.split('/').pop() || 'downloaded_file'
       } catch (urlError) {
-        fileName = 'downloaded_file';
+        fileName = 'downloaded_file'
       }
     }
 
@@ -1832,11 +1773,7 @@ const handleFileDownload = async (fileMessage) => {
     try {
       // 通过IPC发送下载文件请求到主进程
       if (window.api && typeof window.api.downloadFile === 'function') {
-        const result = await window.api.downloadFile(
-          fileUrl,
-          fileName,
-          storageLocation
-        )
+        const result = await window.api.downloadFile(fileUrl, fileName, storageLocation)
 
         loading.close()
 
@@ -1846,7 +1783,10 @@ const handleFileDownload = async (fileMessage) => {
           ElMessage.error(`文件下载失败: ${result.error}`)
 
           // 如果是网络错误，提供备选方案
-          if (result.error.includes('网络请求失败') || result.error.includes('CONNECTION_REFUSED')) {
+          if (
+            result.error.includes('网络请求失败') ||
+            result.error.includes('CONNECTION_REFUSED')
+          ) {
             ElMessage.info('正在尝试浏览器下载...')
             // 尝试使用浏览器默认下载
             attemptBrowserDownload(fileUrl, fileName)
@@ -1900,7 +1840,6 @@ const attemptBrowserDownload = (url, filename) => {
   }
 }
 </script>
-
 <style scoped>
 .top {
   width: 100%;

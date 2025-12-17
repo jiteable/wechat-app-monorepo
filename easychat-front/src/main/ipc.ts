@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ipcMain, BrowserWindow, dialog, app } from 'electron'
+import { ipcMain, BrowserWindow } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { initWs, sendMessage } from './wsClient'
