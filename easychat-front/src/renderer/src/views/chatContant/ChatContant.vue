@@ -542,12 +542,25 @@ const addMessageListener = () => {
         // 将新消息添加到消息列表
         const newMessage = {
           id: data.data.id || Date.now(), // 如果没有id则使用时间戳
-          type: 'message',
-          senderId: data.data.sender.id, // 从sender对象中获取senderId
+          type: data.data.messageType || data.data.type || 'message', // 使用messageType或type作为消息类型
+          senderId: data.data.sender?.id || data.data.senderId, // 从sender对象或直接获取senderId
           senderName: data.data.sender?.username || '未知用户',
           senderAvatar: data.data.sender?.avatar || '',
           content: data.data.content,
-          createdAt: data.data.createdAt || new Date().toISOString()
+          createdAt: data.data.timestamp || data.data.createdAt || new Date().toISOString()
+        }
+
+        // 处理文件消息特有的属性
+        if ((data.data.messageType || data.data.type) === 'file') {
+          newMessage.fileExtension = data.data.fileExtension
+          newMessage.size = data.data.fileSize ? formatFileSize(data.data.fileSize) : '未知大小'
+          newMessage.fileName = data.data.fileName
+        }
+
+        // 处理图片消息
+        if ((data.data.messageType || data.data.type) === 'image') {
+          newMessage.imageUrl = data.data.mediaUrl || data.data.imageUrl
+          newMessage.fileName = data.data.fileName
         }
 
         messages.value.push(newMessage)
@@ -2404,9 +2417,10 @@ const formatFileSize = (bytes) => {
   font-size: 14px;
   color: #303133;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: elipsis;
   white-space: nowrap;
   max-width: 250px;
+  min-width: 90px;
 }
 
 .file-size {

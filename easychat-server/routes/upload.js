@@ -91,7 +91,7 @@ router.post('/avatar', authenticateToken, avatarUpload.single('avatar'), async f
 router.post('/file', authenticateToken, fileUpload.single('file'), async function (req, res, next) {
   try {
     const userId = req.user.id;
-    const {fileName, fileType, sessionId } = req.body; // 从请求体中获取文件类型和会话ID
+    const { fileName, fileType, sessionId } = req.body;
 
     if (!req.file) {
       return res.status(400).json({
@@ -99,16 +99,6 @@ router.post('/file', authenticateToken, fileUpload.single('file'), async functio
         error: '没有上传文件'
       });
     }
-
-    // 检查 sessionId 是否存在
-    if (!sessionId) {
-      return res.status(400).json({
-        success: false,
-        error: '缺少会话ID'
-      });
-    }
-
-    console.log('req.file.original: ', fileName)
 
     // 确定文件目录
     let fileDirectory = 'Chatfiles';
@@ -120,7 +110,6 @@ router.post('/file', authenticateToken, fileUpload.single('file'), async functio
 
     // 使用 OSS 客户端上传文件
     if (ossClient) {
-      // 上传到 OSS
       const result = await ossClient.put(filename, req.file.buffer);
 
       // 替换URL前缀为指定的域名
@@ -128,7 +117,7 @@ router.post('/file', authenticateToken, fileUpload.single('file'), async functio
 
       // 返回自定义前缀的文件路径和其他文件信息
       const fileExtension = path.extname(fileName).toLowerCase();
-      console.log('fileExtension: ', fileExtension)
+
       // 解码文件名用于显示
       res.json({
         success: true,
@@ -136,11 +125,10 @@ router.post('/file', authenticateToken, fileUpload.single('file'), async functio
         originalName: fileName,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
-        fileExtension: fileExtension, // 添加文件扩展名
+        fileExtension: fileExtension, // 确保返回文件扩展名
         message: '文件上传成功'
       });
     } else {
-      // 如果 OSS 不可用，则返回错误
       return res.status(500).json({
         success: false,
         error: 'OSS 客户端未配置'

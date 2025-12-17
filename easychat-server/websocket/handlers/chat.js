@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const { broadcastToSession } = require('../utils/broadcast');
+const { db } = require('../../db/db'); // 添加数据库引用
 
 /**
  * 处理聊天消息 - 基于会话ID的优先策略
@@ -27,43 +28,49 @@ async function handleChatMessage(ws, data, clients) {
       return;
     }
 
-    // 这里的WebSocket只负责实时推送消息
-    // 构造要广播的消息对象
+    // 获取数据库中的完整消息记录
+    const newMessage = await db.unifiedMessage.findUnique({
+      where: { id: data.messageId || data.data?.id }, // 支持不同格式的ID
+      include: {
+        sender: true,
+        file: true // 包含文件信息
+      }
+    });
+
+    // 如果找不到消息，则使用传入的数据
+    let messageData = newMessage;
+    if (!newMessage && data.data) {
+      messageData = data.data;
+    }
+
+    // 构造要广播的消息对象，包含所有必要字段
     const messageToSend = {
       type: 'new_message',
       data: {
-        id: newMessage.id,
-        sessionId: newMessage.sessionId,
-        sender: {
-          id: newMessage.sender.id,
-          username: newMessage.sender.username,
-          avatar: newMessage.sender.avatar
+        id: messageData.id,
+        sessionId: messageData.sessionId,
+        sender: messageData.sender || {
+          id: messageData.senderId,
+          username: messageData.senderName,
+          avatar: messageData.senderAvatar
         },
-        content: newMessage.content,
-        messageType: newMessage.messageType,
-        mediaUrl: newMessage.mediaUrl,
-        fileName: newMessage.fileName,
-        fileSize: newMessage.fileSize,
-        timestamp: newMessage.createdAt
+        content: messageData.content,
+        messageType: messageData.messageType || messageData.type, // 支持不同的类型字段名
+        mediaUrl: messageData.mediaUrl || messageData.imageUrl, // 支持不同的URL字段名
+        fileName: messageData.fileName,
+        fileSize: messageData.fileSize,
+        fileExtension: messageData.fileExtension || messageData.file?.fileExtension, // 从文件对象或直接获取扩展名
+        mimeType: messageData.mimeType || messageData.file?.mimeType, // 从文件对象或直接获取MIME类型
+        timestamp: messageData.createdAt || messageData.timestamp || new Date().toISOString()
       }
     };
 
-    // 如果提供了会话信息，则通过会话广播消息
+    // 广播消息给所有参与者
     if (data.session) {
-      // 通过会话广播消息给所有参与者（除了发送者自己）
       broadcastToSession(clients, data.session, messageToSend, ws.userId);
-    } else {
-      // 如果没有提供会话信息，则至少发送给指定的目标用户
-      // 这是一种后备机制
-      if (data.targetUserId) {
-        const targetClient = clients.get(data.targetUserId);
-        if (targetClient && targetClient.readyState === WebSocket.OPEN) {
-          targetClient.send(JSON.stringify(messageToSend));
-        }
-      }
     }
 
-    // 同时也发给发送者本人，用于确认消息已送达
+    // 同时也发给发送者本人
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(messageToSend));
     }
