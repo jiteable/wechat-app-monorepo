@@ -135,7 +135,8 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
       content,
       mediaUrl,
       fileName,
-      fileSize
+      fileSize,
+      mimeType
     } = req.body;
 
     console.log('messagewaddawdawdwa: ', req.body)
@@ -263,7 +264,7 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
           name: fileName,
           url: mediaUrl,
           size: fileSize,
-          mimeType: '', // 前端暂未提供，可后续补充
+          mimeType: mimeType, // 前端暂未提供，可后续补充
           fileType: fileType,
           uploaderId: senderId
         }

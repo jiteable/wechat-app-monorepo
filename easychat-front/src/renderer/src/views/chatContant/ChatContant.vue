@@ -1474,6 +1474,86 @@ const uploadFiles = async (file) => {
       if (response.success) {
         ElMessage.success(`文件上传成功: ${file.name}`)
         console.log('文件上传成功，URL:', response.mediaUrl)
+
+        // 文件上传成功后，构造文件消息并发送
+        const selectedContact = contactStore.selectedContact
+
+        // 创建本地文件消息对象（用于立即显示）
+        const localFileMessage = {
+          id: Date.now() + Math.random(), // 临时ID
+          type: 'file',
+          senderId: userStore.userId,
+          senderName: userStore.username || '我',
+          senderAvatar: userStore.avatar || '',
+          content: response.originalName, // 文件名
+          size: formatFileSize(response.fileSize), // 文件大小
+          mimeType: response.mimeType, // MIME类型
+          createdAt: new Date().toISOString()
+        }
+
+        // 立即显示文件消息（优化用户体验）
+        messages.value.push(localFileMessage)
+
+        try {
+          // 构造文件消息对象
+          const fileMessageData = {
+            sessionId: selectedContact.id,
+            senderId: userStore.userId,
+            messageType: 'file',
+            content: response.originalName,
+            mediaUrl: response.mediaUrl,
+            fileName: response.originalName,
+            fileSize: response.fileSize,
+            mimeType: response.mimeType
+          }
+
+          // 如果是私聊
+          if (selectedContact.sessionType === 'private') {
+            fileMessageData.receiverId = selectedContact.contactId
+          }
+          // 如果是群聊
+          else if (selectedContact.sessionType === 'group') {
+            fileMessageData.groupId = selectedContact.group?.id
+          }
+
+          // 通过WebSocket发送实时消息
+          if (window.api && typeof window.api.sendMessage === 'function') {
+            window.api.sendMessage({
+              type: 'send_message',
+              data: fileMessageData
+            })
+          }
+
+          // 通过HTTP API发送消息到后端（用于持久化存储）
+          const sendResponse = await sendMessage(fileMessageData)
+          console.log('文件消息发送成功:', sendResponse)
+
+          // 发送自定义事件更新ChatList中的lastMessage
+          const lastMessageData = {
+            sessionId: selectedContact.id,
+            lastMessage: {
+              content: `[文件]${response.originalName}`,
+              messageType: 'file',
+              fileName: response.originalName,
+              fileSize: response.fileSize,
+              senderName: userStore.username || '我',
+              isRecalled: false,
+              isDeleted: false
+            },
+            timestamp: new Date().toISOString()
+          }
+          window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }))
+
+          // 自动滚动到底部
+          nextTick(() => {
+            if (messagesContainer.value) {
+              messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+            }
+          })
+        } catch (sendError) {
+          console.error('发送文件消息失败:', sendError)
+          ElMessage.error(`发送文件消息失败: ${sendError.message || '未知错误'}`)
+        }
       } else {
         ElMessage.error(`文件上传失败: ${response.error || '未知错误'}`)
       }
@@ -1625,6 +1705,17 @@ const formatDate = (dateStr) => {
   else {
     return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`
   }
+}
+
+// 添加格式化文件大小的函数
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 </script>
 

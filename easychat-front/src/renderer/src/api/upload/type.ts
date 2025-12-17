@@ -14,6 +14,7 @@ export interface UploadFileResponse {
   mediaUrl: string
   originalName: string
   fileSize: number
+  mimeType: string
   message: string
 }
 
@@ -34,6 +35,7 @@ export interface UploadImageResponse {
   imageUrl: string
   originalName: string
   fileSize: number
+  mimeType: string
   message: string
 }
 

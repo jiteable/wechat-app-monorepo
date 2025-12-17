@@ -28,6 +28,7 @@ export interface Message {
   mediaUrl?: string
   file?: File
   createdAt: string
+  mimeType?: string
   sender?: {
     id: string
     chatId: string
@@ -82,6 +83,7 @@ export interface SendMessageRequest {
   // 文件类型附加信息（仅file类型必传）
   fileName?: string // 文件名（file类型必传）
   fileSize?: number // 文件大小（file类型必传，单位字节）
+  mimeType?: string // MIME类型（file类型可选）
 }
 
 // 发送消息响应
@@ -95,6 +97,7 @@ export interface SendMessageResponse {
     content: string
     fileName?: string
     fileSize?: number
+    mimeType?: string
     createdAt: string
   }
   message: string

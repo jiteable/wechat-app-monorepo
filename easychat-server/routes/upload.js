@@ -131,8 +131,9 @@ router.post('/file', authenticateToken, fileUpload.single('file'), async functio
       res.json({
         success: true,
         mediaUrl: customUrl,
-        originalName: req.file.originalname,
+        originalName: fileName,
         fileSize: req.file.size,
+        mimeType: req.file.mimetype,
         message: '文件上传成功'
       });
     } else {
