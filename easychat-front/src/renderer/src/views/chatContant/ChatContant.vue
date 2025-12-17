@@ -367,6 +367,7 @@ import { ref, nextTick, watch, computed, onMounted, onUnmounted, onBeforeUnmount
 import { sendMessage, getMessages } from '@/api/chat'
 import { ElMessage, ElLoading } from 'element-plus'
 import { uploadImage, uploadFile } from '@/api/upload'
+import WindowControls from '@/components/WindowControls.vue'
 
 const route = useRoute()
 const contactStore = userContactStore()
@@ -1436,9 +1437,10 @@ const uploadFiles = async (file) => {
 
   // 显示上传状态
   const loading = ElLoading.service({
-    lock: true,
-    text: '文件上传中...',
-    background: 'rgba(0, 0, 0, 0.7)'
+    text: '正在下载文件...',
+    background: 'rgba(0, 0, 0, 0.7)',
+    fullscreen: true, // 确保这是全屏模式
+    customClass: 'file-download-loading' // 添加自定义类名便于调试
   })
 
   // 获取文件扩展名并转换为小写
@@ -1776,48 +1778,48 @@ const formatFileSize = (bytes) => {
 
 const handleFileDownload = async (fileMessage) => {
   try {
-    console.log('文件消息数据:', fileMessage) // 调试信息
+    console.log('文件消息数据:', fileMessage); // 调试信息
 
     // 获取用户设置中的存储路径
     const storageLocation = userSetStore.StorageLocation || 'D:\\EasyChat\\files\\'
 
     // 验证文件URL
-    let fileUrl = fileMessage.mediaUrl
+    let fileUrl = fileMessage.mediaUrl;
 
     // 检查是否有多种可能的URL字段
     if (!fileUrl && fileMessage.imageUrl) {
-      fileUrl = fileMessage.imageUrl
+      fileUrl = fileMessage.imageUrl;
     }
 
     if (!fileUrl && fileMessage.url) {
-      fileUrl = fileMessage.url
+      fileUrl = fileMessage.url;
     }
 
     // 如果仍然没有有效的URL
     if (!fileUrl) {
-      ElMessage.error('文件链接无效')
-      console.error('无法找到有效的文件链接:', fileMessage)
-      return
+      ElMessage.error('文件链接无效');
+      console.error('无法找到有效的文件链接:', fileMessage);
+      return;
     }
 
     // 确保URL是完整的
     if (fileUrl.startsWith('//')) {
-      fileUrl = 'http:' + fileUrl
+      fileUrl = 'http:' + fileUrl;
     } else if (fileUrl.startsWith('/')) {
       // 如果是相对路径，尝试补全为完整URL
-      fileUrl = window.location.origin + fileUrl
+      fileUrl = window.location.origin + fileUrl;
     }
 
     // 获取文件名
-    let fileName = fileMessage.content || fileMessage.fileName
+    let fileName = fileMessage.content || fileMessage.fileName;
     if (!fileName) {
       // 尝试从URL中提取文件名
       try {
-        const urlObj = new URL(fileUrl)
-        const pathname = urlObj.pathname
-        fileName = pathname.split('/').pop() || 'downloaded_file'
+        const urlObj = new URL(fileUrl);
+        const pathname = urlObj.pathname;
+        fileName = pathname.split('/').pop() || 'downloaded_file';
       } catch (urlError) {
-        fileName = 'downloaded_file'
+        fileName = 'downloaded_file';
       }
     }
 
@@ -1830,7 +1832,11 @@ const handleFileDownload = async (fileMessage) => {
     try {
       // 通过IPC发送下载文件请求到主进程
       if (window.api && typeof window.api.downloadFile === 'function') {
-        const result = await window.api.downloadFile(fileUrl, fileName, storageLocation)
+        const result = await window.api.downloadFile(
+          fileUrl,
+          fileName,
+          storageLocation
+        )
 
         loading.close()
 
@@ -1840,10 +1846,7 @@ const handleFileDownload = async (fileMessage) => {
           ElMessage.error(`文件下载失败: ${result.error}`)
 
           // 如果是网络错误，提供备选方案
-          if (
-            result.error.includes('网络请求失败') ||
-            result.error.includes('CONNECTION_REFUSED')
-          ) {
+          if (result.error.includes('网络请求失败') || result.error.includes('CONNECTION_REFUSED')) {
             ElMessage.info('正在尝试浏览器下载...')
             // 尝试使用浏览器默认下载
             attemptBrowserDownload(fileUrl, fileName)
@@ -1906,7 +1909,6 @@ const attemptBrowserDownload = (url, filename) => {
   align-items: center;
   padding: 10px 15px;
   margin-top: 27px;
-  border-bottom: 1px solid #e0e0e0;
 }
 
 .user-info {
