@@ -118,10 +118,6 @@
                           :alt="message.content"
                           class="video-thumbnail"
                         />
-                        <div v-else class="video-placeholder">
-                          <span class="icon iconfont icon-video"></span>
-                          <p>视频消息</p>
-                        </div>
                         <div class="video-overlay">
                           <span class="icon iconfont icon-play"></span>
                         </div>
@@ -546,9 +542,9 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
             size: formatFileSize(msg.fileSize),
             fileExtension: msg.file?.fileExtension || msg.fileExtension,
             videoInfo: msg.video || {
-              duration: msg.videoDuration,
-              width: msg.videoWidth,
-              height: msg.videoHeight
+              duration: msg.videoInfo?.duration,
+              width: msg.videoWidth || msg.videoInfo?.width,
+              height: msg.videoHeight || msg.videoInfo?.height
             }
           }
         }
@@ -2786,15 +2782,24 @@ const formatDuration = (seconds) => {
   overflow: hidden;
   background-color: #f0f0f0;
   border: 1px solid #e0e0e0;
+  width: 100%;
+  max-width: 250px;
+  aspect-ratio: 16 / 9;
 }
 
 .video-thumbnail {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   display: block;
 }
 
 .video-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;

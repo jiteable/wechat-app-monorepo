@@ -31,6 +31,8 @@ export interface Message {
   createdAt: string
   mimeType?: string
   fileExtension?: string
+  thumbnailUrl?: string
+  videoInfo?: videoInfo
   sender?: {
     id: string
     chatId: string
@@ -48,12 +50,12 @@ export interface Message {
 }
 
 export interface videoInfo {
-  duration: string
-  width: number
-  height: number
-  bitrate: string
-  fps: number
-  thumbnailUrl: string
+  duration?: string
+  width?: number
+  height?: number
+  bitrate?: string
+  fps?: number
+  thumbnailUrl?: string
 }
 
 export interface GetMessagesResponse {

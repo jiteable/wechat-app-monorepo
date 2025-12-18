@@ -97,7 +97,27 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
       }
     });
 
-    console.log('messsagesssaaaaaaaaaaaaaaaa: ', messages.length)
+    // 处理消息数据，确保视频文件的thumbnailUrl被包含
+    const processedMessages = messages.map(message => {
+      if (message.file && message.file.thumbnailUrl) {
+        const processedMessage = {
+          ...message,
+          thumbnailUrl: message.file.thumbnailUrl
+        };
+
+        // 如果文件有关联的视频信息，也包含视频的宽度和高度
+        if (message.file.video) {
+          processedMessage.videoInfo = processedMessage.videoInfo || {};
+          processedMessage.videoInfo.videoWidth = message.file.video.width;
+          processedMessage.videoInfo.videoHeight = message.file.video.height;
+        }
+
+        return processedMessage;
+      }
+      return message;
+    });
+
+    console.log('messsagesssaaaaaaaaaaaaaaaa: ', processedMessages)
 
     // 计算分页信息（由于改为降序，需要重新计算分页逻辑）
     const totalPages = Math.ceil(totalMessages / limit);
@@ -108,7 +128,7 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        messages: messages,
+        messages: processedMessages,
         pagination: {
           currentPage: page,
           totalPages: totalPages,
@@ -128,7 +148,6 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
     });
   }
 });
-
 
 
 /**
