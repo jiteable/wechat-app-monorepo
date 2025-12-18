@@ -2,7 +2,7 @@
   <div class="chat-messages-container drag">
     <!-- 页面标题 -->
     <div class="page-title">
-      <span class="title-text">“{{ chatTitle }}”的聊天记录({{ messageCount }})</span>
+      <span class="title-text">"{{ chatTitle }}"的聊天记录({{ messageCount }})</span>
       <!-- 窗口控制按钮 -->
       <div class="window-controls no-drag">
         <button class="control-button minimize-button" @click="minimizeWindow">
@@ -89,7 +89,7 @@
     </div>
 
     <!-- 聊天记录列表 -->
-    <div class="messages-list no-drag">
+    <div class="messages-list-container no-drag">
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
         <p>加载中...</p>
@@ -121,18 +121,124 @@
         <p>暂无相关聊天记录</p>
       </div>
 
-      <div v-for="message in sortedMessages" v-else :key="message.id" class="message-item">
-        <div class="message-header">
-          <el-avatar :size="32" :src="message.avatar" class="message-avatar" />
-          <div class="message-info">
-            <div class="message-sender">{{ message.sender }}</div>
+      <div v-else class="messages-list">
+        <div v-for="message in sortedMessages" :key="message.id" class="message-item">
+          <!-- 时间戳消息 -->
+          <div v-if="message.type === 'timestamp'" class="message-timestamp">
+            {{ formatDate(message.content) }}
           </div>
-          <div class="message-time-wrapper">
-            <div class="message-time">{{ message.time }}</div>
+
+          <!-- 系统消息 -->
+          <div v-else-if="message.type === 'system'" class="system-message">
+            {{ message.content }}
           </div>
-        </div>
-        <div class="message-content">
-          <div class="message-text">{{ message.text }}</div>
+
+          <!-- 图片消息 -->
+          <div v-else-if="message.type === 'image'" class="message-item-container">
+            <div class="message-header">
+              <el-avatar :size="32" :src="message.senderAvatar" class="message-avatar" />
+              <div class="message-info">
+                <div class="message-sender">{{ message.senderName }}</div>
+              </div>
+              <div class="message-time-wrapper">
+                <div class="message-time">{{ message.time }}</div>
+              </div>
+            </div>
+            <div class="message-content">
+              <div class="image-container">
+                <img
+                  :src="message.imageUrl"
+                  :alt="message.fileName || '图片'"
+                  class="image-preview"
+                  @click="previewImage(message.imageUrl)"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 文件消息 -->
+          <div v-else-if="message.type === 'file'" class="message-item-container">
+            <div class="message-header">
+              <el-avatar :size="32" :src="message.senderAvatar" class="message-avatar" />
+              <div class="message-info">
+                <div class="message-sender">{{ message.senderName }}</div>
+              </div>
+              <div class="message-time-wrapper">
+                <div class="message-time">{{ message.time }}</div>
+              </div>
+            </div>
+            <div class="message-content">
+              <div class="file-message-bubble" @click="handleFileDownload(message)">
+                <div class="file-container">
+                  <div class="file-icon">
+                    <img
+                      :src="getFileIconPath(message.fileExtension)"
+                      :alt="message.fileExtension + ' file icon'"
+                      class="file-extension-icon"
+                    />
+                  </div>
+                  <div class="file-info">
+                    <div class="file-name">{{ message.content }}</div>
+                    <div class="file-size">{{ message.size || '未知大小' }}</div>
+                  </div>
+                  <div class="file-extension-overlay">
+                    {{ message.fileExtension }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 视频消息 -->
+          <div v-else-if="message.type === 'video'" class="message-item-container">
+            <div class="message-header">
+              <el-avatar :size="32" :src="message.senderAvatar" class="message-avatar" />
+              <div class="message-info">
+                <div class="message-sender">{{ message.senderName }}</div>
+              </div>
+              <div class="message-time-wrapper">
+                <div class="message-time">{{ message.time }}</div>
+              </div>
+            </div>
+            <div class="message-content">
+              <div class="video-message-bubble">
+                <div class="video-container" @click="playVideo(message.mediaUrl)">
+                  <img
+                    v-if="message.thumbnailUrl"
+                    :src="message.thumbnailUrl"
+                    :alt="message.content"
+                    class="video-thumbnail"
+                  />
+                  <div class="video-overlay">
+                    <span class="icon iconfont icon-play"></span>
+                  </div>
+                  <!-- 添加视频时长显示 -->
+                  <div
+                    v-if="message.videoInfo && message.videoInfo.duration"
+                    class="video-duration-overlay"
+                  >
+                    {{ formatDuration(message.videoInfo.duration) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 普通文本消息 -->
+          <div v-else class="message-item-container">
+            <div class="message-header">
+              <el-avatar :size="32" :src="message.senderAvatar" class="message-avatar" />
+              <div class="message-info">
+                <div class="message-sender">{{ message.senderName }}</div>
+              </div>
+              <div class="message-time-wrapper">
+                <div class="message-time">{{ message.time }}</div>
+              </div>
+            </div>
+            <div class="message-content">
+              <div class="message-text">{{ message.content }}</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -142,9 +248,31 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
-import { ElDatePicker, ElPopover } from 'element-plus'
+import { ElDatePicker, ElPopover, ElMessage } from 'element-plus'
 import { userContactStore } from '@/store/userContactStore'
+import { useUserStore } from '@/store/userStore'
+import { useUserSetStore } from '@/store/userSetStore'
 import { getMessages } from '@/api/chat'
+
+interface Message {
+  id: string | number
+  content: string
+  time: string
+  type: string
+  senderName: string
+  senderAvatar: string
+  imageUrl?: string
+  fileName?: string
+  fileExtension?: string
+  size?: string
+  mediaUrl?: string
+  thumbnailUrl?: string
+  videoInfo?: {
+    duration?: number
+    width?: number
+    height?: number
+  }
+}
 
 // 搜索相关
 const searchText = ref('')
@@ -169,6 +297,8 @@ const activeTab = ref('all')
 
 // 从Pinia存储中获取当前会话信息
 const contactStore = userContactStore()
+const userStore = useUserStore()
+const userSetStore = useUserSetStore()
 
 const chatTitle = ref('请选择聊天')
 const messageCount = ref(0)
@@ -235,6 +365,7 @@ onUnmounted(() => {
   // 移除事件监听器
   window.removeEventListener('contactStoreUpdated', handleStoreUpdate as EventListener)
 })
+
 // 获取真实聊天记录数据
 const loadMessages = async (sessionId) => {
   try {
@@ -246,16 +377,38 @@ const loadMessages = async (sessionId) => {
       messageCount.value = response.data.data.pagination.totalMessages
 
       // 将获取到的消息转换为组件所需格式
-      messages.value = response.data.data.messages.map((msg) => ({
-        id: msg.id,
-        text: msg.content,
-        time: formatTime(msg.updatedAt),
-        type: getMessageType(msg.messageType),
-        sender: msg.sender?.username || '未知用户',
-        avatar:
-          msg.sender?.avatar ||
-          'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
-      }))
+      messages.value = response.data.data.messages.map((msg) => {
+        const baseMessage = {
+          id: msg.id,
+          content: msg.content,
+          time: formatTime(msg.updatedAt),
+          type: msg.messageType,
+          senderName: msg.sender?.username || '未知用户',
+          senderAvatar:
+            msg.sender?.avatar ||
+            'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
+          imageUrl: msg.mediaUrl,
+          fileName: msg.fileName,
+          fileExtension: msg.file?.fileExtension || msg.fileExtension,
+          size: formatFileSize(msg.fileSize),
+          mediaUrl: msg.mediaUrl,
+          thumbnailUrl: msg.video?.thumbnailUrl || msg.thumbnailUrl
+        }
+
+        // 如果是视频类型消息，添加视频相关信息
+        if (msg.messageType === 'video') {
+          return {
+            ...baseMessage,
+            videoInfo: msg.video || {
+              duration: msg.videoInfo?.duration,
+              width: msg.videoWidth || msg.videoInfo?.width,
+              height: msg.videoHeight || msg.videoInfo?.height
+            }
+          }
+        }
+
+        return baseMessage
+      })
     }
 
     console.log('messagessss: ', response.data.data.messages)
@@ -282,7 +435,7 @@ const formatTime = (timestamp) => {
       if (timestamp.includes('T') && timestamp.endsWith('Z')) {
         date = new Date(timestamp)
       } else if (timestamp.includes('-') && timestamp.includes(':')) {
-        // 处理 "YYYY-MM-DD HH:MM" 格式的字符串
+        // 处理 "YYYY-MM-DD HH:MM" 格式的时间字符串
         date = new Date(timestamp.replace(' ', 'T'))
       } else {
         // 尝试作为时间戳解析
@@ -324,53 +477,8 @@ const formatTime = (timestamp) => {
   }
 }
 
-// 根据消息类型转换为中文描述
-const getMessageType = (type) => {
-  switch (type) {
-    case 'text':
-      return '文本消息'
-    case 'image':
-      return '图片'
-    case 'file':
-      return '文件'
-    case 'emoji':
-      return '表情'
-    case 'voice':
-      return '语音'
-    case 'video':
-      return '视频'
-    default:
-      return '系统通知'
-  }
-}
-
 // 模拟聊天记录数据
-const messages = ref([
-  {
-    id: '1',
-    text: '高科五金配送工作号15570265058, 刘里平五金水电批发 加入群聊',
-    time: '2023-01-15 14:30',
-    type: '系统通知',
-    sender: '系统消息',
-    avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
-  },
-  {
-    id: '2',
-    text: '今天天气不错，适合出门',
-    time: '2023-01-15 14:32',
-    type: '文本消息',
-    sender: '张三',
-    avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'
-  },
-  {
-    id: '3',
-    text: 'https://example.com',
-    time: '2023-01-15 14:35',
-    type: '链接',
-    sender: '李四',
-    avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
-  }
-])
+const messages = ref<Message[]>([])
 
 // 过滤后的消息列表
 const filteredMessages = computed(() => {
@@ -379,12 +487,30 @@ const filteredMessages = computed(() => {
   // 搜索关键词过滤
   if (searchText.value) {
     const query = searchText.value.toLowerCase()
-    result = result.filter((msg) => msg.text.toLowerCase().includes(query))
+    result = result.filter((msg) => msg.content.toLowerCase().includes(query))
   }
 
   // 类型过滤（除了 date 外）
   if (activeTab.value !== 'all' && activeTab.value !== 'date') {
-    result = result.filter((msg) => msg.type === getActiveTabType())
+    let messageType = ''
+    switch (activeTab.value) {
+      case 'file':
+        messageType = 'file'
+        break
+      case 'image':
+        messageType = 'image'
+        break
+      case 'link':
+        messageType = 'link'
+        break
+      case 'audio':
+        messageType = 'audio'
+        break
+      case 'member':
+        messageType = 'member'
+        break
+    }
+    result = result.filter((msg) => msg.type === messageType)
   }
 
   // 日期过滤
@@ -429,26 +555,6 @@ const handleDateChange = (value: string | null) => {
   filterByDate()
   // 选择日期后隐藏选择器
   datePickerVisible.value = false
-}
-
-// 获取当前激活标签对应的消息类型
-const getActiveTabType = () => {
-  switch (activeTab.value) {
-    case 'file':
-      return '文件'
-    case 'image':
-      return '图片与视频'
-    case 'link':
-      return '链接'
-    case 'audio':
-      return '音乐与音频'
-    case 'date':
-      return '日期'
-    case 'member':
-      return '群成员'
-    default:
-      return ''
-  }
 }
 
 // 获取当前激活标签的名称
@@ -503,15 +609,225 @@ const minimizeWindow = () => {
 const closeWindow = () => {
   window.api.closeChatMessageWindow()
 }
+
+// 格式化时间戳
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr)
+  const now = new Date()
+
+  // 获取日期差（毫秒）
+  const diffInMs = now.getTime() - date.getTime()
+  const diffInHours = diffInMs / (1000 * 60 * 60)
+  const diffInDays = diffInHours / 24
+
+  // 获取具体时间（小时:分钟）
+  const timeString = date.toTimeString().slice(0, 5)
+
+  // 一天内显示具体时间
+  if (diffInHours < 24) {
+    return timeString
+  }
+  // 两天内显示昨天+具体时间
+  else if (diffInDays < 2) {
+    return `昨天 ${timeString}`
+  }
+  // 一周内显示对应的星期
+  else if (diffInDays < 7) {
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    return weekdays[date.getDay()]
+  }
+  // 去年及以前显示 年/月/日
+  else if (date.getFullYear() < now.getFullYear()) {
+    return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date
+      .getDate()
+      .toString()
+      .padStart(2, '0')}`
+  }
+  // 其他情况显示 月/日
+  else {
+    return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date
+      .getDate()
+      .toString()
+      .padStart(2, '0')}`
+  }
+}
+
+// 格式化文件大小
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// 获取文件图标路径
+const getFileIconPath = (fileExtension) => {
+  // 如果没有文件扩展名，使用默认的文件图标
+  if (!fileExtension) {
+    // 直接返回相对于 public 目录的路径
+    return '/src/assets/filetypeicon/unknown.png'
+  }
+
+  // 确保扩展名以点号开头并且是小写
+  const normalizedExtension = fileExtension.startsWith('.')
+    ? fileExtension.toLowerCase()
+    : `.${fileExtension.toLowerCase()}`
+
+  const newNormalizedExtension = normalizedExtension.split('.').join('')
+
+  // 返回图标的路径
+  return `/src/assets/filetypeicon/${newNormalizedExtension}.png`
+}
+
+// 处理文件下载
+const handleFileDownload = async (fileMessage) => {
+  try {
+    console.log('文件消息数据:', fileMessage) // 调试信息
+
+    // 获取用户设置中的存储路径
+    const storageLocation = userSetStore.StorageLocation || 'D:\\EasyChat\\files\\'
+
+    // 验证文件URL
+    let fileUrl = fileMessage.mediaUrl
+
+    // 检查是否有多种可能的URL字段
+    if (!fileUrl && fileMessage.imageUrl) {
+      fileUrl = fileMessage.imageUrl
+    }
+
+    if (!fileUrl && fileMessage.url) {
+      fileUrl = fileMessage.url
+    }
+
+    // 如果仍然没有有效的URL
+    if (!fileUrl) {
+      ElMessage.error('文件链接无效')
+      console.error('无法找到有效的文件链接:', fileMessage)
+      return
+    }
+
+    // 确保URL是完整的
+    if (fileUrl.startsWith('//')) {
+      fileUrl = 'http:' + fileUrl
+    } else if (fileUrl.startsWith('/')) {
+      // 如果是相对路径，尝试补全为完整URL
+      fileUrl = window.location.origin + fileUrl
+    }
+
+    // 获取文件名
+    let fileName = fileMessage.content || fileMessage.fileName
+    if (!fileName) {
+      // 尝试从URL中提取文件名
+      try {
+        const urlObj = new URL(fileUrl)
+        const pathname = urlObj.pathname
+        fileName = pathname.split('/').pop() || 'downloaded_file'
+      } catch (urlError) {
+        fileName = 'downloaded_file'
+      }
+    }
+
+    try {
+      // 通过IPC发送下载文件请求到主进程
+      if (window.api && typeof window.api.downloadFile === 'function') {
+        const result = await window.api.downloadFile(fileUrl, fileName, storageLocation)
+
+        if (result.success) {
+          ElMessage.success(`文件已保存到: ${result.filePath}`)
+        } else {
+          ElMessage.error(`文件下载失败: ${result.error}`)
+
+          // 如果是网络错误，提供备选方案
+          if (
+            result.error.includes('网络请求失败') ||
+            result.error.includes('CONNECTION_REFUSED')
+          ) {
+            ElMessage.info('正在尝试浏览器下载...')
+            // 尝试使用浏览器默认下载
+            attemptBrowserDownload(fileUrl, fileName)
+          }
+        }
+      } else {
+        // 如果没有downloadFile方法，则使用浏览器默认下载
+        ElMessage.info('正在使用浏览器下载...')
+        attemptBrowserDownload(fileUrl, fileName)
+      }
+    } catch (ipcError) {
+      console.error('IPC通信错误:', ipcError)
+      ElMessage.error('下载服务暂时不可用，正在尝试浏览器下载...')
+      // IPC通信失败时使用浏览器默认下载
+      attemptBrowserDownload(fileUrl, fileName)
+    }
+  } catch (error) {
+    console.error('文件下载出错:', error)
+    ElMessage.error('文件下载出错: ' + (error.message || '未知错误'))
+  }
+}
+
+/**
+ * 尝试使用浏览器默认下载
+ * @param url 文件URL
+ * @param filename 文件名
+ */
+const attemptBrowserDownload = (url, filename) => {
+  try {
+    // 创建一个隐藏的链接元素来触发下载
+    const link = document.createElement('a')
+    link.style.display = 'none'
+    link.href = url
+    link.download = filename // 设置下载文件名
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    ElMessage.success('已启动浏览器下载')
+  } catch (error) {
+    console.error('浏览器下载失败:', error)
+    try {
+      // 备选方案：在新窗口中打开
+      window.open(url, '_blank')
+      ElMessage.info('已在新窗口中打开文件链接')
+    } catch (openError) {
+      console.error('打开新窗口也失败:', openError)
+      ElMessage.error('无法下载文件，请检查网络连接或稍后再试')
+    }
+  }
+}
+
+// 播放视频
+const playVideo = (videoUrl) => {
+  // 在新窗口中播放视频或者使用模态框播放
+  window.open(videoUrl, '_blank')
+}
+
+// 格式化视频时长
+const formatDuration = (seconds) => {
+  if (!seconds) return ''
+
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+// 图片预览相关
+const previewImage = (imageUrl) => {
+  // 在新窗口中打开图片或者使用模态框预览
+  window.open(imageUrl, '_blank')
+}
 </script>
 
 <style scoped lang="scss">
 .chat-messages-container {
   width: 100%;
-  height: 100%;
+  height: 100vh;
   padding: 10px;
   background-color: #f5f5f5;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-title {
@@ -521,6 +837,7 @@ const closeWindow = () => {
   font-weight: 500;
   color: #333;
   position: relative;
+  flex-shrink: 0;
 }
 
 .title-text {
@@ -576,6 +893,7 @@ const closeWindow = () => {
   border: 1px solid rgb(228, 228, 228);
   border-radius: 10px;
   transition: border-color 0.2s ease;
+  flex-shrink: 0;
 }
 
 .search-box.focused {
@@ -636,11 +954,10 @@ const closeWindow = () => {
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
-  overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: #ccc #f5f5f5;
   position: relative;
-  /* 添加相对定位 */
+  flex-shrink: 0;
 }
 
 .category-tab {
@@ -663,9 +980,19 @@ const closeWindow = () => {
   border-color: #007aff;
 }
 
+.messages-list-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: 8px;
+}
+
 .messages-list {
   flex: 1;
   overflow-y: auto;
+  padding: 16px;
 }
 
 .loading-state {
@@ -675,6 +1002,7 @@ const closeWindow = () => {
   justify-content: center;
   padding: 40px;
   color: #999;
+  flex: 1;
 }
 
 .spinner {
@@ -705,13 +1033,17 @@ const closeWindow = () => {
   padding: 40px;
   color: #999;
   text-align: center;
+  flex: 1;
 }
 
 .message-item {
+  margin-bottom: 12px;
+}
+
+.message-item-container {
   background-color: white;
   border-radius: 8px;
   padding: 16px;
-  margin-bottom: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -763,10 +1095,183 @@ const closeWindow = () => {
   line-height: 1.5;
 }
 
-.message-type {
+/* 时间戳样式 */
+.message-timestamp {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  margin: 10px 0;
+  flex-shrink: 0;
+}
+
+/* 系统消息样式 */
+.system-message {
+  align-self: center;
+  background-color: #e0e0e0;
+  color: #606266;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+/* 图片消息样式 */
+.image-container {
+  display: flex;
+  margin-top: 8px;
+}
+
+.image-preview {
+  max-width: 200px;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.image-preview:hover {
+  transform: scale(1.02);
+}
+
+/* 文件消息气泡 */
+.file-message-bubble {
+  background-color: white;
+  border-radius: 7px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  word-wrap: break-word;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+/* 文件容器 */
+.file-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  width: 100%;
+}
+
+/* 文件图标 */
+.file-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: #f0f0f0;
+  border-radius: 4px;
+  font-size: 16px;
+  color: #606266;
+  flex-shrink: 0;
+}
+
+/* 文件信息 */
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 380px;
+  min-width: 90px;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #999;
+}
+
+.file-extension-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  color: rgb(8, 12, 246);
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(2px);
+}
+
+.file-extension-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* 视频消息样式 */
+.video-message-bubble {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+  border: none;
+  max-width: 250px;
+  margin-top: 8px;
+}
+
+.video-container {
+  position: relative;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  border: 1px solid #e0e0e0;
+  width: 100%;
+  max-width: 250px;
+  aspect-ratio: 16 / 9;
+}
+
+.video-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-overlay .icon-play {
+  font-size: 20px;
+  color: white;
+}
+
+.video-duration-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 2;
 }
 </style>
