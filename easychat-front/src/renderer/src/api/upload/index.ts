@@ -13,7 +13,8 @@ import {
 enum API {
   UPLOAD_AVATAR_URL = '/upload/avatar',
   UPLOAD_FILE_URL = '/upload/file',
-  UPLOAD_IMAGE_URL = '/upload/image'
+  UPLOAD_IMAGE_URL = '/upload/image',
+  UPLOAD_VIDEO_URL = '/upload/video'
 }
 
 /**
@@ -87,6 +88,44 @@ export const uploadImage = async (file: File): Promise<UploadImageResponse> => {
 
   const response = await http.post<UploadImageResponse & UploadImageError>(
     `${config.api}${API.UPLOAD_IMAGE_URL}`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: timeout
+    }
+  )
+
+  return response.data
+}
+
+/**
+ * 上传视频
+ * @param file 视频文件
+ * @returns 上传结果
+ */
+export const uploadVideo = async (
+  file: File,
+  sessionId: string,
+  fileName?: string
+): Promise<UploadFileResponse> => {
+  const formData = new FormData()
+  formData.append('video', file)
+  formData.append('sessionId', sessionId)
+
+  // 如果提供了文件名，则也添加到表单数据中
+  if (fileName) {
+    formData.append('fileName', fileName)
+  }
+
+  // 根据视频文件大小计算超时时间，每MB增加2秒，最少30秒，最多10分钟
+  // 视频文件通常比图片大，所以给予更长的超时时间
+  const fileSizeMB = file.size / (1024 * 1024)
+  const timeout = Math.min(Math.max(30000, fileSizeMB * 2000), 600000)
+
+  const response = await http.post<UploadFileResponse & UploadFileError>(
+    `${config.api}${API.UPLOAD_VIDEO_URL}`,
     formData,
     {
       headers: {

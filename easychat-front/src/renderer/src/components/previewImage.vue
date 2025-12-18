@@ -10,7 +10,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue'
+import { ref, defineEmits } from 'vue'
 
 const props = defineProps({
   imageUrl: {
@@ -54,6 +54,7 @@ const onOverlayClick = (e) => {
   position: relative;
   max-width: 90%;
   max-height: 90%;
+  background-color: red;
 }
 
 .image-container {

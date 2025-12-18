@@ -5,6 +5,7 @@ const path = require('path');
 const { ossClient } = require('../utils/oss');
 const { db } = require('../db/db');
 const { authenticateToken } = require('../middleware');
+const ffmpeg = require('fluent-ffmpeg');
 
 // 配置 multer 内存存储引擎，这样文件会被保存在内存中而不是磁盘上
 const storage = multer.memoryStorage();
@@ -18,6 +19,18 @@ const avatarFileFilter = (req, file, cb) => {
     cb(new Error('只允许上传图片文件!'), false);
   }
 };
+
+// 配置文件过滤器
+const videoFileFilter = (req, file, cb) => {
+  // 允许视频文件类型
+  if (file.mimetype.startsWith('video/')) {
+    cb(null, true);
+  } else {
+    cb(null, false);
+    // cb(new Error('只允许上传视频文件!'), false);
+  }
+};
+
 
 // 通用文件过滤器
 const fileFilter = (req, file, cb) => {
@@ -41,6 +54,15 @@ const fileUpload = multer({
     fileSize: 1024 * 1024 * 1024 // 限制文件大小为1G
   }
 });
+
+const videoUpload = multer({
+  storage: storage,
+  fileFilter: videoFileFilter,
+  limits: {
+    fileSize: 1024 * 1024 * 1024 // 100MB
+  }
+});
+
 
 // 上传头像接口
 router.post('/avatar', authenticateToken, avatarUpload.single('avatar'), async function (req, res, next) {
@@ -185,6 +207,194 @@ router.post('/image', authenticateToken, avatarUpload.single('image'), async fun
     res.status(500).json({
       success: false,
       error: '服务器内部错误'
+    });
+  }
+});
+
+router.post('/video', authenticateToken, videoUpload.single('video'), async function (req, res) {
+  let tempFilePath = null;
+
+  try {
+    const userId = req.user.id;
+    const { fileName, sessionId } = req.body;
+    console.log('req.file: ', req.file);
+
+    console.log('fileName: ', fileName)
+
+    // 检查是否有文件上传
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: '没有上传文件'
+      });
+    }
+
+    // 生成唯一的文件名
+    const fileExt = path.extname(fileName || req.file.originalname);
+    const baseName = fileName ? path.parse(fileName).name : `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    const uniqueFileName = `EasyChat/videos/${sessionId}/${baseName}${fileExt}`;
+
+    // 上传原始视频文件到 OSS
+    if (ossClient) {
+      // 直接从 buffer 上传，不使用临时文件
+      const result = await ossClient.put(uniqueFileName, req.file.buffer, {});
+
+      // 视频文件的公共URL
+      const videoUrl = `https://file-dev.document-ai.top/${uniqueFileName}`;
+
+      // 初始化视频信息对象
+      const videoInfo = {
+        duration: null,
+        width: null,
+        height: null,
+        bitrate: null,
+        codec: null,
+        fps: null,
+        thumbnailUrl: null
+      };
+
+      try {
+        // 创建一个临时文件用于FFmpeg处理
+        const tempDir = path.join(__dirname, '../temp');
+        tempFilePath = path.join(tempDir, `${baseName}${fileExt}`);
+
+        // 确保临时目录存在
+        const fs = require('fs');
+        if (!fs.existsSync(tempDir)) {
+          const mkdirp = require('mkdirp');
+          await mkdirp.sync(tempDir);
+        }
+
+        // 将buffer写入临时文件
+        fs.writeFileSync(tempFilePath, req.file.buffer);
+
+        // 使用Promise包装ffmpeg以支持async/await
+        await new Promise((resolve, reject) => {
+          ffmpeg.ffprobe(tempFilePath, (err, metadata) => {
+            if (err) {
+              console.error('FFmpeg ffprobe error:', err);
+              // 即使获取元数据失败，也不中断主要的上传流程
+              resolve();
+              return;
+            }
+
+            const videoStream = metadata.streams.find(stream => stream.codec_type === 'video');
+            if (videoStream) {
+              videoInfo.duration = metadata.format.duration;
+              videoInfo.width = videoStream.width;
+              videoInfo.height = videoStream.height;
+              videoInfo.bitrate = parseInt(metadata.format.bit_rate) || null;
+              videoInfo.codec = videoStream.codec_name;
+              // 安全地计算帧率
+              if (videoStream.avg_frame_rate) {
+                const parts = videoStream.avg_frame_rate.split('/');
+                if (parts.length === 2) {
+                  videoInfo.fps = parseFloat((parseInt(parts[0]) / parseInt(parts[1])).toFixed(2));
+                }
+              }
+            }
+            console.log('video: ', videoInfo)
+            resolve();
+          });
+        });
+
+        // 生成缩略图
+        const thumbFileName = `EasyChat/videos/${sessionId}/thumbnails/${baseName}.jpg`;
+        const thumbPath = path.join(tempDir, 'thumbnail.jpg');
+
+        await new Promise((resolve, reject) => {
+          ffmpeg(tempFilePath)
+            .screenshots({
+              count: 1,
+              folder: tempDir,
+              filename: 'thumbnail.jpg',
+              size: '320x240'
+            })
+            .on('end', async () => {
+              try {
+                // 检查缩略图是否生成成功
+                if (fs.existsSync(thumbPath)) {
+                  // 读取生成的缩略图
+                  const thumbnailBuffer = fs.readFileSync(thumbPath);
+
+                  // 上传缩略图到OSS
+                  await ossClient.put(thumbFileName, thumbnailBuffer, {
+                    timeout: 60 * 1000 // 为缩略图上传设置1分钟超时
+                  });
+                  videoInfo.thumbnailUrl = `https://file-dev.document-ai.top/${thumbFileName}`;
+
+                  // 清理临时缩略图文件
+                  fs.unlinkSync(thumbPath);
+                }
+                resolve();
+              } catch (uploadErr) {
+                console.error('缩略图上传错误:', uploadErr);
+                // 即使缩略图上传失败，也不中断主要的上传流程
+                resolve();
+              }
+            })
+            .on('error', (err) => {
+              console.error('生成缩略图错误:', err);
+              // 即使生成缩略图失败，也不中断主要的上传流程
+              resolve();
+            });
+        });
+      } catch (processErr) {
+        console.error('处理视频元数据时出错:', processErr);
+        // 即使处理元数据失败，也不中断主要的上传流程
+      } finally {
+        // 清理临时文件
+        if (tempFilePath) {
+          try {
+            const fs = require('fs');
+            if (fs.existsSync(tempFilePath)) {
+              fs.unlinkSync(tempFilePath);
+            }
+          } catch (cleanupErr) {
+            console.error('清理临时文件时出错:', cleanupErr);
+          }
+        }
+      }
+
+      // 将视频信息保存到数据库
+      const fileExtension = fileExt.toLowerCase();
+
+      // 返回结果
+      res.json({
+        success: true,
+        mediaUrl: videoUrl,
+        originalName: fileName || req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        fileExtension: fileExtension,
+        videoInfo: videoInfo,
+        message: '视频上传成功'
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: 'OSS 客户端未配置'
+      });
+    }
+
+  } catch (err) {
+    console.error('视频上传错误:', err);
+
+    // 清理临时文件（如果有的话）
+    if (tempFilePath) {
+      try {
+        const fs = require('fs');
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+        }
+      } catch (cleanupErr) {
+        console.error('清理临时文件时出错:', cleanupErr);
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      error: '视频上传失败: ' + err.message
     });
   }
 });

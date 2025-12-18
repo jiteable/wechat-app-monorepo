@@ -224,6 +224,7 @@ model File {
   createdAt       DateTime    @default(now())            // 上传时间
   expireAt        DateTime?                              // 过期时间 (可选)
   sessionId       String?                               // 可选的会话ID，用于快速查询
+  video           Video?
   
   // 关系
   uploader         User           @relation(fields: [uploaderId], references: [id])
@@ -235,6 +236,27 @@ model File {
   @@index([createdAt])
   @@index([fileType])
   @@index([sessionId])
+}
+
+model Video {
+  id              String      @id @default(cuid())       // 视频唯一标识符
+  fileId          String      @unique                    // 关联的文件ID
+  duration        Float?                                 // 视频时长（秒）
+  width           Int?                                   // 视频宽度（像素）
+  height          Int?                                   // 视频高度（像素）
+  bitrate         Int?                                   // 视频比特率（bps）
+  codec           String?                                // 视频编码格式
+  fps             Float?                                 // 帧率
+  thumbnailUrl    String?                                // 视频缩略图URL
+  previewUrl      String?                                // 视频预览URL
+  createdAt       DateTime    @default(now())            // 创建时间
+  updatedAt       DateTime    @updatedAt                 // 更新时间
+  
+  // 关系
+  file            File        @relation(fields: [fileId], references: [id])  // 关联的文件
+  
+  @@index([fileId])
+  @@index([createdAt])
 }
 
 

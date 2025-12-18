@@ -45,3 +45,18 @@ export interface UploadImageError {
   success: boolean
   error: string
 }
+
+export interface UploadVideoResponse {
+  success: boolean
+  mediaUrl: string
+  originalName: string
+  fileSize: number
+  mimeType: string
+  fileExtension: string
+  message: string
+}
+
+export interface UploadVideoError {
+  success: boolean
+  error: string
+}

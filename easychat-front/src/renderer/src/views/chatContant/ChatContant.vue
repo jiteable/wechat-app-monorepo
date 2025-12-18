@@ -370,6 +370,7 @@ import { ElMessage, ElLoading } from 'element-plus'
 import { uploadImage, uploadFile } from '@/api/upload'
 import WindowControls from '@/components/WindowControls.vue'
 import PreviewImage from '@/components/previewImage.vue'
+import { uploadVideo } from '@/api/upload'
 
 const route = useRoute()
 const contactStore = userContactStore()
@@ -1443,6 +1444,9 @@ const uploadFiles = async (file) => {
   // 定义图片文件扩展名列表
   const imageExtensions = ['.jpg', '.jpeg', '.jpe', '.jfif', '.png', '.gif']
 
+  // 定义视频文件扩展名列表
+  const videoExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv']
+
   // 判断是否为图片文件
   if (imageExtensions.includes(fileExtension)) {
     // 如果是图片文件，限制不能超过5MB
@@ -1481,7 +1485,19 @@ const uploadFiles = async (file) => {
       console.error('图片上传异常:', error)
       ElMessage.error(`图片上传异常: ${error.message || '网络错误'}`)
     }
-  } else {
+  }
+  // 判断是否为视频文件
+  else if (videoExtensions.includes(fileExtension)) {
+    // 如果是视频文件，仅打印视频信息，暂不处理上传
+    loading.close()
+    console.log('选择了视频文件:', file)
+    uploadVideo(file, contactStore.selectedContact.id, file.name)
+    ElMessage.info(`选择了视频文件: ${file.name}，当前版本暂不支持视频上传`)
+
+    // 如果以后需要支持视频上传，可以在这里添加相应逻辑
+    // 类似于图片和文件的处理方式
+  }
+  else {
     // 如果是其他类型文件，限制不能超过1GB
     const maxSize = 1 * 1024 * 1024 * 1024 // 1GB in bytes
     if (file.size > maxSize) {
