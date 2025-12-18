@@ -29,6 +29,7 @@ model User {
   createdAt     DateTime      @default(now())           // 账户创建时间
   updatedAt     DateTime      @updatedAt                // 最后更新时间
   sessions      Session[]                              // 用户会话列表（一对多关系）
+  labels        String[]                               // 用户添加的标签
   settings      UserSetting?                           // 用户设置（一对一关系）
   
   // 反向关系字段
@@ -53,6 +54,8 @@ model User {
   uploadedFiles             File[]           // 用户上传的文件
 }
 
+
+
 model VerificationToken {
   identifier String    @id                             // 标识符
   token      String                                   // 验证令牌
@@ -75,6 +78,8 @@ model UserWithFriend{
   remark    String?                                  // 备注名，可选
   tag       String?                                  // 标签，可选
   source    String?                                  // 添加来源，可选
+  description String?                                // 描述
+  phone     String?                                  // 电话
   createdAt DateTime @default(now())                 // 创建时间（成为好友的时间）
   
   user      User      @relation("UserFriends", fields: [userId], references: [id])

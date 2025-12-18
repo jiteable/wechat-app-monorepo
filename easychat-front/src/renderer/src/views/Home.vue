@@ -10,19 +10,11 @@
             :src="squareUrl"
             @error="handleAvatarError"
           />
-          <el-button
-            class="box no-drag first-box"
-            :class="{ active: activeButton === 'chat' }"
-            @click="goToChat"
-          >
-            <i class="iconfont icon-chat2"></i>
+          <el-button class="box no-drag first-box" @click="goToChat">
+            <i class="iconfont icon-chat2" :class="{ active: activeButton === 'chat' }"></i>
           </el-button>
-          <el-button
-            class="box no-drag"
-            :class="{ active: activeButton === 'contact' }"
-            @click="goToContact"
-          >
-            <i class="iconfont icon-user"></i>
+          <el-button class="box no-drag" @click="goToContact">
+            <i class="iconfont icon-user" :class="{ active: activeButton === 'contact' }"></i>
           </el-button>
           <div class="drawer-toggle-wrapper">
             <el-popover
@@ -281,6 +273,7 @@ const handleAvatarError = () => {
   justify-content: center;
   transition: all 0.3s ease;
   background-color: transparent;
+  border: none;
   cursor: pointer;
 }
 
@@ -291,11 +284,6 @@ const handleAvatarError = () => {
 
 .box:active {
   transform: scale(0.95);
-}
-
-.box.active {
-  background-color: #409eff;
-  color: white;
 }
 
 .first-box {
@@ -311,9 +299,17 @@ const handleAvatarError = () => {
   font-size: 24px;
 }
 
+.icon-chat2.active {
+  color: rgb(7, 193, 96);
+}
+
 .icon-user {
   font-size: 24px;
   color: #333;
+}
+
+.icon-user.active {
+  color: rgb(7, 193, 96);
 }
 
 .popover-menu {
