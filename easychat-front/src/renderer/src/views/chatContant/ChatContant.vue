@@ -21,11 +21,7 @@
           <el-splitter-panel size="60%">
             <div ref="messagesContainer" class="chat-messages-container" @scroll="handleScroll">
               <!-- 使用 v-for 渲染消息列表 -->
-              <div
-                v-for="message in [...messages].reverse()"
-                :key="message.id"
-                class="message-item"
-              >
+              <div v-for="message in messages" :key="message.id" class="message-item">
                 <!-- 时间戳 -->
                 <div v-if="message.type === 'timestamp'" class="message-timestamp">
                   {{ formatDate(message.content) }}
@@ -103,8 +99,12 @@
                 </div>
 
                 <!--视频消息-->
-                <div v-else-if="message.type === 'video'" :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'
-                  ">
+                <div
+                  v-else-if="message.type === 'video'"
+                  :class="
+                    message.senderId === userStore.userId ? 'sent-message' : 'received-message'
+                  "
+                >
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div class="box">
                     <div v-if="shouldShowSenderName(message)" class="message-sender">
@@ -112,8 +112,12 @@
                     </div>
                     <div class="message-bubble video-message-bubble">
                       <div class="video-container" @click="playVideo(message.mediaUrl)">
-                        <img v-if="message.thumbnailUrl" :src="message.thumbnailUrl" :alt="message.content"
-                          class="video-thumbnail" />
+                        <img
+                          v-if="message.thumbnailUrl"
+                          :src="message.thumbnailUrl"
+                          :alt="message.content"
+                          class="video-thumbnail"
+                        />
                         <div v-else class="video-placeholder">
                           <span class="icon iconfont icon-video"></span>
                           <p>视频消息</p>
@@ -122,7 +126,10 @@
                           <span class="icon iconfont icon-play"></span>
                         </div>
                         <!-- 添加视频时长显示 -->
-                        <div v-if="message.videoInfo && message.videoInfo.duration" class="video-duration-overlay">
+                        <div
+                          v-if="message.videoInfo && message.videoInfo.duration"
+                          class="video-duration-overlay"
+                        >
                           {{ formatDuration(message.videoInfo.duration) }}
                         </div>
                       </div>
@@ -500,6 +507,7 @@ onBeforeUnmount(() => {
 const loadMessages = async (sessionId, page = 1, prepend = false) => {
   try {
     const response = await getMessages({ sessionId, page, limit: 20 })
+    console.log('responsesssssss: ', response.data.data)
     if (response.data.success) {
       // 更新分页信息
       pagination.value = response.data.data.pagination
@@ -527,38 +535,32 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
           }
         }
 
+        // 如果是视频类型消息，添加视频相关信息
+        if (msg.messageType === 'video') {
+          console.log('video: ', msg.video?.thumbnailUrl)
+          console.log('videow: ', msg.thumbnailUrl)
+          return {
+            ...baseMessage,
+            mediaUrl: msg.mediaUrl,
+            thumbnailUrl: msg.video?.thumbnailUrl || msg.thumbnailUrl,
+            size: formatFileSize(msg.fileSize),
+            fileExtension: msg.file?.fileExtension || msg.fileExtension,
+            videoInfo: msg.video || {
+              duration: msg.videoDuration,
+              width: msg.videoWidth,
+              height: msg.videoHeight
+            }
+          }
+        }
+
         return baseMessage
       })
 
       console.log('newMessages: ', newMessages)
 
-      // // 添加一条测试文件消息（仅用于演示）
-      // newMessages.push({
-      //   id: 'fake-file-1',
-      //   type: 'file',
-      //   senderId: userStore.userId,
-      //   senderName: userStore.username,
-      //   senderAvatar: userStore.avatar,
-      //   content: 'example.pdf', // 文件名
-      //   size: '2.1 MB', // 文件大小
-      //   createdAt: new Date().toISOString()
-      // })
-
-      // // 添加一条测试图片消息（仅用于演示）
-      // newMessages.push({
-      //   id: 'fake-image-1',
-      //   type: 'image',
-      //   senderId: userStore.userId,
-      //   senderName: userStore.username,
-      //   senderAvatar: userStore.avatar,
-      //   imageUrl: 'https://file-dev.document-ai.top/avatar/chatImage/1764941356169-708333963.jpg', // 示例图片链接
-      //   fileName: 'sample.jpg',
-      //   createdAt: new Date().toISOString()
-      // })
-
       if (prepend) {
         // 在顶部添加旧消息（加载历史消息）
-        messages.value = [...newMessages, ...messages.value]
+        messages.value = [...messages.value, ...newMessages]
       } else {
         // 替换所有消息（初始化或刷新）
         messages.value = newMessages
@@ -578,7 +580,7 @@ const addMessageListener = () => {
       console.log('getuserMessage:', data)
 
       if (contactStore.selectedContact && data.data.sessionId === contactStore.selectedContact.id) {
-        // 将新消息添加到消息列表
+        // 将新消息添加到消息列表头部（因为我们按时间倒序排列）
         const newMessage = {
           id: data.data.id || Date.now(), // 如果没有id则使用时间戳
           type: data.data.messageType || data.data.type || 'message', // 使用messageType或type作为消息类型
@@ -602,15 +604,42 @@ const addMessageListener = () => {
           newMessage.fileName = data.data.fileName
         }
 
-        messages.value.push(newMessage)
+        // 处理视频消息
+        if ((data.data.messageType || data.data.type) === 'video') {
+          newMessage.mediaUrl = data.data.mediaUrl
+          newMessage.thumbnailUrl = data.data.thumbnailUrl
+          newMessage.fileName = data.data.fileName
+          newMessage.size = data.data.fileSize ? formatFileSize(data.data.fileSize) : '未知大小'
+          newMessage.fileExtension = data.data.fileExtension
+          newMessage.videoInfo = data.data.videoInfo || {
+            duration: data.data.duration,
+            width: data.data.width,
+            height: data.data.height
+          }
+        }
 
-        // 只有在滚动条接近底部时才自动滚动
+        // 将新消息添加到消息列表头部（因为我们按时间倒序排列）
+        messages.value.unshift(newMessage)
+
+        // 保存当前滚动位置
+        const container = messagesContainer.value
+        const previousScrollTop = container ? container.scrollTop : 0
+
+        // 在DOM更新后处理滚动
         nextTick(() => {
-          if (messagesContainer.value) {
-            const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
-            // 如果用户接近底部（距离底部小于50像素），则自动滚动
-            if (scrollTop + clientHeight >= scrollHeight - 50) {
-              messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+          if (container) {
+            // 如果用户原来就在顶部附近，保持滚动位置不变（这样会自动显示新消息）
+            // 如果用户在其他位置浏览历史消息，则保持当前位置
+            if (Math.abs(previousScrollTop) <= 50) {
+              // 用户在顶部附近，滚动到顶部以显示新消息
+              container.scrollTop = 0
+            } else {
+              // 用户在浏览历史消息，保持当前位置
+              // 由于添加了新消息，需要调整滚动位置以保持视觉稳定
+              const newScrollHeight = container.scrollHeight
+              const oldScrollHeight = newScrollHeight - (messages.value[0]?.elementHeight || 0)
+              const scrollOffset = newScrollHeight - oldScrollHeight
+              container.scrollTop = previousScrollTop - scrollOffset
             }
           }
         })
@@ -721,21 +750,42 @@ const shouldShowSenderName = (message) => {
 // 处理滚动事件，实现无限滚动加载
 const handleScroll = () => {
   const container = messagesContainer.value
-  if (!container || loadingMore.value || !pagination.value.hasPrevPage) return
 
-  // 当滚动到顶部附近时加载更多消息
-  if (container.scrollTop <= 20) {
-    loadMoreMessages()
+  if (!container) {
+    console.log('没有容器元素，返回')
+    return
+  }
+
+  if (loadingMore.value) {
+    console.log('正在加载更多，返回')
+    return
+  }
+
+  const scrollTop = Math.abs(container.scrollTop)
+  const scrollHeight = container.scrollHeight
+  const clientHeight = container.clientHeight
+  const threshold = 5 // 距离底部5像素时触发加载
+
+  // 当接近底部时加载更多历史消息
+  if (scrollTop + clientHeight >= scrollHeight - threshold) {
+    // 检查是否有下一页（更旧的历史消息）
+    if (pagination.value && pagination.value.hasNextPage) {
+      console.log("有下一页数据，加载更多历史消息")
+      loadMoreMessages()
+    } else {
+      console.log("没有更多历史消息可加载")
+    }
   }
 }
 
 // 加载更多消息（向上翻页）
 const loadMoreMessages = async () => {
-  if (loadingMore.value || !pagination.value.hasPrevPage) return
+  if (loadingMore.value || !pagination.value.hasNextPage) return
 
   loadingMore.value = true
   const sessionId = contactStore.selectedContact?.id
   if (sessionId) {
+    console.log('awdawdwa')
     await loadMessages(sessionId, pagination.value.currentPage + 1, true)
   }
   loadingMore.value = false
@@ -917,7 +967,7 @@ const sendMessageHandler = async () => {
       console.error('发送消息失败:', error)
       // 可以在这里添加错误处理，比如显示错误消息给用户
     }
-    messages.value.push(timestampMessage)
+    messages.value.unshift(timestampMessage)
   }
 
   // 按顺序发送消息项
@@ -938,7 +988,7 @@ const sendMessageHandler = async () => {
       }
 
       // 立即显示图片消息（优化用户体验）
-      messages.value.push(localImageMessage)
+      messages.value.unshift(localImageMessage)
 
       try {
         // 构造图片消息对象
@@ -1003,7 +1053,7 @@ const sendMessageHandler = async () => {
       }
 
       // 立即显示消息（优化用户体验）
-      messages.value.push(localMessage)
+      messages.value.unshift(localMessage)
 
       try {
         // 构造消息对象
@@ -1548,7 +1598,7 @@ const uploadFiles = async (file) => {
         }
 
         // 立即显示视频消息（优化用户体验）
-        messages.value.push(localVideoMessage)
+        messages.value.unshift(localVideoMessage)
 
         try {
           // 构造视频消息对象
@@ -1664,7 +1714,7 @@ const uploadFiles = async (file) => {
         }
 
         // 立即显示文件消息（优化用户体验）
-        messages.value.push(localFileMessage)
+        messages.value.unshift(localFileMessage)
 
         try {
           // 构造文件消息对象
@@ -2726,7 +2776,7 @@ const formatDuration = (seconds) => {
   padding: 0;
   box-shadow: none;
   border: none;
-  max-width: 300px;
+  max-width: 250px;
 }
 
 .video-container {

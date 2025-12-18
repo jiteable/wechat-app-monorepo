@@ -48,7 +48,9 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
       }
     });
 
-    // 查询消息记录，按创建时间正序排列（从旧到新）
+    console.log('totalMessages: ', totalMessages)
+
+    // 查询消息记录，按创建时间倒序排列（从新到旧）
     const messages = await db.unifiedMessage.findMany({
       where: {
         sessionId: sessionId
@@ -76,7 +78,7 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
         file: true
       },
       orderBy: {
-        createdAt: 'asc'
+        createdAt: 'desc' // 改为降序排列，获取最新的消息
       },
       skip: skip,
       take: limit
@@ -95,7 +97,13 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
       }
     });
 
-    console.log('messsagesssaaaaaaaaaaaaaaaa: ', messages)
+    console.log('messsagesssaaaaaaaaaaaaaaaa: ', messages.length)
+
+    // 计算分页信息（由于改为降序，需要重新计算分页逻辑）
+    const totalPages = Math.ceil(totalMessages / limit);
+    console.log('totalPages: ', totalPages)
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     res.json({
       success: true,
@@ -103,18 +111,20 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
         messages: messages,
         pagination: {
           currentPage: page,
-          totalPages: Math.ceil(totalMessages / limit),
+          totalPages: totalPages,
           totalMessages: totalMessages,
-          hasNextPage: page < Math.ceil(totalMessages / limit),
-          hasPrevPage: page > 1
+          hasNextPage: hasNextPage,
+          hasPrevPage: hasPrevPage
         }
       }
     });
   } catch (error) {
     console.error('获取消息失败:', error);
+    // 添加更详细的错误信息
     res.status(500).json({
       success: false,
-      error: '获取消息失败'
+      error: '获取消息失败',
+      message: error.message
     });
   }
 });
@@ -137,7 +147,12 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
       fileName,
       fileSize,
       mimeType,
-      fileExtension
+      fileExtension,
+      videoInfo, // 添加视频信息参数
+      thumbnailUrl, // 添加缩略图URL参数
+      duration, // 添加视频时长参数
+      width, // 添加视频宽度参数
+      height // 添加视频高度参数
     } = req.body;
 
 
@@ -184,10 +199,12 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
     }
 
     // 根据消息类型构建消息内容
-    let messageContent = '';
-    let messageMediaUrl = null;
-    let messageFileName = null;
-    let messageFileSize = null;
+    let messageContent = content;
+    let messageMediaUrl = mediaUrl;
+    let messageFileName = fileName;
+    let messageFileSize = fileSize;
+    let messageThumbnailUrl = thumbnailUrl; // 添加缩略图URL变量
+    let messageVideoInfo = videoInfo; // 添加视频信息变量
 
     switch (messageType) {
       case 'text':
@@ -215,6 +232,22 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
         }
         messageContent = content || ''; // 可选的描述内容
         messageMediaUrl = mediaUrl;
+
+        // 特别处理视频消息
+        if (messageType === 'video') {
+          messageThumbnailUrl = thumbnailUrl || null;
+          messageVideoInfo = videoInfo || {};
+
+          // 如果提供了单独的视频参数，则整合进videoInfo
+          if (duration || width || height) {
+            messageVideoInfo = {
+              ...messageVideoInfo,
+              duration: duration || messageVideoInfo.duration,
+              width: width || messageVideoInfo.width,
+              height: height || messageVideoInfo.height
+            };
+          }
+        }
 
         if (messageType === 'file') {
           if (!fileName || !fileSize) {
@@ -250,7 +283,7 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
 
     // 如果是文件类型，同时创建文件记录
     let fileRecord = null;
-    if (messageType === 'file' && mediaUrl && fileName && fileSize) {
+    if ((messageType === 'file' || messageType === 'video') && mediaUrl && fileName && fileSize) {
       // 简单判断文件类型
       let fileType = 'document';
       if (fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) {
@@ -261,6 +294,12 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
         fileType = 'audio';
       }
 
+      // 准备视频信息（如果有的话）
+      let fileVideoInfo = null;
+      if (messageType === 'video' && messageVideoInfo) {
+        fileVideoInfo = messageVideoInfo;
+      }
+
       fileRecord = await db.file.create({
         data: {
           name: fileName,
@@ -269,7 +308,12 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
           mimeType: mimeType || '', // 使用传入的mimeType，如果没有则为空字符串
           fileType: fileType,
           fileExtension: fileExtension || path.extname(fileName).toLowerCase(), // 使用传入的扩展名或从文件名提取
-          uploaderId: senderId
+          uploaderId: senderId,
+          thumbnailUrl: messageThumbnailUrl || null, // 将缩略图URL存储在文件记录中
+          // 将视频信息存储在单独的video模型中，并与file建立关系
+          video: messageVideoInfo ? {
+            create: messageVideoInfo
+          } : undefined
         }
       });
     }
@@ -342,6 +386,15 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
       }
     };
 
+    // 从文件记录中获取视频相关信息
+    if (newMessage.file && newMessage.file.thumbnailUrl) {
+      messageToSend.data.thumbnailUrl = newMessage.file.thumbnailUrl;
+    }
+
+    if (newMessage.file && newMessage.file.video) {
+      messageToSend.data.videoInfo = newMessage.file.video;
+    }
+
     // 获取WebSocket客户端映射
     const { getWebSocketClients } = require('../websocket/clients');
     const clients = getWebSocketClients();
@@ -352,7 +405,7 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
     }
 
     // 返回成功响应
-    res.status(201).json({
+    const responseData = {
       success: true,
       data: {
         messageId: newMessage.id,
@@ -367,7 +420,20 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
         createdAt: newMessage.createdAt
       },
       message: '消息发送成功'
-    });
+    };
+
+    // 从文件记录中获取视频相关信息
+    if (newMessage.file && newMessage.file.thumbnailUrl) {
+      responseData.data.thumbnailUrl = newMessage.file.thumbnailUrl;
+    }
+
+    if (newMessage.file && newMessage.file.video) {
+      responseData.data.videoInfo = newMessage.file.video;
+    }
+
+    console.log('responseData: ', responseData)
+
+    res.status(201).json(responseData);
   } catch (error) {
     console.error('发送消息失败:', error);
     res.status(500).json({
