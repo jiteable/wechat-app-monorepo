@@ -4,6 +4,7 @@ import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { initWs, sendMessage } from './wsClient'
 import { downloadFile } from './fileDownloader'
+import { databaseManager } from './db'
 
 let mainWindow: BrowserWindow | null = null
 let loginWindow: BrowserWindow | null = null
@@ -275,6 +276,14 @@ export function createLoginWindow(icon: string): void {
 }
 
 export function createMainWindow(icon: string): BrowserWindow {
+  // 检查数据库是否存在，如果不存在则创建
+  if (!databaseManager.checkDatabaseExists()) {
+    databaseManager.createDatabase()
+    console.log('数据库已创建')
+  } else {
+    console.log('数据库已存在')
+  }
+
   // Create the browser window.
   const newMainWindow = new BrowserWindow({
     width: Math.round(1250 / scaleFactor),
