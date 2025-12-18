@@ -330,7 +330,7 @@ const getMessageType = (type) => {
     case 'text':
       return '文本消息'
     case 'image':
-      return '图片与视频'
+      return '图片'
     case 'file':
       return '文件'
     case 'emoji':

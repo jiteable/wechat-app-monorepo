@@ -47,6 +47,15 @@ export interface Message {
   }
 }
 
+export interface videoInfo {
+  duration: string
+  width: number
+  height: number
+  bitrate: string
+  fps: number
+  thumbnailUrl: string
+}
+
 export interface GetMessagesResponse {
   success: boolean
   data: {
@@ -87,6 +96,7 @@ export interface SendMessageRequest {
   fileSize?: number // 文件大小（file类型必传，单位字节）
   mimeType?: string // MIME类型（file类型可选）
   fileExtension?: string // 文件扩展名（file类型可选）
+  videoInfo?: videoInfo
 }
 
 // 发送消息响应

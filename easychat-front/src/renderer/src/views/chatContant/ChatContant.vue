@@ -102,6 +102,34 @@
                   </div>
                 </div>
 
+                <!--视频消息-->
+                <div v-else-if="message.type === 'video'" :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'
+                  ">
+                  <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
+                  <div class="box">
+                    <div v-if="shouldShowSenderName(message)" class="message-sender">
+                      {{ message.senderName }}
+                    </div>
+                    <div class="message-bubble video-message-bubble">
+                      <div class="video-container" @click="playVideo(message.mediaUrl)">
+                        <img v-if="message.thumbnailUrl" :src="message.thumbnailUrl" :alt="message.content"
+                          class="video-thumbnail" />
+                        <div v-else class="video-placeholder">
+                          <span class="icon iconfont icon-video"></span>
+                          <p>视频消息</p>
+                        </div>
+                        <div class="video-overlay">
+                          <span class="icon iconfont icon-play"></span>
+                        </div>
+                        <!-- 添加视频时长显示 -->
+                        <div v-if="message.videoInfo && message.videoInfo.duration" class="video-duration-overlay">
+                          {{ formatDuration(message.videoInfo.duration) }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 普通消息 -->
                 <div
                   v-else
@@ -1488,16 +1516,112 @@ const uploadFiles = async (file) => {
   }
   // 判断是否为视频文件
   else if (videoExtensions.includes(fileExtension)) {
-    // 如果是视频文件，仅打印视频信息，暂不处理上传
-    loading.close()
-    console.log('选择了视频文件:', file)
-    uploadVideo(file, contactStore.selectedContact.id, file.name)
-    ElMessage.info(`选择了视频文件: ${file.name}，当前版本暂不支持视频上传`)
+    // 如果是视频文件，上传视频
+    try {
+      console.log('选择了视频文件:', file)
+      const response = await uploadVideo(file, contactStore.selectedContact.id, file.name)
+      loading.close()
+      console.log('videoInfo: ', response)
 
-    // 如果以后需要支持视频上传，可以在这里添加相应逻辑
-    // 类似于图片和文件的处理方式
-  }
-  else {
+      if (response.success) {
+        ElMessage.success(`视频上传成功: ${file.name}`)
+        console.log('视频上传成功，URL:', response.mediaUrl)
+
+        // 视频上传成功后，构造视频消息并发送
+        const selectedContact = contactStore.selectedContact
+
+        // 创建本地视频消息对象（用于立即显示）
+        const localVideoMessage = {
+          id: Date.now() + Math.random(), // 临时ID
+          type: 'video',
+          senderId: userStore.userId,
+          senderName: userStore.username || '我',
+          senderAvatar: userStore.avatar || '',
+          content: response.originalName, // 视频名
+          mediaUrl: response.mediaUrl, // 视频URL
+          thumbnailUrl: response.videoInfo?.thumbnailUrl, // 缩略图URL
+          size: formatFileSize(response.fileSize), // 视频大小
+          mimeType: response.mimeType, // MIME类型
+          fileExtension: response.fileExtension, // 文件扩展名
+          videoInfo: response.videoInfo, // 视频信息
+          createdAt: new Date().toISOString()
+        }
+
+        // 立即显示视频消息（优化用户体验）
+        messages.value.push(localVideoMessage)
+
+        try {
+          // 构造视频消息对象
+          const videoMessageData = {
+            sessionId: selectedContact.id,
+            senderId: userStore.userId,
+            messageType: 'video',
+            content: response.originalName,
+            mediaUrl: response.mediaUrl,
+            thumbnailUrl: response.videoInfo?.thumbnailUrl,
+            fileName: response.originalName,
+            fileSize: response.fileSize,
+            mimeType: response.mimeType,
+            fileExtension: response.fileExtension,
+            videoInfo: response.videoInfo
+          }
+          // 如果是私聊
+          if (selectedContact.sessionType === 'private') {
+            videoMessageData.receiverId = selectedContact.contactId
+          }
+          // 如果是群聊
+          else if (selectedContact.sessionType === 'group') {
+            videoMessageData.groupId = selectedContact.group?.id
+          }
+
+          // 通过WebSocket发送实时消息
+          if (window.api && typeof window.api.sendMessage === 'function') {
+            window.api.sendMessage({
+              type: 'send_message',
+              data: videoMessageData
+            })
+          }
+
+          // 通过HTTP API发送消息到后端（用于持久化存储）
+          const sendResponse = await sendMessage(videoMessageData)
+          console.log('视频消息发送成功:', sendResponse)
+
+          // 发送自定义事件更新ChatList中的lastMessage
+          const lastMessageData = {
+            sessionId: selectedContact.id,
+            lastMessage: {
+              content: `[视频]${response.originalName}`,
+              messageType: 'video',
+              fileName: response.originalName,
+              fileSize: response.fileSize,
+              senderName: userStore.username || '我',
+              mediaUrl: response.mediaUrl,
+              isRecalled: false,
+              isDeleted: false
+            },
+            timestamp: new Date().toISOString()
+          }
+          window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }))
+
+          // 自动滚动到底部
+          nextTick(() => {
+            if (messagesContainer.value) {
+              messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+            }
+          })
+        } catch (sendError) {
+          console.error('发送视频消息失败:', sendError)
+          ElMessage.error(`发送视频消息失败: ${sendError.message || '未知错误'}`)
+        }
+      } else {
+        ElMessage.error(`视频上传失败: ${response.error || '未知错误'}`)
+      }
+    } catch (error) {
+      loading.close()
+      console.error('视频上传异常:', error)
+      ElMessage.error(`视频上传异常: ${error.message || '网络错误'}`)
+    }
+  } else {
     // 如果是其他类型文件，限制不能超过1GB
     const maxSize = 1 * 1024 * 1024 * 1024 // 1GB in bytes
     if (file.size > maxSize) {
@@ -1854,6 +1978,20 @@ const attemptBrowserDownload = (url, filename) => {
       ElMessage.error('无法下载文件，请检查网络连接或稍后再试')
     }
   }
+}
+
+const playVideo = (videoUrl) => {
+  // 在新窗口中播放视频或者使用模态框播放
+  window.open(videoUrl, '_blank')
+}
+
+const formatDuration = (seconds) => {
+  if (!seconds) return ''
+
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 </script>
 <style scoped>
@@ -2581,5 +2719,96 @@ const attemptBrowserDownload = (url, filename) => {
   border-radius: 4px;
   font-size: 16px;
   color: #606266;
+}
+
+.video-message-bubble {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+  border: none;
+  max-width: 300px;
+}
+
+.video-container {
+  position: relative;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  border: 1px solid #e0e0e0;
+}
+
+.video-thumbnail {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+.video-placeholder .icon-video {
+  font-size: 32px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.video-placeholder p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-overlay .icon-play {
+  font-size: 20px;
+  color: white;
+}
+
+.video-duration-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 2;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
 }
 </style>

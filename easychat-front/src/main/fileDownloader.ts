@@ -1,4 +1,4 @@
-import { app, net } from 'electron'
+import { net } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 
