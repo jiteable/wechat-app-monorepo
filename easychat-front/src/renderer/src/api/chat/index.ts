@@ -11,6 +11,7 @@ import {
 enum API {
   SEND_MESSAGE_URL = '/chat/sendChat',
   GET_MESSAGES_URL = '/chat/getChat',
+  GET_ALL_MESSAGES_URL = '/chat/getAllChat', // 添加获取所有消息的URL
   MARK_AS_READ_URL = '/chat/markAsRead/'
 }
 
@@ -36,6 +37,14 @@ export const getMessages = (params: GetMessagesRequest) => {
       limit
     }
   })
+}
+
+/**
+ * 获取用户所有聊天记录
+ * @returns 用户所有聊天记录
+ */
+export const getAllMessages = () => {
+  return http.get<GetMessagesResponse>(`${config.api}${API.GET_ALL_MESSAGES_URL}`)
 }
 
 /**

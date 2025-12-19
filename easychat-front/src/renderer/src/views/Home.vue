@@ -74,16 +74,15 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed, onUnmounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { Grid } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/userStore'
-import { useUserSetStore } from '@/store/userSetStore'
 import { userContactStore } from '@/store/userContactStore'
-import { getUserInfo } from '@/api/user'
-import { getUserSettingInfo } from '@/api/user'
+import { useUserSetStore } from '@/store/userSetStore'
 import { getSessions } from '@/api/chatSession'
+import { getMessages, getAllMessages } from '@/api/chat' // 更新导入
+import { getUserInfo, getUserSettingInfo } from '@/api/user'
+import { ElMessageBox, ElMessage } from 'element-plus'
 
 const userStore = useUserStore()
 const userSetStore = useUserSetStore()
@@ -164,14 +163,65 @@ const confirmLoadChatHistory = async () => {
     const response = await getSessions()
 
     if (response.success) {
-      // 同步到本地数据库
+      // 同步会话到本地数据库
       const syncResult = await window.api.syncChatSessions(response.data)
 
       if (syncResult.success) {
         console.log('聊天会话同步成功')
+
+        // 获取用户所有消息
+        const allMessagesResponse = await getAllMessages()
+
+        if (allMessagesResponse.success) {
+          // 保存所有消息到本地数据库
+          for (const session of response.data) {
+            // 获取该会话的所有消息
+            const messagesResponse = await getMessages({ sessionId: session.id, page: 1, limit: 1000 })
+
+            if (messagesResponse.data.success) {
+              // 逐个保存消息到本地数据库
+              for (const message of messagesResponse.data.messages) {
+                try {
+                  // 构造消息数据对象
+                  const messageData = {
+                    id: message.id,
+                    sessionId: message.sessionId,
+                    senderId: message.senderId,
+                    receiverId: message.receiverId,
+                    groupId: message.groupId,
+                    content: message.content,
+                    messageType: message.messageType,
+                    mediaUrl: message.mediaUrl,
+                    fileName: message.fileName,
+                    fileSize: message.fileSize,
+                    mimeType: message.mimeType,
+                    fileExtension: message.fileExtension,
+                    thumbnailUrl: message.thumbnailUrl,
+                    videoInfo: message.videoInfo,
+                    isRecalled: message.isRecalled || false,
+                    isDeleted: message.isDeleted || false,
+                    status: 'RECEIVED', // 默认设为已接收
+                    readStatus: true, // 默认设为已读
+                    createdAt: message.createdAt,
+                    updatedAt: message.updatedAt
+                  }
+
+                  // 保存消息到本地数据库
+                  await window.api.addUnifiedMessage(messageData)
+                } catch (saveError) {
+                  console.error('保存单条消息失败:', saveError)
+                }
+              }
+            }
+          }
+
+          ElMessage.success('聊天记录同步成功')
+        } else {
+          ElMessage.warning('聊天会话同步成功，但消息同步失败')
+        }
+
         // 更新最后同步时间
         await window.api.setLastSyncTime(new Date())
-        ElMessage.success('聊天记录同步成功')
       } else {
         console.error('同步聊天会话失败:', syncResult.error)
         ElMessage.error('聊天记录同步失败: ' + syncResult.error)

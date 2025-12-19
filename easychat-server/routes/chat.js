@@ -463,6 +463,98 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
 });
 
 /**
+ * 获取用户所有聊天记录接口
+ */
+router.get('/getAllChat', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 查询用户参与的所有会话
+    const sessions = await db.chatSession.findMany({
+      where: {
+        ChatSessionUsers: {
+          some: {
+            userId: userId
+          }
+        }
+      },
+      include: {
+        ChatSessionUsers: true
+      }
+    });
+
+    // 获取所有会话的ID
+    const sessionIds = sessions.map(session => session.id);
+
+    // 查询所有消息记录
+    const messages = await db.unifiedMessage.findMany({
+      where: {
+        sessionId: {
+          in: sessionIds
+        }
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            chatId: true,
+            username: true,
+            email: true,
+            avatar: true
+          }
+        },
+        receiver: {
+          select: {
+            id: true,
+            chatId: true,
+            username: true,
+            email: true,
+            avatar: true
+          }
+        },
+        group: true,
+        file: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // 处理消息数据，确保视频文件的thumbnailUrl被包含
+    const processedMessages = messages.map(message => {
+      if (message.file && message.file.thumbnailUrl) {
+        const processedMessage = {
+          ...message,
+          thumbnailUrl: message.file.thumbnailUrl
+        };
+
+        // 如果文件有关联的视频信息，也包含视频的宽度和高度
+        if (message.file.video) {
+          processedMessage.videoInfo = processedMessage.videoInfo || {};
+          processedMessage.videoInfo.videoWidth = message.file.video.width;
+          processedMessage.videoInfo.videoHeight = message.file.video.height;
+        }
+
+        return processedMessage;
+      }
+      return message;
+    });
+
+    res.json({
+      success: true,
+      data: processedMessages
+    });
+  } catch (error) {
+    console.error('获取所有消息失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取所有消息失败',
+      message: error.message
+    });
+  }
+});
+
+/**
  * 标记会话中的消息为已读
  */
 router.post('/markAsRead/:sessionId', authenticateToken, async (req, res) => {
