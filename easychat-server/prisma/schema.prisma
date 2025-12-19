@@ -264,8 +264,6 @@ model Video {
   @@index([createdAt])
 }
 
-
-// 聊天会话模型 - 用于确定用户进入的是群聊还是私聊
 // 聊天会话模型 - 用于确定用户进入的是群聊还是私聊
 model ChatSession {
   id              String      @id @default(cuid())       // 会话唯一标识符
