@@ -65,5 +65,10 @@ interface Window {
 
     // 文件下载相关
     downloadFile: (url: string, fileName: string, savePath: string) => Promise<any>
+
+    //本地数据库相关
+    addChatSession: () => Promise<any>
+    getAllChatSessions: () => Promise<any>
+    clearChatSessions: () => Promise<any>
   }
 }

@@ -70,7 +70,12 @@ const api = {
 
   // 文件下载相关
   downloadFile: (url: string, fileName: string, savePath: string): Promise<any> =>
-    ipcRenderer.invoke('download-file', url, fileName, savePath)
+    ipcRenderer.invoke('download-file', url, fileName, savePath),
+
+  // 本地数据库相关
+  addChatSession: (): Promise<any> => ipcRenderer.invoke('add-chat-session'),
+  getAllChatSessions: (): Promise<any> => ipcRenderer.invoke('get-all-chat-sessions'),
+  clearChatSessions: (): Promise<any> => ipcRenderer.invoke('clear-chat-sessions')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

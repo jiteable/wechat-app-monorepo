@@ -146,6 +146,11 @@ export function createSetWindow(icon: string): void {
     setWindow = null
   })
 
+  // 当设置窗口打开时，清空ChatSession表中的数据
+  databaseManager.clearChatSessions().catch((error) => {
+    console.error('清空ChatSession表失败:', error)
+  })
+
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     setWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/settings')
@@ -279,9 +284,9 @@ export function createMainWindow(icon: string): BrowserWindow {
   // 检查数据库是否存在，如果不存在则创建
   if (!databaseManager.checkDatabaseExists()) {
     databaseManager.createDatabase()
-    console.log('数据库已创建')
   } else {
-    console.log('数据库已存在')
+    // 即使数据库存在，也要确保所有表都已创建
+    databaseManager.initializeTables()
   }
 
   // Create the browser window.
@@ -513,8 +518,8 @@ export function setupIpcHandlers(icon: string): void {
   })
 
   // 聊天消息窗口相关事件
-  ipcMain.on('open-chat-message-window', () => {
-    createChatMessageWindow(icon)
+  ipcMain.on('open-chat-message-window', (event, contactData) => {
+    createChatMessageWindow(icon, contactData)
   })
 
   ipcMain.on('close-chat-message-window', () => {
@@ -586,5 +591,36 @@ export function setupIpcHandlers(icon: string): void {
   // 修改打开聊天消息窗口的IPC处理程序
   ipcMain.on('open-chat-message-window', (event, contactData) => {
     createChatMessageWindow(icon, contactData)
+  })
+
+  // 本地数据库
+  // 添加ChatSession的IPC处理程序
+  ipcMain.handle('add-chat-session', async () => {
+    try {
+      const result = await databaseManager.addChatSession()
+      return { success: true, data: result }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  // 添加获取所有ChatSession的IPC处理程序
+  ipcMain.handle('get-all-chat-sessions', async () => {
+    try {
+      const sessions = await databaseManager.getAllChatSessions()
+      return { success: true, data: sessions }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  // 添加清空ChatSession的IPC处理程序
+  ipcMain.handle('clear-chat-sessions', async () => {
+    try {
+      await databaseManager.clearChatSessions()
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
   })
 }
