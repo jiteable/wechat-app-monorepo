@@ -1727,6 +1727,40 @@ const uploadFiles = async (file) => {
           const sendResponse = await sendMessage(videoMessageData)
           console.log('视频消息发送成功:', sendResponse)
 
+          // 保存消息到本地数据库
+          try {
+            if (window.api && typeof window.api.addUnifiedMessage === 'function') {
+              const messageSaveData = {
+                id: sendResponse.data.messageId,
+                sessionId: selectedContact.id,
+                senderId: userStore.userId,
+                receiverId: selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
+                groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
+                content: response.originalName,
+                messageType: 'video',
+                mediaUrl: response.mediaUrl,
+                fileName: response.originalName,
+                fileSize: response.fileSize,
+                mimeType: response.mimeType,
+                fileExtension: response.fileExtension,
+                videoInfo: response.videoInfo,
+                status: 'SENT',
+                readStatus: true,
+                createdAt: sendResponse.data.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }
+
+              const result = await window.api.addUnifiedMessage(messageSaveData)
+              if (result.success) {
+                console.log('视频消息已保存到本地数据库:', result.data)
+              } else {
+                console.error('保存视频消息到本地数据库失败:', result.error)
+              }
+            }
+          } catch (error) {
+            console.error('调用addUnifiedMessage时发生错误:', error)
+          }
+
           // 发送自定义事件更新ChatList中的lastMessage
           const lastMessageData = {
             sessionId: selectedContact.id,
