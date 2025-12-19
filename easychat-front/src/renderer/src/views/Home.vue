@@ -75,7 +75,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/userStore'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserSetStore } from '@/store/userSetStore'
@@ -170,54 +170,84 @@ const confirmLoadChatHistory = async () => {
         console.log('聊天会话同步成功')
 
         // 获取用户所有消息
-        const allMessagesResponse = await getAllMessages()
+        let allMessagesLoaded = true
 
-        if (allMessagesResponse.success) {
-          // 保存所有消息到本地数据库
-          for (const session of response.data) {
-            // 获取该会话的所有消息
-            const messagesResponse = await getMessages({ sessionId: session.id, page: 1, limit: 1000 })
+        try {
+          // 一次性获取所有消息
+          const messagesResponse = await getAllMessages()
 
-            if (messagesResponse.data.success) {
-              // 逐个保存消息到本地数据库
-              for (const message of messagesResponse.data.messages) {
-                try {
-                  // 构造消息数据对象
-                  const messageData = {
-                    id: message.id,
-                    sessionId: message.sessionId,
-                    senderId: message.senderId,
-                    receiverId: message.receiverId,
-                    groupId: message.groupId,
-                    content: message.content,
-                    messageType: message.messageType,
-                    mediaUrl: message.mediaUrl,
-                    fileName: message.fileName,
-                    fileSize: message.fileSize,
-                    mimeType: message.mimeType,
-                    fileExtension: message.fileExtension,
-                    thumbnailUrl: message.thumbnailUrl,
-                    videoInfo: message.videoInfo,
-                    isRecalled: message.isRecalled || false,
-                    isDeleted: message.isDeleted || false,
-                    status: 'RECEIVED', // 默认设为已接收
-                    readStatus: true, // 默认设为已读
-                    createdAt: message.createdAt,
-                    updatedAt: message.updatedAt
-                  }
+          // 修复判断条件：检查响应结构中的success字段而不是整个响应对象
+          if (messagesResponse && messagesResponse.data && messagesResponse.data.success) {
+            console.log('获取到消息数量:', messagesResponse.data.data.length)
 
-                  // 保存消息到本地数据库
-                  await window.api.addUnifiedMessage(messageData)
-                } catch (saveError) {
-                  console.error('保存单条消息失败:', saveError)
+            // 逐个保存消息到本地数据库
+            for (const message of messagesResponse.data.data) {
+              try {
+                // 处理文件相关信息
+                let fileName = message.fileName
+                let fileSize = message.fileSize
+                let mimeType = message.mimeType
+                let fileExtension = message.fileExtension
+                let mediaUrl = message.mediaUrl
+                let thumbnailUrl = message.thumbnailUrl
+
+                // 如果消息包含文件对象，则从中提取信息
+                if (message.file) {
+                  fileName = message.file.name || fileName
+                  fileSize = message.file.size || fileSize
+                  mimeType = message.file.mimeType || mimeType
+                  fileExtension = message.file.fileExtension || fileExtension
+                  mediaUrl = message.file.url || mediaUrl
+                  thumbnailUrl = message.file.thumbnailUrl || thumbnailUrl
                 }
+
+                // 构造消息数据对象
+                const messageData = {
+                  id: message.id,
+                  sessionId: message.sessionId,
+                  senderId: message.senderId,
+                  receiverId: message.receiverId,
+                  groupId: message.groupId,
+                  content: message.content,
+                  messageType: message.messageType,
+                  mediaUrl: mediaUrl,
+                  fileName: fileName,
+                  fileSize: fileSize,
+                  mimeType: mimeType,
+                  fileExtension: fileExtension,
+                  thumbnailUrl: thumbnailUrl,
+                  videoInfo: message.videoInfo,
+                  isRecalled: message.isRecalled || false,
+                  isDeleted: message.isDeleted || false,
+                  status: 'RECEIVED', // 默认设为已接收
+                  readStatus: true, // 默认设为已读
+                  createdAt: message.createdAt,
+                  updatedAt: message.updatedAt
+                }
+
+                console.log('准备保存消息:', messageData)
+
+                // 保存消息到本地数据库
+                const result = await window.api.addUnifiedMessage(messageData)
+                console.log('消息保存结果:', result)
+              } catch (saveError) {
+                console.error('保存单条消息失败:', saveError)
+                allMessagesLoaded = false
               }
             }
+          } else {
+            console.error('获取所有消息失败:', messagesResponse)
+            allMessagesLoaded = false
           }
+        } catch (error) {
+          console.error('获取所有消息时出错:', error)
+          allMessagesLoaded = false
+        }
 
+        if (allMessagesLoaded) {
           ElMessage.success('聊天记录同步成功')
         } else {
-          ElMessage.warning('聊天会话同步成功，但消息同步失败')
+          ElMessage.warning('聊天会话同步成功，但部分消息同步失败')
         }
 
         // 更新最后同步时间
