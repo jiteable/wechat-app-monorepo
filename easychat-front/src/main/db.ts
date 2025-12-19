@@ -3,7 +3,6 @@ import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import sqlite3 from 'sqlite3'
 import { open } from 'sqlite'
-import { randomUUID } from 'crypto'
 
 /**
  * 数据库管理类
@@ -173,6 +172,16 @@ class DatabaseManager {
    */
   public async addChatSession(sessionData: any): Promise<any> {
     try {
+      // 确保传入了必要的数据
+      if (!sessionData) {
+        throw new Error('会话数据不能为空')
+      }
+
+      // 检查必要字段
+      if (!sessionData.id) {
+        throw new Error('会话数据必须包含id字段')
+      }
+
       // 确保表存在
       await this.initializeTables()
 
@@ -345,6 +354,178 @@ class DatabaseManager {
       console.error('Delete ChatSession failed:', error)
       throw error
     }
+  }
+
+  /**
+   * 向UnifiedMessage表中添加一条数据
+   */
+  public async addUnifiedMessage(messageData: any): Promise<any> {
+    try {
+      // 确保表存在
+      await this.initializeTables()
+
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      // 根据消息类型处理不同字段
+      let fileRecord: any = null
+      if (
+        (messageData.messageType === 'file' || messageData.messageType === 'video') &&
+        messageData.mediaUrl &&
+        messageData.fileName &&
+        messageData.fileSize
+      ) {
+        // 创建文件记录
+        fileRecord = await db.run(
+          `INSERT INTO File 
+           (id, name, url, thumbnailUrl, size, mimeType, fileExtension, fileType, uploaderId, createdAt, expireAt, sessionId)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            messageData.fileId || this.generateUUID(),
+            messageData.fileName,
+            messageData.mediaUrl,
+            messageData.thumbnailUrl || null,
+            messageData.fileSize,
+            messageData.mimeType || '',
+            messageData.fileExtension || this.getFileExtension(messageData.fileName),
+            messageData.fileType || this.getFileType(messageData.fileName),
+            messageData.senderId,
+            messageData.createdAt || new Date().toISOString(),
+            messageData.expireAt || null,
+            messageData.sessionId
+          ]
+        )
+
+        // 如果是视频消息，还需要创建视频记录
+        if (messageData.messageType === 'video' && messageData.videoInfo) {
+          await db.run(
+            `INSERT INTO Video 
+             (id, fileId, duration, width, height, bitrate, codec, fps, thumbnailUrl, previewUrl, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              this.generateUUID(),
+              fileRecord.lastID, // 使用刚创建的文件ID
+              messageData.videoInfo.duration || null,
+              messageData.videoInfo.width || null,
+              messageData.videoInfo.height || null,
+              messageData.videoInfo.bitrate || null,
+              messageData.videoInfo.codec || null,
+              messageData.videoInfo.fps || null,
+              messageData.videoInfo.thumbnailUrl || null,
+              messageData.videoInfo.previewUrl || null,
+              new Date().toISOString(),
+              new Date().toISOString()
+            ]
+          )
+        }
+      }
+
+      // 插入消息记录
+      const result = await db.run(
+        `INSERT INTO UnifiedMessage 
+         (id, sessionId, senderId, receiverId, groupId, content, messageType, mediaUrl, fileName, fileSize, 
+          isRecalled, isDeleted, status, readStatus, createdAt, updatedAt, recalledAt, deletedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          messageData.id || this.generateUUID(),
+          messageData.sessionId,
+          messageData.senderId,
+          messageData.receiverId || null,
+          messageData.groupId || null,
+          messageData.content || '',
+          messageData.messageType,
+          messageData.mediaUrl || null,
+          messageData.fileName || null,
+          messageData.fileSize || null,
+          messageData.isRecalled ? 1 : 0,
+          messageData.isDeleted ? 1 : 0,
+          messageData.status || 'SENT',
+          messageData.readStatus ? 1 : 0,
+          messageData.createdAt || new Date().toISOString(),
+          messageData.updatedAt || new Date().toISOString(),
+          messageData.recalledAt || null,
+          messageData.deletedAt || null
+        ]
+      )
+
+      console.log('成功向UnifiedMessage表中添加了一条数据')
+
+      // 查询刚刚插入的数据
+      const insertedMessage = await db.get(`SELECT * FROM UnifiedMessage WHERE id = ?`, [
+        messageData.id || result.lastID
+      ])
+
+      await db.close()
+
+      console.log('新创建的消息数据aaaaaaaa:', insertedMessage)
+      return insertedMessage
+    } catch (error) {
+      console.error('操作UnifiedMessage表失败:', error)
+      throw error
+    }
+  }
+
+  public async getAllUnifiedMessages(): Promise<any[]> {
+    try {
+      // 确保表存在
+      await this.initializeTables()
+
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      // 查询所有UnifiedMessage数据
+      const messages = await db.all(`SELECT * FROM UnifiedMessage`)
+
+      await db.close()
+
+      return messages
+    } catch (error) {
+      console.error('查询UnifiedMessage表失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 生成UUID
+   */
+  private generateUUID(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0
+      const v = c == 'x' ? r : (r & 0x3) | 0x8
+      return v.toString(16)
+    })
+  }
+
+  /**
+   * 根据文件名获取文件扩展名
+   */
+  private getFileExtension(fileName: string): string {
+    if (!fileName) return ''
+    const parts = fileName.split('.')
+    return parts.length > 1 ? '.' + parts.pop()?.toLowerCase() : ''
+  }
+
+  /**
+   * 根据文件名判断文件类型
+   */
+  private getFileType(fileName: string): string {
+    if (!fileName) return 'document'
+
+    const imageExtensions = ['.jpg', '.jpeg', '.jpe', '.jfif', '.png', '.gif', '.bmp', '.webp']
+    const videoExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv']
+    const audioExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.m4a']
+
+    const extension = this.getFileExtension(fileName)
+
+    if (imageExtensions.includes(extension)) return 'image'
+    if (videoExtensions.includes(extension)) return 'video'
+    if (audioExtensions.includes(extension)) return 'audio'
+
+    return 'document'
   }
   /**
    * 获取数据库路径

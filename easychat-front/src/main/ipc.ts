@@ -599,9 +599,14 @@ export function setupIpcHandlers(icon: string): void {
 
   // 本地数据库
   // 添加ChatSession的IPC处理程序
-  ipcMain.handle('add-chat-session', async () => {
+  ipcMain.handle('add-chat-session', async (_, sessionData) => {
     try {
-      const result = await databaseManager.addChatSession()
+      // 检查sessionData是否存在
+      if (!sessionData) {
+        return { success: false, error: '会话数据不能为空' }
+      }
+
+      const result = await databaseManager.addChatSession(sessionData)
       return { success: true, data: result }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
@@ -695,6 +700,25 @@ export function setupIpcHandlers(icon: string): void {
         success: false,
         error: error instanceof Error ? error.message : String(error)
       }
+    }
+  })
+
+  // 添加UnifiedMessage的IPC处理程序
+  ipcMain.handle('add-unified-message', async (_, messageData) => {
+    try {
+      const result = await databaseManager.addUnifiedMessage(messageData)
+      return { success: true, data: result }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('get-all-unified-messages', async () => {
+    try {
+      const messages = await databaseManager.getAllUnifiedMessages()
+      return { success: true, data: messages }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
 }

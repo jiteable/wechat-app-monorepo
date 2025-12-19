@@ -16,6 +16,7 @@ const contactWindow: BrowserWindow | null = null
 const addFriendWindow: BrowserWindow | null = null
 const setWindow: BrowserWindow | null = null
 const createGroupWindow: BrowserWindow | null = null
+const chatMessageWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 
 process.env.NODE_OPTIONS = '--experimental-fetch'
@@ -41,7 +42,7 @@ app.whenReady().then(() => {
   setScaleFactor(scaleFactor)
 
   // 设置窗口引用
-  setWindows(mainWindow, loginWindow, contactWindow, addFriendWindow, setWindow, createGroupWindow)
+  setWindows(mainWindow, loginWindow, contactWindow, addFriendWindow, setWindow, createGroupWindow, chatMessageWindow)
 
   // 监听刷新主窗口的请求
   ipcMain.on('refresh-main-window', () => {
@@ -69,7 +70,8 @@ app.whenReady().then(() => {
         contactWindow,
         addFriendWindow,
         setWindow,
-        createGroupWindow
+        createGroupWindow,
+        chatMessageWindow
       )
     } else {
       createLoginWindow(icon)
@@ -116,7 +118,8 @@ app.whenReady().then(() => {
           contactWindow,
           addFriendWindow,
           setWindow,
-          createGroupWindow
+          createGroupWindow,
+          chatMessageWindow
         )
       } else {
         createLoginWindow(icon)

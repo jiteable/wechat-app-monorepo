@@ -76,9 +76,13 @@ const api = {
   addChatSession: (): Promise<any> => ipcRenderer.invoke('add-chat-session'),
   getAllChatSessions: (): Promise<any> => ipcRenderer.invoke('get-all-chat-sessions'),
   clearChatSessions: (): Promise<any> => ipcRenderer.invoke('clear-chat-sessions'),
-  syncChatSessions: (sessions: any[]): Promise<any> => ipcRenderer.invoke('sync-chat-sessions', sessions),
+  syncChatSessions: (sessions: any[]): Promise<any> =>
+    ipcRenderer.invoke('sync-chat-sessions', sessions),
   getLastSyncTime: (): Promise<any> => ipcRenderer.invoke('get-last-sync-time'),
-  setLastSyncTime: (time: Date): Promise<any> => ipcRenderer.invoke('set-last-sync-time', time)
+  setLastSyncTime: (time: Date): Promise<any> => ipcRenderer.invoke('set-last-sync-time', time),
+  addUnifiedMessage: (messageData: any): Promise<any> =>
+    ipcRenderer.invoke('add-unified-message', messageData),
+  getAllUnifiedMessages: (): Promise<any> => ipcRenderer.invoke('get-all-unified-messages')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

@@ -71,5 +71,7 @@ interface Window {
     syncChatSessions: (sessions: any[]) => Promise<any>
     getLastSyncTime: () => Promise<any>
     setLastSyncTime: (time: Date) => Promise<any>
+    addUnifiedMessage: (messageData: any) => Promise<any>
+    getAllUnifiedMessages: () => Promise<any>
   }
 }

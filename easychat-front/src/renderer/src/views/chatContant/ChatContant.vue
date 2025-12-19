@@ -501,9 +501,10 @@ onBeforeUnmount(() => {
 })
 // 加载消息数据（带分页）
 const loadMessages = async (sessionId, page = 1, prepend = false) => {
+  const localMessagesResult = await window.api.getAllUnifiedMessages()
+  console.log('从本地数据库获取到消息:', localMessagesResult)
   try {
     const response = await getMessages({ sessionId, page, limit: 20 })
-    console.log('responsesssssss: ', response.data.data)
     if (response.data.success) {
       // 更新分页信息
       pagination.value = response.data.data.pagination
@@ -533,8 +534,6 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
 
         // 如果是视频类型消息，添加视频相关信息
         if (msg.messageType === 'video') {
-          console.log('video: ', msg.video?.thumbnailUrl)
-          console.log('videow: ', msg.thumbnailUrl)
           return {
             ...baseMessage,
             mediaUrl: msg.mediaUrl,
@@ -572,7 +571,7 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
 const addMessageListener = () => {
   if (!isMessageListenerAdded) {
     console.log('添加消息监听器')
-    window.api.onNewMessage((data) => {
+    window.api.onNewMessage(async (data) => {
       console.log('getuserMessage:', data)
 
       if (contactStore.selectedContact && data.data.sessionId === contactStore.selectedContact.id) {
@@ -616,6 +615,44 @@ const addMessageListener = () => {
 
         // 将新消息添加到消息列表头部（因为我们按时间倒序排列）
         messages.value.unshift(newMessage)
+
+        // 保存消息到本地数据库
+        try {
+          console.log('保存消息到本地数据库 ')
+          if (window.api && typeof window.api.addUnifiedMessage === 'function') {
+            const messageData = {
+              id: data.data.id,
+              sessionId: data.data.sessionId,
+              senderId: data.data.sender?.id || data.data.senderId,
+              receiverId: data.data.receiverId,
+              groupId: data.data.groupId,
+              content: data.data.content,
+              messageType: data.data.messageType || data.data.type,
+              mediaUrl: data.data.mediaUrl || data.data.imageUrl,
+              fileName: data.data.fileName,
+              fileSize: data.data.fileSize,
+              fileExtension: data.data.fileExtension,
+              mimeType: data.data.mimeType,
+              isRecalled: false,
+              isDeleted: false,
+              status: 'RECEIVED',
+              readStatus: true,
+              createdAt: data.data.timestamp || data.data.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              videoInfo: data.data.videoInfo
+            }
+
+            const result = await window.api.addUnifiedMessage(messageData)
+            console.log('消息保存到本地数据库result: ', result)
+            if (result.success) {
+              console.log('消息已保存到本地数据库:', result.data)
+            } else {
+              console.error('保存消息到本地数据库失败:', result.error)
+            }
+          }
+        } catch (error) {
+          console.error('调用addUnifiedMessage时发生错误:', error)
+        }
 
         // 保存当前滚动位置
         const container = messagesContainer.value
@@ -766,10 +803,10 @@ const handleScroll = () => {
   if (scrollTop + clientHeight >= scrollHeight - threshold) {
     // 检查是否有下一页（更旧的历史消息）
     if (pagination.value && pagination.value.hasNextPage) {
-      console.log("有下一页数据，加载更多历史消息")
+      console.log('有下一页数据，加载更多历史消息')
       loadMoreMessages()
     } else {
-      console.log("没有更多历史消息可加载")
+      console.log('没有更多历史消息可加载')
     }
   }
 }
@@ -1017,6 +1054,36 @@ const sendMessageHandler = async () => {
         const response = await sendMessage(imageMessageData)
         console.log('图片消息发送成功:', response)
 
+        // 保存消息到本地数据库
+        try {
+          if (window.api && typeof window.api.addUnifiedMessage === 'function') {
+            const messageSaveData = {
+              id: response.data.messageId,
+              sessionId: selectedContact.id,
+              senderId: userStore.userId,
+              receiverId: selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
+              groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
+              content: response.data.content,
+              messageType: 'image',
+              mediaUrl: item.imageUrl,
+              fileName: item.fileName,
+              status: 'SENT',
+              readStatus: true,
+              createdAt: response.data.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+
+            const result = await window.api.addUnifiedMessage(messageSaveData)
+            if (result.success) {
+              console.log('图片消息已保存到本地数据库:', result.data)
+            } else {
+              console.error('保存图片消息到本地数据库失败:', result.error)
+            }
+          }
+        } catch (error) {
+          console.error('调用addUnifiedMessage时发生错误:', error)
+        }
+
         // 发送自定义事件更新ChatList中的lastMessage
         const lastMessageData = {
           sessionId: selectedContact.id,
@@ -1080,6 +1147,34 @@ const sendMessageHandler = async () => {
         // 通过HTTP API发送消息到后端（用于持久化存储）
         const response = await sendMessage(messageData)
         console.log('文本消息发送成功:', response)
+
+        // 保存消息到本地数据库
+        try {
+          if (window.api && typeof window.api.addUnifiedMessage === 'function') {
+            const messageSaveData = {
+              id: response.data.messageId,
+              sessionId: selectedContact.id,
+              senderId: userStore.userId,
+              receiverId: selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
+              groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
+              content: item.content,
+              messageType: 'text',
+              status: 'SENT',
+              readStatus: true,
+              createdAt: response.data.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+
+            const result = await window.api.addUnifiedMessage(messageSaveData)
+            if (result.success) {
+              console.log('文本消息已保存到本地数据库:', result.data)
+            } else {
+              console.error('保存文本消息到本地数据库失败:', result.error)
+            }
+          }
+        } catch (error) {
+          console.error('调用addUnifiedMessage时发生错误:', error)
+        }
 
         // 发送自定义事件更新ChatList中的lastMessage
         const lastMessageData = {
@@ -1745,6 +1840,39 @@ const uploadFiles = async (file) => {
           // 通过HTTP API发送消息到后端（用于持久化存储）
           const sendResponse = await sendMessage(fileMessageData)
           console.log('文件消息发送成功:', sendResponse)
+
+          // 保存消息到本地数据库
+          try {
+            if (window.api && typeof window.api.addUnifiedMessage === 'function') {
+              const messageSaveData = {
+                id: sendResponse.data.messageId,
+                sessionId: selectedContact.id,
+                senderId: userStore.userId,
+                receiverId: selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
+                groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
+                content: response.originalName,
+                messageType: 'file',
+                mediaUrl: response.mediaUrl,
+                fileName: response.originalName,
+                fileSize: response.fileSize,
+                mimeType: response.mimeType,
+                fileExtension: response.fileExtension,
+                status: 'SENT',
+                readStatus: true,
+                createdAt: sendResponse.data.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }
+
+              const result = await window.api.addUnifiedMessage(messageSaveData)
+              if (result.success) {
+                console.log('文件消息已保存到本地数据库:', result.data)
+              } else {
+                console.error('保存文件消息到本地数据库失败:', result.error)
+              }
+            }
+          } catch (error) {
+            console.error('调用addUnifiedMessage时发生错误:', error)
+          }
 
           // 发送自定义事件更新ChatList中的lastMessage
           const lastMessageData = {
