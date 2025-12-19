@@ -133,6 +133,20 @@ const sendMessage = async () => {
       if (createResponse && createResponse.success) {
         session = createResponse.data
 
+        // 将新创建的会话添加到本地数据库
+        if (window.api && typeof window.api.addChatSession === 'function') {
+          try {
+            const result = await window.api.addChatSession(session)
+            if (result.success) {
+              console.log('成功将新会话添加到本地数据库:', result.data)
+            } else {
+              console.error('添加会话到本地数据库失败:', result.error)
+            }
+          } catch (dbError) {
+            console.error('调用本地数据库添加会话时出错:', dbError)
+          }
+        }
+
         // 触发ChatList.vue刷新数据
         // 可以通过全局事件或状态管理实现
         window.dispatchEvent(new CustomEvent('sessionCreated'))

@@ -171,7 +171,7 @@ class DatabaseManager {
   /**
    * 向ChatSession表中添加一条数据
    */
-  public async addChatSession(): Promise<any> {
+  public async addChatSession(sessionData: any): Promise<any> {
     try {
       // 确保表存在
       await this.initializeTables()
@@ -181,24 +181,27 @@ class DatabaseManager {
         driver: sqlite3.Database
       })
 
-      // 生成随机数据
-      const sessionId = randomUUID()
-      const sessionType = 'private'
-      const name = '测试会话'
-      const avatar = 'https://example.com/avatar.jpg'
-
-      // 插入数据
+      // 插入数据到ChatSession表
       await db.run(
         `INSERT INTO ChatSession 
-         (id, sessionType, name, avatar) 
-         VALUES (?, ?, ?, ?)`,
-        [sessionId, sessionType, name, avatar]
+         (id, sessionType, name, avatar, ownerId, groupId, createdAt, updatedAt) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          sessionData.id,
+          sessionData.sessionType,
+          sessionData.name,
+          sessionData.avatar,
+          sessionData.ownerId,
+          sessionData.groupId,
+          sessionData.createdAt || new Date().toISOString(),
+          sessionData.updatedAt || new Date().toISOString()
+        ]
       )
 
       console.log('成功向ChatSession表中添加了一条数据')
 
       // 查询刚刚插入的数据
-      const result = await db.get(`SELECT * FROM ChatSession WHERE id = ?`, [sessionId])
+      const result = await db.get(`SELECT * FROM ChatSession WHERE id = ?`, [sessionData.id])
 
       await db.close()
 
@@ -256,6 +259,90 @@ class DatabaseManager {
       console.log('成功清空ChatSession表中的所有数据')
     } catch (error) {
       console.error('清空ChatSession表失败:', error)
+      throw error
+    }
+  }
+
+  public async upsertChatSession(sessionData: any): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      await db.run(
+        `
+      INSERT OR REPLACE INTO ChatSession 
+      (id, sessionType, name, avatar, ownerId, groupId, createdAt, updatedAt, isPinned, isMuted, isDeleted, deletedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+        [
+          sessionData.id,
+          sessionData.sessionType,
+          sessionData.name,
+          sessionData.avatar,
+          sessionData.ownerId,
+          sessionData.groupId,
+          sessionData.createdAt || new Date().toISOString(),
+          sessionData.updatedAt || new Date().toISOString(),
+          sessionData.isPinned ? 1 : 0,
+          sessionData.isMuted ? 1 : 0,
+          sessionData.isDeleted ? 1 : 0,
+          sessionData.deletedAt
+        ]
+      )
+
+      await db.close()
+    } catch (error) {
+      console.error('Upsert ChatSession failed:', error)
+      throw error
+    }
+  }
+
+  public async updateChatSession(sessionId: string, updateData: any): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      const fields: string[] = []
+      const values: any[] = []
+
+      for (const [key, value] of Object.entries(updateData)) {
+        fields.push(`${key} = ?`)
+        values.push(value)
+      }
+
+      values.push(sessionId)
+
+      await db.run(
+        `
+      UPDATE ChatSession 
+      SET ${fields.join(', ')}, updatedAt = ?
+      WHERE id = ?
+    `,
+        [...values, new Date().toISOString(), sessionId]
+      )
+
+      await db.close()
+    } catch (error) {
+      console.error('Update ChatSession failed:', error)
+      throw error
+    }
+  }
+
+  public async deleteChatSession(sessionId: string): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      await db.run(`DELETE FROM ChatSession WHERE id = ?`, [sessionId])
+      await db.close()
+    } catch (error) {
+      console.error('Delete ChatSession failed:', error)
       throw error
     }
   }

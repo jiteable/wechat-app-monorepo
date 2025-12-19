@@ -42,9 +42,7 @@ interface Window {
     openCreateGroupWindow: () => void
     closeCreateGroupWindow: () => void
 
-    openCreateGroupWindow: () => void
-    closeCreateGroupWindow: () => void
-
+    // 聊天消息窗口相关
     openChatMessageWindow: () => void
     closeChatMessageWindow: () => void
     minimizeChatMessageWindow: () => void
@@ -70,5 +68,8 @@ interface Window {
     addChatSession: () => Promise<any>
     getAllChatSessions: () => Promise<any>
     clearChatSessions: () => Promise<any>
+    syncChatSessions: (sessions: any[]) => Promise<any>
+    getLastSyncTime: () => Promise<any>
+    setLastSyncTime: (time: Date) => Promise<any>
   }
 }

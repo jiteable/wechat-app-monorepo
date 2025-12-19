@@ -75,7 +75,10 @@ const api = {
   // 本地数据库相关
   addChatSession: (): Promise<any> => ipcRenderer.invoke('add-chat-session'),
   getAllChatSessions: (): Promise<any> => ipcRenderer.invoke('get-all-chat-sessions'),
-  clearChatSessions: (): Promise<any> => ipcRenderer.invoke('clear-chat-sessions')
+  clearChatSessions: (): Promise<any> => ipcRenderer.invoke('clear-chat-sessions'),
+  syncChatSessions: (sessions: any[]): Promise<any> => ipcRenderer.invoke('sync-chat-sessions', sessions),
+  getLastSyncTime: (): Promise<any> => ipcRenderer.invoke('get-last-sync-time'),
+  setLastSyncTime: (time: Date): Promise<any> => ipcRenderer.invoke('set-last-sync-time', time)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

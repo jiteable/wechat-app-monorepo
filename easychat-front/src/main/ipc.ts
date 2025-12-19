@@ -5,6 +5,8 @@ import { join } from 'path'
 import { initWs, sendMessage } from './wsClient'
 import { downloadFile } from './fileDownloader'
 import { databaseManager } from './db'
+import sqlite3 from 'sqlite3'
+import { open } from 'sqlite'
 
 let mainWindow: BrowserWindow | null = null
 let loginWindow: BrowserWindow | null = null
@@ -238,7 +240,9 @@ export function createChatMessageWindow(icon: string, contactData?: any): void {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     chatMessageWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/chat/messages')
   } else {
-    chatMessageWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/chat/messages' })
+    chatMessageWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      hash: '/chat/messages'
+    })
   }
 }
 
@@ -621,6 +625,76 @@ export function setupIpcHandlers(icon: string): void {
       return { success: true }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('sync-chat-sessions', async (_, sessions) => {
+    try {
+      for (const session of sessions) {
+        await databaseManager.upsertChatSession(session)
+      }
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('get-last-sync-time', async () => {
+    try {
+      // 可以在本地数据库中添加一个元数据表来跟踪同步时间
+      const db = await open({
+        filename: databaseManager.getDbPath(),
+        driver: sqlite3.Database
+      })
+
+      // 创建元数据表（如果不存在）
+      await db.exec(`
+      CREATE TABLE IF NOT EXISTS SyncMetadata (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )
+    `)
+
+      const result = await db.get(`SELECT value FROM SyncMetadata WHERE key = ?`, [
+        'last_chat_session_sync'
+      ])
+
+      await db.close()
+
+      return {
+        success: true,
+        lastSyncTime: result ? new Date(result.value) : null
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  })
+
+  ipcMain.handle('set-last-sync-time', async (_, time) => {
+    try {
+      const db = await open({
+        filename: databaseManager.getDbPath(),
+        driver: sqlite3.Database
+      })
+
+      await db.run(
+        `
+      INSERT OR REPLACE INTO SyncMetadata (key, value) 
+      VALUES (?, ?)
+    `,
+        ['last_chat_session_sync', time.toISOString()]
+      )
+
+      await db.close()
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
     }
   })
 }

@@ -26,7 +26,9 @@
             >
               <div class="popover-menu no-drag">
                 <el-button class="menu-button" @click="handleChatFiles">聊天文件</el-button>
-                <el-button class="menu-button" @click="handleChatHistory">聊天记录管理</el-button>
+                <el-button class="menu-button" @click="handleChatHistory"
+                  >加载历史聊天记录</el-button
+                >
                 <el-button class="menu-button" @click="handleSettings">设置</el-button>
                 <!-- 添加退出登录按钮 -->
                 <el-button class="menu-button" @click="handleLogout">退出登录</el-button>
@@ -56,6 +58,18 @@
         </el-splitter>
       </el-container>
     </el-container>
+
+    <!-- 加载历史聊天记录对话框 -->
+    <el-dialog v-model="chatHistoryDialogVisible" title="加载聊天记录" width="300px" center>
+      <span>是否加载历史聊天记录？</span>
+      <div style="margin-top: 10px; font-size: 12px; color: #999">注意：只能加载7天内的记录</div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="chatHistoryDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmLoadChatHistory">确认</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -63,11 +77,13 @@
 import { onMounted, ref, computed, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Grid } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
 import { userContactStore } from '@/store/userContactStore'
 import { getUserInfo } from '@/api/user'
 import { getUserSettingInfo } from '@/api/user'
+import { getSessions } from '@/api/chatSession'
 
 const userStore = useUserStore()
 const userSetStore = useUserSetStore()
@@ -78,6 +94,9 @@ const splitterKey = ref(0)
 const router = useRouter()
 const route = useRoute()
 const popoverRef = ref(null)
+
+// 控制加载聊天记录对话框显示状态
+const chatHistoryDialogVisible = ref(false)
 
 // 监听来自其他窗口的store更新事件
 const handleStoreUpdate = (event) => {
@@ -132,7 +151,41 @@ const handleChatHistory = () => {
   console.log('聊天记录管理按钮被点击')
   // 关闭popover
   popoverRef.value?.hide()
-  // 这里可以添加实际的功能逻辑
+  // 显示加载聊天记录对话框
+  chatHistoryDialogVisible.value = true
+}
+
+// 确认加载聊天记录
+const confirmLoadChatHistory = async () => {
+  console.log('用户确认加载聊天记录')
+
+  try {
+    // 从服务器获取会话数据
+    const response = await getSessions()
+
+    if (response.success) {
+      // 同步到本地数据库
+      const syncResult = await window.api.syncChatSessions(response.data)
+
+      if (syncResult.success) {
+        console.log('聊天会话同步成功')
+        // 更新最后同步时间
+        await window.api.setLastSyncTime(new Date())
+        ElMessage.success('聊天记录同步成功')
+      } else {
+        console.error('同步聊天会话失败:', syncResult.error)
+        ElMessage.error('聊天记录同步失败: ' + syncResult.error)
+      }
+    } else {
+      ElMessage.error('获取聊天记录失败')
+    }
+  } catch (error) {
+    console.error('加载聊天记录时出错:', error)
+    ElMessage.error('加载聊天记录时出错: ' + (error.message || '未知错误'))
+  }
+
+  // 关闭对话框
+  chatHistoryDialogVisible.value = false
 }
 
 // 处理设置按钮点击
