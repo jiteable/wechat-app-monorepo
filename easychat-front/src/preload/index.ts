@@ -100,7 +100,16 @@ const api = {
   incrementUnreadCount: (sessionId: string, userId: string): Promise<any> =>
     ipcRenderer.invoke('increment-unread-count', sessionId, userId),
   resetUnreadCount: (sessionId: string, userId: string): Promise<any> =>
-    ipcRenderer.invoke('reset-unread-count', sessionId, userId)
+    ipcRenderer.invoke('reset-unread-count', sessionId, userId),
+
+  // 删除相关函数
+  deleteChatSessionUser: (id: string): Promise<any> =>
+    ipcRenderer.invoke('delete-chat-session-user', id),
+  deleteChatSession: (sessionId: string): Promise<any> =>
+    ipcRenderer.invoke('delete-chat-session', sessionId),
+  deleteUnifiedMessage: (id: string): Promise<any> =>
+    ipcRenderer.invoke('delete-unified-message', id),
+  deleteFile: (id: string): Promise<any> => ipcRenderer.invoke('delete-file', id)
 }
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

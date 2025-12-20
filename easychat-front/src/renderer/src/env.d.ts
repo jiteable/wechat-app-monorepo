@@ -83,5 +83,11 @@ interface Window {
     updateUnreadCount: (sessionId: string, userId: string, unreadCount: number) => Promise<any>
     incrementUnreadCount: (sessionId: string, userId: string) => Promise<any>
     resetUnreadCount: (sessionId: string, userId: string) => Promise<any>
+
+    // 删除相关函数
+    deleteChatSessionUser: (id: string) => Promise<any>
+    deleteChatSession: (sessionId: string) => Promise<any>
+    deleteUnifiedMessage: (id: string) => Promise<any>
+    deleteFile: (id: string) => Promise<any>
   }
 }

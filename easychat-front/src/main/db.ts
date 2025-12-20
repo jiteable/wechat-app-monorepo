@@ -530,6 +530,21 @@ class DatabaseManager {
     }
   }
 
+  public async deleteChatSessionUser(id: string): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      await db.run(`DELETE FROM ChatSessionUser WHERE id = ?`, [id])
+      await db.close()
+    } catch (error) {
+      console.error('Delete ChatSessionUser failed:', error)
+      throw error
+    }
+  }
+
   /**
    * 更新用户的未读消息计数
    */
@@ -813,6 +828,60 @@ class DatabaseManager {
       }
     } catch (error) {
       console.error('根据sessionId获取消息失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 根据ID删除UnifiedMessage记录
+   */
+  public async deleteUnifiedMessage(id: string): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      // 先删除关联的文件和视频记录
+      const message = await db.get(`SELECT id FROM UnifiedMessage WHERE id = ?`, [id])
+      if (message) {
+        // 删除关联的文件记录
+        await db.run(`DELETE FROM File WHERE unifiedMessageId = ?`, [id])
+
+        // 删除消息记录
+        await db.run(`DELETE FROM UnifiedMessage WHERE id = ?`, [id])
+      }
+
+      await db.close()
+    } catch (error) {
+      console.error('Delete UnifiedMessage failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 根据ID删除File记录
+   */
+  public async deleteFile(id: string): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      // 先删除关联的视频记录
+      const file = await db.get(`SELECT id FROM File WHERE id = ?`, [id])
+      if (file) {
+        // 删除关联的视频记录
+        await db.run(`DELETE FROM Video WHERE fileId = ?`, [id])
+
+        // 删除文件记录
+        await db.run(`DELETE FROM File WHERE id = ?`, [id])
+      }
+
+      await db.close()
+    } catch (error) {
+      console.error('Delete File failed:', error)
       throw error
     }
   }

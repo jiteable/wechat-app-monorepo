@@ -742,6 +742,15 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
+  ipcMain.handle('delete-chat-session-user', async (_, id) => {
+    try {
+      await databaseManager.deleteChatSessionUser(id)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
   ipcMain.handle('update-chat-session-user', async (_, id, updateData) => {
     try {
       await databaseManager.updateChatSessionUser(id, updateData)
@@ -790,6 +799,36 @@ export function setupIpcHandlers(icon: string): void {
   ipcMain.handle('reset-unread-count', async (_, sessionId, userId) => {
     try {
       await databaseManager.resetUnreadCount(sessionId, userId)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  // 删除ChatSession的IPC处理程序
+  ipcMain.handle('delete-chat-session', async (_, sessionId) => {
+    try {
+      await databaseManager.deleteChatSession(sessionId)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  // 删除UnifiedMessage的IPC处理程序
+  ipcMain.handle('delete-unified-message', async (_, id) => {
+    try {
+      await databaseManager.deleteUnifiedMessage(id)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  // 删除File的IPC处理程序
+  ipcMain.handle('delete-file', async (_, id) => {
+    try {
+      await databaseManager.deleteFile(id)
       return { success: true }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
