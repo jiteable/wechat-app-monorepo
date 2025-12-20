@@ -3,6 +3,7 @@ import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import sqlite3 from 'sqlite3'
 import { open } from 'sqlite'
+import { generateUUID, getFileExtension, getFileType } from './utils'
 
 /**
  * 数据库管理类
@@ -193,6 +194,7 @@ class DatabaseManager {
     `)
   }
 
+  // ChatSession 表相关操作
   /**
    * 向ChatSession表中添加一条数据
    */
@@ -382,6 +384,18 @@ class DatabaseManager {
     }
   }
 
+  public async syncChatSessions(sessions: any[]): Promise<void> {
+    try {
+      for (const session of sessions) {
+        await this.upsertChatSession(session)
+      }
+    } catch (error) {
+      console.error('Sync ChatSessions failed:', error)
+      throw error
+    }
+  }
+
+  // ChatSessionUser 表相关操作
   /**
    * 插入或更新ChatSessionUser记录
    */
@@ -546,6 +560,20 @@ class DatabaseManager {
   }
 
   /**
+   * 同步ChatSessionUser数据到本地数据库
+   */
+  public async syncChatSessionUsers(users: any[]): Promise<void> {
+    try {
+      for (const user of users) {
+        await this.upsertChatSessionUser(user)
+      }
+    } catch (error) {
+      console.error('Sync ChatSessionUsers failed:', error)
+      throw error
+    }
+  }
+
+  /**
    * 更新用户的未读消息计数
    */
   public async updateUnreadCount(
@@ -615,6 +643,7 @@ class DatabaseManager {
     }
   }
 
+  // UnifiedMessage 表相关操作
   /**
    * 向UnifiedMessage表中添加一条数据
    */
@@ -642,14 +671,14 @@ class DatabaseManager {
            (id, name, url, thumbnailUrl, size, mimeType, fileExtension, fileType, uploaderId, createdAt, expireAt, sessionId)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            messageData.fileId || this.generateUUID(),
+            messageData.fileId || generateUUID(),
             messageData.fileName,
             messageData.mediaUrl,
             messageData.thumbnailUrl || null,
             messageData.fileSize,
             messageData.mimeType || '',
-            messageData.fileExtension || this.getFileExtension(messageData.fileName),
-            messageData.fileType || this.getFileType(messageData.fileName),
+            messageData.fileExtension || getFileExtension(messageData.fileName),
+            messageData.fileType || getFileType(messageData.fileName),
             messageData.senderId,
             messageData.createdAt || new Date().toISOString(),
             messageData.expireAt || null,
@@ -664,7 +693,7 @@ class DatabaseManager {
              (id, fileId, duration, width, height, bitrate, codec, fps, thumbnailUrl, previewUrl, createdAt, updatedAt)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-              this.generateUUID(),
+              generateUUID(),
               fileRecord.lastID, // 使用刚创建的文件ID
               messageData.videoInfo.duration || null,
               messageData.videoInfo.width || null,
@@ -688,7 +717,7 @@ class DatabaseManager {
           isRecalled, isDeleted, status, readStatus, createdAt, updatedAt, recalledAt, deletedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          messageData.id || this.generateUUID(),
+          messageData.id || generateUUID(),
           messageData.sessionId,
           messageData.senderId,
           messageData.receiverId || null,
@@ -842,11 +871,19 @@ class DatabaseManager {
         driver: sqlite3.Database
       })
 
-      // 先删除关联的文件和视频记录
+      // 先查找要删除的消息记录
       const message = await db.get(`SELECT id FROM UnifiedMessage WHERE id = ?`, [id])
       if (message) {
-        // 删除关联的文件记录
-        await db.run(`DELETE FROM File WHERE unifiedMessageId = ?`, [id])
+        // 查找关联的文件记录
+        const file = await db.get(`SELECT id FROM File WHERE unifiedMessageId = ?`, [id])
+        if (file) {
+          const fileId = file.id
+          // 删除关联的视频记录
+          await db.run(`DELETE FROM Video WHERE fileId = ?`, [fileId])
+
+          // 删除文件记录
+          await db.run(`DELETE FROM File WHERE id = ?`, [fileId])
+        }
 
         // 删除消息记录
         await db.run(`DELETE FROM UnifiedMessage WHERE id = ?`, [id])
@@ -859,6 +896,108 @@ class DatabaseManager {
     }
   }
 
+  /**
+   * 同步UnifiedMessage数据到本地数据库
+   */
+  public async syncUnifiedMessages(messages: any[]): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      for (const message of messages) {
+        // 检查消息是否已存在
+        const existing = await db.get(`SELECT id FROM UnifiedMessage WHERE id = ?`, [message.id])
+
+        if (!existing) {
+          // 插入消息
+          await db.run(
+            `INSERT INTO UnifiedMessage 
+            (id, sessionId, senderId, receiverId, groupId, content, messageType, mediaUrl, fileName, fileSize, 
+             isRecalled, isDeleted, status, readStatus, createdAt, updatedAt, recalledAt, deletedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              message.id,
+              message.sessionId,
+              message.senderId,
+              message.receiverId || null,
+              message.groupId || null,
+              message.content || '',
+              message.messageType,
+              message.mediaUrl || null,
+              message.fileName || null,
+              message.fileSize || null,
+              message.isRecalled ? 1 : 0,
+              message.isDeleted ? 1 : 0,
+              message.status || 'SENT',
+              message.readStatus ? 1 : 0,
+              message.createdAt || new Date().toISOString(),
+              message.updatedAt || new Date().toISOString(),
+              message.recalledAt || null,
+              message.deletedAt || null
+            ]
+          )
+
+          // 如果消息有关联文件，也插入文件记录
+          if (message.file) {
+            const file = message.file
+            await db.run(
+              `INSERT OR IGNORE INTO File 
+              (id, name, url, thumbnailUrl, size, mimeType, fileExtension, fileType, uploaderId, unifiedMessageId, createdAt, expireAt, sessionId)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                file.id,
+                file.name,
+                file.url,
+                file.thumbnailUrl || null,
+                file.size,
+                file.mimeType || '',
+                file.fileExtension || null,
+                file.fileType || 'document',
+                file.uploaderId,
+                message.id, // 关联到消息ID
+                file.createdAt || new Date().toISOString(),
+                file.expireAt || null,
+                file.sessionId || null
+              ]
+            )
+
+            // 如果文件有关联视频信息，也插入视频记录
+            if (file.video) {
+              const video = file.video
+              await db.run(
+                `INSERT OR IGNORE INTO Video 
+                (id, fileId, duration, width, height, bitrate, codec, fps, thumbnailUrl, previewUrl, createdAt, updatedAt)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  video.id,
+                  file.id, // 关联到文件ID
+                  video.duration || null,
+                  video.width || null,
+                  video.height || null,
+                  video.bitrate || null,
+                  video.codec || null,
+                  video.fps || null,
+                  video.thumbnailUrl || null,
+                  video.previewUrl || null,
+                  video.createdAt || new Date().toISOString(),
+                  video.updatedAt || new Date().toISOString()
+                ]
+              )
+            }
+          }
+        }
+      }
+
+      await db.close()
+    } catch (error) {
+      console.error('Sync UnifiedMessages failed:', error)
+      throw error
+    }
+  }
+
+  // File 表相关操作
   /**
    * 根据ID删除File记录
    */
@@ -886,44 +1025,6 @@ class DatabaseManager {
     }
   }
 
-  /**
-   * 生成UUID
-   */
-  private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      const r = (Math.random() * 16) | 0
-      const v = c == 'x' ? r : (r & 0x3) | 0x8
-      return v.toString(16)
-    })
-  }
-
-  /**
-   * 根据文件名获取文件扩展名
-   */
-  private getFileExtension(fileName: string): string {
-    if (!fileName) return ''
-    const parts = fileName.split('.')
-    return parts.length > 1 ? '.' + parts.pop()?.toLowerCase() : ''
-  }
-
-  /**
-   * 根据文件名判断文件类型
-   */
-  private getFileType(fileName: string): string {
-    if (!fileName) return 'document'
-
-    const imageExtensions = ['.jpg', '.jpeg', '.jpe', '.jfif', '.png', '.gif', '.bmp', '.webp']
-    const videoExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv']
-    const audioExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.m4a']
-
-    const extension = this.getFileExtension(fileName)
-
-    if (imageExtensions.includes(extension)) return 'image'
-    if (videoExtensions.includes(extension)) return 'video'
-    if (audioExtensions.includes(extension)) return 'audio'
-
-    return 'document'
-  }
   /**
    * 获取数据库路径
    */

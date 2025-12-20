@@ -4,7 +4,7 @@ import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { initWs, sendMessage } from './wsClient'
 import { downloadFile } from './fileDownloader'
-import { databaseManager } from './db'
+import { databaseManager } from './db/db'
 import sqlite3 from 'sqlite3'
 import { open } from 'sqlite'
 
