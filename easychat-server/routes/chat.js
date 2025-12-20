@@ -75,7 +75,11 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
           }
         },
         group: true,
-        file: true
+        file: {
+          include: {
+            video: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc' // 改为降序排列，获取最新的消息
@@ -107,9 +111,14 @@ router.get('/getChat/:sessionId', authenticateToken, async (req, res) => {
 
         // 如果文件有关联的视频信息，也包含视频的宽度和高度
         if (message.file.video) {
-          processedMessage.videoInfo = processedMessage.videoInfo || {};
-          processedMessage.videoInfo.videoWidth = message.file.video.width;
-          processedMessage.videoInfo.videoHeight = message.file.video.height;
+          processedMessage.videoInfo = {
+            videoWidth: message.file.video.width,
+            videoHeight: message.file.video.height,
+            duration: message.file.video.duration,
+            bitrate: message.file.video.bitrate,
+            codec: message.file.video.codec,
+            fps: message.file.video.fps
+          };
         }
 
         return processedMessage;
@@ -513,7 +522,11 @@ router.get('/getAllChat', authenticateToken, async (req, res) => {
           }
         },
         group: true,
-        file: true
+        file: {
+          include: {
+            video: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
@@ -530,15 +543,22 @@ router.get('/getAllChat', authenticateToken, async (req, res) => {
 
         // 如果文件有关联的视频信息，也包含视频的宽度和高度
         if (message.file.video) {
-          processedMessage.videoInfo = processedMessage.videoInfo || {};
-          processedMessage.videoInfo.videoWidth = message.file.video.width;
-          processedMessage.videoInfo.videoHeight = message.file.video.height;
+          processedMessage.videoInfo = {
+            videoWidth: message.file.video.width,
+            videoHeight: message.file.video.height,
+            duration: message.file.video.duration,
+            bitrate: message.file.video.bitrate,
+            codec: message.file.video.codec,
+            fps: message.file.video.fps
+          };
         }
 
         return processedMessage;
       }
       return message;
     });
+
+    console.log('processedMessages: ', processedMessages[0])
 
     res.json({
       success: true,
