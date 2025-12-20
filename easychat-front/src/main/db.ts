@@ -165,6 +165,32 @@ class DatabaseManager {
         FOREIGN KEY (fileId) REFERENCES File(id)
       )
     `)
+
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS ChatSessionUser (
+        id TEXT PRIMARY KEY,
+        sessionId TEXT,
+        userId TEXT,
+        joinTime DATETIME DEFAULT CURRENT_TIMESTAMP,
+        lastReadTime DATETIME DEFAULT CURRENT_TIMESTAMP,
+        isMuted BOOLEAN DEFAULT 0,
+        isPinned BOOLEAN DEFAULT 0,
+        customRemark TEXT,
+        unreadCount INTEGER DEFAULT 0,
+        sessionType TEXT,
+        identity TEXT,
+        nickname TEXT,
+        remark TEXT,
+        showMemberNameCard BOOLEAN DEFAULT 1,
+        background TEXT,
+        displayName TEXT,
+        displayAvatar TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sessionId) REFERENCES ChatSession(id),
+        FOREIGN KEY (userId) REFERENCES Session(userId)
+      )
+    `)
   }
 
   /**
@@ -352,6 +378,224 @@ class DatabaseManager {
       await db.close()
     } catch (error) {
       console.error('Delete ChatSession failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 插入或更新ChatSessionUser记录
+   */
+  public async upsertChatSessionUser(userData: any): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      await db.run(
+        `
+        INSERT OR REPLACE INTO ChatSessionUser 
+        (id, sessionId, userId, joinTime, lastReadTime, isMuted, isPinned, customRemark, 
+         unreadCount, sessionType, identity, nickname, remark, showMemberNameCard, 
+         background, displayName, displayAvatar, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          userData.id,
+          userData.sessionId,
+          userData.userId,
+          userData.joinTime || new Date().toISOString(),
+          userData.lastReadTime || new Date().toISOString(),
+          userData.isMuted ? 1 : 0,
+          userData.isPinned ? 1 : 0,
+          userData.customRemark || null,
+          userData.unreadCount || 0,
+          userData.sessionType,
+          userData.identity || null,
+          userData.nickname || null,
+          userData.remark || null,
+          userData.showMemberNameCard !== undefined ? (userData.showMemberNameCard ? 1 : 0) : 1,
+          userData.background || null,
+          userData.displayName || null,
+          userData.displayAvatar || null,
+          userData.createdAt || new Date().toISOString(),
+          userData.updatedAt || new Date().toISOString()
+        ]
+      )
+
+      await db.close()
+    } catch (error) {
+      console.error('Upsert ChatSessionUser failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 更新ChatSessionUser记录
+   */
+  public async updateChatSessionUser(id: string, updateData: any): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      const fields: string[] = []
+      const values: any[] = []
+
+      // 处理布尔值和普通字段
+      for (const [key, value] of Object.entries(updateData)) {
+        if (key === 'isMuted' || key === 'isPinned' || key === 'showMemberNameCard') {
+          fields.push(`${key} = ?`)
+          values.push(value ? 1 : 0)
+        } else {
+          fields.push(`${key} = ?`)
+          values.push(value)
+        }
+      }
+
+      values.push(id)
+
+      await db.run(
+        `
+        UPDATE ChatSessionUser 
+        SET ${fields.join(', ')}, updatedAt = ?
+        WHERE id = ?
+        `,
+        [...values, new Date().toISOString(), id]
+      )
+
+      await db.close()
+    } catch (error) {
+      console.error('Update ChatSessionUser failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 根据sessionId和userId获取ChatSessionUser记录
+   */
+  public async getChatSessionUser(sessionId: string, userId: string): Promise<any> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      const result = await db.get(
+        `SELECT * FROM ChatSessionUser WHERE sessionId = ? AND userId = ?`,
+        [sessionId, userId]
+      )
+
+      await db.close()
+
+      // 处理布尔值
+      if (result) {
+        result.isMuted = !!result.isMuted
+        result.isPinned = !!result.isPinned
+        result.showMemberNameCard = !!result.showMemberNameCard
+      }
+
+      return result
+    } catch (error) {
+      console.error('Get ChatSessionUser failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 根据sessionId获取所有ChatSessionUser记录
+   */
+  public async getChatSessionUsersBySessionId(sessionId: string): Promise<any[]> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      const results = await db.all(`SELECT * FROM ChatSessionUser WHERE sessionId = ?`, [sessionId])
+
+      await db.close()
+
+      // 处理布尔值
+      return results.map((result) => ({
+        ...result,
+        isMuted: !!result.isMuted,
+        isPinned: !!result.isPinned,
+        showMemberNameCard: !!result.showMemberNameCard
+      }))
+    } catch (error) {
+      console.error('Get ChatSessionUsers by sessionId failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 更新用户的未读消息计数
+   */
+  public async updateUnreadCount(
+    sessionId: string,
+    userId: string,
+    unreadCount: number
+  ): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      await db.run(
+        `UPDATE ChatSessionUser SET unreadCount = ?, updatedAt = ? WHERE sessionId = ? AND userId = ?`,
+        [unreadCount, new Date().toISOString(), sessionId, userId]
+      )
+
+      await db.close()
+    } catch (error) {
+      console.error('Update unread count failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 增加用户的未读消息计数
+   */
+  public async incrementUnreadCount(sessionId: string, userId: string): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      await db.run(
+        `UPDATE ChatSessionUser SET unreadCount = unreadCount + 1, updatedAt = ? WHERE sessionId = ? AND userId = ?`,
+        [new Date().toISOString(), sessionId, userId]
+      )
+
+      await db.close()
+    } catch (error) {
+      console.error('Increment unread count failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 重置用户的未读消息计数
+   */
+  public async resetUnreadCount(sessionId: string, userId: string): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      await db.run(
+        `UPDATE ChatSessionUser SET unreadCount = 0, lastReadTime = ?, updatedAt = ? WHERE sessionId = ? AND userId = ?`,
+        [new Date().toISOString(), new Date().toISOString(), sessionId, userId]
+      )
+
+      await db.close()
+    } catch (error) {
+      console.error('Reset unread count failed:', error)
       throw error
     }
   }

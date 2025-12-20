@@ -84,9 +84,24 @@ const api = {
     ipcRenderer.invoke('add-unified-message', messageData),
   getAllUnifiedMessages: (): Promise<any> => ipcRenderer.invoke('get-all-unified-messages'),
   getMessagesBySessionId: (sessionId: string, page?: number, limit?: number): Promise<any> =>
-    ipcRenderer.invoke('get-messages-by-session-id', sessionId, page, limit)
-}
+    ipcRenderer.invoke('get-messages-by-session-id', sessionId, page, limit),
 
+  // ChatSessionUser相关
+  upsertChatSessionUser: (userData: any): Promise<any> =>
+    ipcRenderer.invoke('upsert-chat-session-user', userData),
+  updateChatSessionUser: (id: string, updateData: any): Promise<any> =>
+    ipcRenderer.invoke('update-chat-session-user', id, updateData),
+  getChatSessionUser: (sessionId: string, userId: string): Promise<any> =>
+    ipcRenderer.invoke('get-chat-session-user', sessionId, userId),
+  getChatSessionUsersBySessionId: (sessionId: string): Promise<any> =>
+    ipcRenderer.invoke('get-chat-session-users-by-session-id', sessionId),
+  updateUnreadCount: (sessionId: string, userId: string, unreadCount: number): Promise<any> =>
+    ipcRenderer.invoke('update-unread-count', sessionId, userId, unreadCount),
+  incrementUnreadCount: (sessionId: string, userId: string): Promise<any> =>
+    ipcRenderer.invoke('increment-unread-count', sessionId, userId),
+  resetUnreadCount: (sessionId: string, userId: string): Promise<any> =>
+    ipcRenderer.invoke('reset-unread-count', sessionId, userId)
+}
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.

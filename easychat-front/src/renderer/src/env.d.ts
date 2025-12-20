@@ -74,5 +74,14 @@ interface Window {
     addUnifiedMessage: (messageData: any) => Promise<any>
     getAllUnifiedMessages: () => Promise<any>
     getMessagesBySessionId: (sessionId: string, page?: number, limit?: number) => Promise<any>
+
+    // ChatSessionUser相关
+    upsertChatSessionUser: (userData: Partial<ChatSessionUser>) => Promise<any>
+    updateChatSessionUser: (id: string, updateData: Partial<ChatSessionUser>) => Promise<any>
+    getChatSessionUser: (sessionId: string, userId: string) => Promise<any>
+    getChatSessionUsersBySessionId: (sessionId: string) => Promise<any>
+    updateUnreadCount: (sessionId: string, userId: string, unreadCount: number) => Promise<any>
+    incrementUnreadCount: (sessionId: string, userId: string) => Promise<any>
+    resetUnreadCount: (sessionId: string, userId: string) => Promise<any>
   }
 }

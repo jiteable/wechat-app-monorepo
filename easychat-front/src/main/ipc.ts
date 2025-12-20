@@ -731,4 +731,68 @@ export function setupIpcHandlers(icon: string): void {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
+
+  // ChatSessionUser相关处理
+  ipcMain.handle('upsert-chat-session-user', async (_, userData) => {
+    try {
+      await databaseManager.upsertChatSessionUser(userData)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('update-chat-session-user', async (_, id, updateData) => {
+    try {
+      await databaseManager.updateChatSessionUser(id, updateData)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('get-chat-session-user', async (_, sessionId, userId) => {
+    try {
+      const result = await databaseManager.getChatSessionUser(sessionId, userId)
+      return { success: true, data: result }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('get-chat-session-users-by-session-id', async (_, sessionId) => {
+    try {
+      const results = await databaseManager.getChatSessionUsersBySessionId(sessionId)
+      return { success: true, data: results }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('update-unread-count', async (_, sessionId, userId, unreadCount) => {
+    try {
+      await databaseManager.updateUnreadCount(sessionId, userId, unreadCount)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('increment-unread-count', async (_, sessionId, userId) => {
+    try {
+      await databaseManager.incrementUnreadCount(sessionId, userId)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('reset-unread-count', async (_, sessionId, userId) => {
+    try {
+      await databaseManager.resetUnreadCount(sessionId, userId)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
 }
