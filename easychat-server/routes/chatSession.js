@@ -588,4 +588,57 @@ router.post('/createSession', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/getSessionUsers', authenticateToken, async (req, res) => {
+  try {
+    const currentUserId = req.user.id;
+
+    // 查询当前用户参与的所有chatSessionUser记录
+    const chatSessionUsers = await db.chatSessionUser.findMany({
+      where: {
+        userId: currentUserId
+      },
+      include: {
+        session: {
+          include: {
+            ChatSessionUsers: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    chatId: true,
+                    username: true,
+                    email: true,
+                    avatar: true,
+                    gender: true,
+                    signature: true,
+                    region: true
+                  }
+                }
+              }
+            },
+            group: true,
+            unifiedMessages: {
+              orderBy: {
+                createdAt: 'desc'
+              },
+              take: 1 // 获取最新的消息
+            }
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      data: chatSessionUsers
+    });
+  } catch (error) {
+    console.error('获取会话用户信息失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取会话用户信息失败'
+    });
+  }
+});
+
 module.exports = router;

@@ -1,4 +1,3 @@
-// 会话用户信息
 export interface ChatSessionUser {
   id: string
   sessionId: string
@@ -98,6 +97,12 @@ export interface ChatSession {
 export interface GetSessionsResponse {
   success: boolean
   data: ChatSession[]
+}
+
+// 获取会话用户响应
+export interface GetSessionUsersResponse {
+  success: boolean
+  data: ChatSessionUser[]
 }
 
 // 创建会话请求参数

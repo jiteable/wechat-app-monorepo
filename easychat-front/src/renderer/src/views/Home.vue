@@ -171,6 +171,7 @@ const confirmLoadChatHistory = async () => {
 
         // 获取用户所有消息
         let allMessagesLoaded = true
+        let allChatSessionUsersLoaded = true
 
         try {
           // 一次性获取所有消息
@@ -244,11 +245,40 @@ const confirmLoadChatHistory = async () => {
           allMessagesLoaded = false
         }
 
-        if (allMessagesLoaded) {
-          ElMessage.success('聊天记录同步成功')
-        } else {
-          ElMessage.warning('聊天会话同步成功，但部分消息同步失败')
+        // 同步ChatSessionUser数据
+        try {
+          const { getSessionUsers } = await import('@/api/chatSession')
+          const chatSessionUsersResponse = await getSessionUsers()
+
+          if (chatSessionUsersResponse && chatSessionUsersResponse.success) {
+            const syncChatSessionUsersResult = await window.api.syncChatSessionUsers(
+              chatSessionUsersResponse.data
+            )
+            if (!syncChatSessionUsersResult.success) {
+              allChatSessionUsersLoaded = false
+              console.error('同步ChatSessionUser数据失败:', syncChatSessionUsersResult.error)
+            }
+          } else {
+            allChatSessionUsersLoaded = false
+            console.error('获取ChatSessionUser数据失败:', chatSessionUsersResponse)
+          }
+        } catch (error) {
+          console.error('同步ChatSessionUser数据时出错:', error)
+          allChatSessionUsersLoaded = false
         }
+
+        let message = ''
+        if (allMessagesLoaded && allChatSessionUsersLoaded) {
+          message = '聊天记录同步成功'
+        } else if (allMessagesLoaded && !allChatSessionUsersLoaded) {
+          message = '消息同步成功，但会话用户信息同步失败'
+        } else if (!allMessagesLoaded && allChatSessionUsersLoaded) {
+          message = '会话用户信息同步成功，但部分消息同步失败'
+        } else {
+          message = '聊天记录同步完成，但部分数据同步失败'
+        }
+
+        ElMessage.success(message)
 
         // 更新最后同步时间
         await window.api.setLastSyncTime(new Date())

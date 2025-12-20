@@ -1,6 +1,11 @@
 import http from '../../utils/http'
 import config from '../../config'
-import { GetSessionsResponse, CreateSessionRequest, CreateSessionResponse } from './type'
+import {
+  GetSessionsResponse,
+  CreateSessionRequest,
+  CreateSessionResponse,
+  GetSessionUsersResponse
+} from './type'
 
 /**
  * 获取用户的会话
@@ -16,6 +21,21 @@ export async function getSessions(contactUserId?: string): Promise<GetSessionsRe
     return response.data
   } catch (error) {
     console.error('获取会话失败:', error)
+    throw error // 抛出错误让调用者处理
+  }
+}
+
+/**
+ * 获取用户的所有会话用户信息
+ */
+export async function getSessionUsers(): Promise<GetSessionUsersResponse | null> {
+  try {
+    const response = await http.get<GetSessionUsersResponse>(
+      `${config.api}/chatSession/getSessionUsers`
+    )
+    return response.data
+  } catch (error) {
+    console.error('获取会话用户信息失败:', error)
     throw error // 抛出错误让调用者处理
   }
 }
