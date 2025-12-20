@@ -89,5 +89,8 @@ interface Window {
     deleteChatSession: (sessionId: string) => Promise<any>
     deleteUnifiedMessage: (id: string) => Promise<any>
     deleteFile: (id: string) => Promise<any>
+    // 同步相关函数
+    syncUnifiedMessages: (messages: any[]) => Promise<any>
+    syncChatSessionUsers: (users: any[]) => Promise<any>
   }
 }

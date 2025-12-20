@@ -82,7 +82,7 @@ import { useUserSetStore } from '@/store/userSetStore'
 import { getSessions } from '@/api/chatSession'
 import { getMessages, getAllMessages } from '@/api/chat' // 更新导入
 import { getUserInfo, getUserSettingInfo } from '@/api/user'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const userStore = useUserStore()
 const userSetStore = useUserSetStore()

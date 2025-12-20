@@ -834,4 +834,24 @@ export function setupIpcHandlers(icon: string): void {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
+
+  // 同步UnifiedMessage的IPC处理程序
+  ipcMain.handle('sync-unified-messages', async (_, messages) => {
+    try {
+      await databaseManager.syncUnifiedMessages(messages)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  // 同步ChatSessionUser的IPC处理程序
+  ipcMain.handle('sync-chat-session-users', async (_, users) => {
+    try {
+      await databaseManager.syncChatSessionUsers(users)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
 }

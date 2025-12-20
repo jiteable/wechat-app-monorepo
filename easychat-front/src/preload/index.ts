@@ -109,7 +109,11 @@ const api = {
     ipcRenderer.invoke('delete-chat-session', sessionId),
   deleteUnifiedMessage: (id: string): Promise<any> =>
     ipcRenderer.invoke('delete-unified-message', id),
-  deleteFile: (id: string): Promise<any> => ipcRenderer.invoke('delete-file', id)
+  deleteFile: (id: string): Promise<any> => ipcRenderer.invoke('delete-file', id),
+  syncUnifiedMessages: (messages: any[]): Promise<any> =>
+    ipcRenderer.invoke('sync-unified-messages', messages),
+  syncChatSessionUsers: (users: any[]): Promise<any> =>
+    ipcRenderer.invoke('sync-chat-session-users', users)
 }
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
