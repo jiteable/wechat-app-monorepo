@@ -249,6 +249,9 @@ const confirmLoadChatHistory = async () => {
 
   // 关闭对话框
   chatHistoryDialogVisible.value = false
+
+  // 刷新整个页面
+  window.location.reload()
 }
 
 // 处理设置按钮点击

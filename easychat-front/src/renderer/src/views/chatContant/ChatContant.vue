@@ -556,7 +556,7 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
 
       if (prepend) {
         // 在顶部添加旧消息（加载历史消息）
-        messages.value = [...newMessages, ...messages.value]
+        messages.value = [...messages.value, ...newMessages]
       } else {
         // 替换所有消息（初始化或刷新）
         messages.value = newMessages
@@ -1555,18 +1555,31 @@ const showCategory = (categoryName) => {
 const insertEmoji = (char) => {
   if (!messageInputRef.value) return
 
+  // 确保输入框获得焦点
+  messageInputRef.value.focus()
+
   const selection = window.getSelection()
-  if (selection.rangeCount > 0) {
-    const range = selection.getRangeAt(0)
-    range.deleteContents()
-    range.insertNode(document.createTextNode(char))
-    range.collapse(false)
+
+  // 检查选区是否在输入框内，如果不在则创建一个新的选区
+  if (!messageInputRef.value.contains(selection.anchorNode)) {
+    // 创建一个新的范围并将其设置在输入框的末尾
+    const range = document.createRange()
+    range.selectNodeContents(messageInputRef.value)
+    range.collapse(false) // 将光标移到末尾
+
     selection.removeAllRanges()
     selection.addRange(range)
-  } else {
-    // 如果没有选区，直接在末尾添加
-    messageInputRef.value.appendChild(document.createTextNode(char))
   }
+
+  // 执行插入操作
+  const range = selection.getRangeAt(0)
+  range.deleteContents()
+  range.insertNode(document.createTextNode(char))
+  range.collapse(false)
+
+  // 清除现有选区并应用新的选区
+  selection.removeAllRanges()
+  selection.addRange(range)
 
   // 插入表情后聚焦到输入框并更新状态
   nextTick(() => {
