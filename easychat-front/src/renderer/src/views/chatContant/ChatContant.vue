@@ -1062,6 +1062,8 @@ const sendMessageHandler = async () => {
               id: response.data.messageId,
               sessionId: selectedContact.id,
               senderId: userStore.userId,
+              senderName: userStore.username || '我',
+              senderAvatar: userStore.avatar || '',
               receiverId:
                 selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
               groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
@@ -1157,6 +1159,8 @@ const sendMessageHandler = async () => {
               id: response.data.messageId,
               sessionId: selectedContact.id,
               senderId: userStore.userId,
+              senderName: userStore.username || '我',
+              senderAvatar: userStore.avatar || '',
               receiverId:
                 selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
               groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
@@ -1750,6 +1754,8 @@ const uploadFiles = async (file) => {
                 id: sendResponse.data.messageId,
                 sessionId: selectedContact.id,
                 senderId: userStore.userId,
+                senderName: userStore.username || '我',
+                senderAvatar: userStore.avatar || '',
                 receiverId:
                   selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
                 groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
@@ -1899,6 +1905,8 @@ const uploadFiles = async (file) => {
                 id: sendResponse.data.messageId,
                 sessionId: selectedContact.id,
                 senderId: userStore.userId,
+                senderName: userStore.username || '我',
+                senderAvatar: userStore.avatar || '',
                 receiverId:
                   selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
                 groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
