@@ -177,64 +177,17 @@ const confirmLoadChatHistory = async () => {
           // 一次性获取所有消息
           const messagesResponse = await getAllMessages()
 
-          // 修复判断条件：检查响应结构中的success字段而不是整个响应对象
+          // 同步所有消息到本地数据库
           if (messagesResponse && messagesResponse.data && messagesResponse.data.success) {
             console.log('获取到消息数量:', messagesResponse.data.data.length)
 
-            // 逐个保存消息到本地数据库
-            for (const message of messagesResponse.data.data) {
-              try {
-                // 处理文件相关信息
-                let fileName = message.fileName
-                let fileSize = message.fileSize
-                let mimeType = message.mimeType
-                let fileExtension = message.fileExtension
-                let mediaUrl = message.mediaUrl
-                let thumbnailUrl = message.thumbnailUrl
-
-                // 如果消息包含文件对象，则从中提取信息
-                if (message.file) {
-                  fileName = message.file.name || fileName
-                  fileSize = message.file.size || fileSize
-                  mimeType = message.file.mimeType || mimeType
-                  fileExtension = message.file.fileExtension || fileExtension
-                  mediaUrl = message.file.url || mediaUrl
-                  thumbnailUrl = message.file.thumbnailUrl || thumbnailUrl
-                }
-
-                // 构造消息数据对象
-                const messageData = {
-                  id: message.id,
-                  sessionId: message.sessionId,
-                  senderId: message.senderId,
-                  receiverId: message.receiverId,
-                  groupId: message.groupId,
-                  content: message.content,
-                  messageType: message.messageType,
-                  mediaUrl: mediaUrl,
-                  fileName: fileName,
-                  fileSize: fileSize,
-                  mimeType: mimeType,
-                  fileExtension: fileExtension,
-                  thumbnailUrl: thumbnailUrl,
-                  videoInfo: message.videoInfo,
-                  isRecalled: message.isRecalled || false,
-                  isDeleted: message.isDeleted || false,
-                  status: 'RECEIVED', // 默认设为已接收
-                  readStatus: true, // 默认设为已读
-                  createdAt: message.createdAt,
-                  updatedAt: message.updatedAt
-                }
-
-                console.log('准备保存消息:', messageData)
-
-                // 保存消息到本地数据库
-                const result = await window.api.addUnifiedMessage(messageData)
-                console.log('消息保存结果:', result)
-              } catch (saveError) {
-                console.error('保存单条消息失败:', saveError)
-                allMessagesLoaded = false
-              }
+            // 使用syncUnifiedMessages一次性同步所有消息
+            const syncMessagesResult = await window.api.syncUnifiedMessages(
+              messagesResponse.data.data
+            )
+            if (!syncMessagesResult.success) {
+              allMessagesLoaded = false
+              console.error('同步消息数据失败:', syncMessagesResult.error)
             }
           } else {
             console.error('获取所有消息失败:', messagesResponse)
