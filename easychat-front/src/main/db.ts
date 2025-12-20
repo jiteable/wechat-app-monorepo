@@ -489,6 +489,90 @@ class DatabaseManager {
     }
   }
 
+  public async getMessagesBySessionId(
+    sessionId: string,
+    page: number = 1,
+    limit: number = 50
+  ): Promise<{ messages: any[]; pagination: any }> {
+    try {
+      // 确保表存在
+      await this.initializeTables()
+
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      const skip = (page - 1) * limit
+
+      // 查询消息记录总数
+      const totalResult = await db.get(
+        `SELECT COUNT(*) as count FROM UnifiedMessage WHERE sessionId = ?`,
+        [sessionId]
+      )
+      const totalMessages = totalResult.count
+
+      // 查询消息记录，按创建时间倒序排列（从新到旧）
+      const messages = await db.all(
+        `SELECT m.*, 
+                f.thumbnailUrl as file_thumbnailUrl,
+                v.duration as video_duration,
+                v.width as video_width,
+                v.height as video_height
+         FROM UnifiedMessage m
+         LEFT JOIN File f ON m.id = f.unifiedMessageId
+         LEFT JOIN Video v ON f.id = v.fileId
+         WHERE m.sessionId = ?
+         ORDER BY m.createdAt DESC
+         LIMIT ? OFFSET ?`,
+        [sessionId, limit, skip]
+      )
+
+      // 处理消息数据，确保视频文件的thumbnailUrl被包含
+      const processedMessages = messages.map((message) => {
+        if (message.file_thumbnailUrl) {
+          const processedMessage = {
+            ...message,
+            thumbnailUrl: message.file_thumbnailUrl
+          }
+
+          // 如果文件有关联的视频信息，也包含视频的宽度和高度
+          if (message.video_duration || message.video_width || message.video_height) {
+            processedMessage.videoInfo = {
+              duration: message.video_duration,
+              width: message.video_width,
+              height: message.video_height
+            }
+          }
+
+          return processedMessage
+        }
+        return message
+      })
+
+      // 计算分页信息
+      const totalPages = Math.ceil(totalMessages / limit)
+      const hasNextPage = page < totalPages
+      const hasPrevPage = page > 1
+
+      await db.close()
+
+      return {
+        messages: processedMessages,
+        pagination: {
+          currentPage: page,
+          totalPages: totalPages,
+          totalMessages: totalMessages,
+          hasNextPage: hasNextPage,
+          hasPrevPage: hasPrevPage
+        }
+      }
+    } catch (error) {
+      console.error('根据sessionId获取消息失败:', error)
+      throw error
+    }
+  }
+
   /**
    * 生成UUID
    */

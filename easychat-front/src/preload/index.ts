@@ -82,7 +82,9 @@ const api = {
   setLastSyncTime: (time: Date): Promise<any> => ipcRenderer.invoke('set-last-sync-time', time),
   addUnifiedMessage: (messageData: any): Promise<any> =>
     ipcRenderer.invoke('add-unified-message', messageData),
-  getAllUnifiedMessages: (): Promise<any> => ipcRenderer.invoke('get-all-unified-messages')
+  getAllUnifiedMessages: (): Promise<any> => ipcRenderer.invoke('get-all-unified-messages'),
+  getMessagesBySessionId: (sessionId: string, page?: number, limit?: number): Promise<any> =>
+    ipcRenderer.invoke('get-messages-by-session-id', sessionId, page, limit)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

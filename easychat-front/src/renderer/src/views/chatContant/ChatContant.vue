@@ -501,16 +501,15 @@ onBeforeUnmount(() => {
 })
 // 加载消息数据（带分页）
 const loadMessages = async (sessionId, page = 1, prepend = false) => {
-  const localMessagesResult = await window.api.getAllUnifiedMessages()
-  console.log('从本地数据库获取到消息:', localMessagesResult)
   try {
-    const response = await getMessages({ sessionId, page, limit: 20 })
-    if (response.data.success) {
+    // 使用 window.api.getMessagesBySessionId 替代 getMessages API 调用
+    const response = await window.api.getMessagesBySessionId(sessionId, page, 20)
+    if (response.success) {
       // 更新分页信息
-      pagination.value = response.data.data.pagination
+      pagination.value = response.data.pagination
 
       // 将获取到的消息转换为组件所需格式
-      const newMessages = response.data.data.messages.map((msg) => {
+      const newMessages = response.data.messages.map((msg) => {
         const baseMessage = {
           id: msg.id,
           type: msg.messageType,
@@ -527,8 +526,8 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         if (msg.messageType === 'file') {
           return {
             ...baseMessage,
-            fileExtension: msg.file?.fileExtension || msg.fileExtension, // 从文件对象或直接从消息获取扩展名
-            size: formatFileSize(msg.fileSize) // 格式化文件大小
+            fileExtension: msg.file?.fileExtension || msg.fileExtension || msg.fileExtension, // 从文件对象或直接从消息获取扩展名
+            size: formatFileSize(msg.fileSize || msg.fileSize) // 格式化文件大小
           }
         }
 
@@ -537,14 +536,15 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
           return {
             ...baseMessage,
             mediaUrl: msg.mediaUrl,
-            thumbnailUrl: msg.video?.thumbnailUrl || msg.thumbnailUrl,
-            size: formatFileSize(msg.fileSize),
-            fileExtension: msg.file?.fileExtension || msg.fileExtension,
-            videoInfo: msg.video || {
-              duration: msg.videoInfo?.duration,
-              width: msg.videoWidth || msg.videoInfo?.width,
-              height: msg.videoHeight || msg.videoInfo?.height
-            }
+            thumbnailUrl: msg.thumbnailUrl || msg.video?.thumbnailUrl,
+            size: formatFileSize(msg.fileSize || msg.fileSize),
+            fileExtension: msg.file?.fileExtension || msg.fileExtension || msg.fileExtension,
+            videoInfo: msg.videoInfo ||
+              msg.video || {
+                duration: msg.videoInfo?.duration || msg.video?.duration,
+                width: msg.videoInfo?.width || msg.video?.width,
+                height: msg.videoInfo?.height || msg.video?.height
+              }
           }
         }
 
@@ -555,7 +555,7 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
 
       if (prepend) {
         // 在顶部添加旧消息（加载历史消息）
-        messages.value = [...messages.value, ...newMessages]
+        messages.value = [...newMessages, ...messages.value]
       } else {
         // 替换所有消息（初始化或刷新）
         messages.value = newMessages
@@ -1061,7 +1061,8 @@ const sendMessageHandler = async () => {
               id: response.data.messageId,
               sessionId: selectedContact.id,
               senderId: userStore.userId,
-              receiverId: selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
+              receiverId:
+                selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
               groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
               content: response.data.content,
               messageType: 'image',
@@ -1155,7 +1156,8 @@ const sendMessageHandler = async () => {
               id: response.data.messageId,
               sessionId: selectedContact.id,
               senderId: userStore.userId,
-              receiverId: selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
+              receiverId:
+                selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
               groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
               content: item.content,
               messageType: 'text',
@@ -1734,7 +1736,8 @@ const uploadFiles = async (file) => {
                 id: sendResponse.data.messageId,
                 sessionId: selectedContact.id,
                 senderId: userStore.userId,
-                receiverId: selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
+                receiverId:
+                  selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
                 groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
                 content: response.originalName,
                 messageType: 'video',
@@ -1882,7 +1885,8 @@ const uploadFiles = async (file) => {
                 id: sendResponse.data.messageId,
                 sessionId: selectedContact.id,
                 senderId: userStore.userId,
-                receiverId: selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
+                receiverId:
+                  selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
                 groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
                 content: response.originalName,
                 messageType: 'file',

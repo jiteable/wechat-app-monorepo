@@ -721,4 +721,14 @@ export function setupIpcHandlers(icon: string): void {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
+
+  // 添加根据sessionId获取消息的IPC处理程序
+  ipcMain.handle('get-messages-by-session-id', async (_, sessionId, page = 1, limit = 50) => {
+    try {
+      const result = await databaseManager.getMessagesBySessionId(sessionId, page, limit)
+      return { success: true, data: result }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
 }

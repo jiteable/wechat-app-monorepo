@@ -73,5 +73,6 @@ interface Window {
     setLastSyncTime: (time: Date) => Promise<any>
     addUnifiedMessage: (messageData: any) => Promise<any>
     getAllUnifiedMessages: () => Promise<any>
+    getMessagesBySessionId: (sessionId: string, page?: number, limit?: number) => Promise<any>
   }
 }
