@@ -854,4 +854,13 @@ export function setupIpcHandlers(icon: string): void {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
+
+  ipcMain.handle('get-users-by-ids', async (_, userIds) => {
+    try {
+      const users = await databaseManager.getUsersByIds(userIds)
+      return { success: true, data: users }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
 }

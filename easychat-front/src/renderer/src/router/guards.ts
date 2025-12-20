@@ -24,14 +24,8 @@ export const beforeEach = (to: any, from: any, next) => {
   // 当进入/chat路由时，向ChatSession表中添加一条数据
   if (to.path === '/chat' || to.path.startsWith('/chat/')) {
     // 调用主进程方法添加数据
-    if (window.api) {
-      window.api.addChatSession().then((result) => {
-        if (result.success) {
-          console.log('成功添加并读取ChatSession数据:', result.data)
-        } else {
-          console.error('添加ChatSession数据失败:', result.error)
-        }
-      })
+    if (window.api)  {
+      console.log('waaaaa: ', window.api.getAllUnifiedMessages())
     }
   }
 

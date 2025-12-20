@@ -179,7 +179,7 @@ const confirmLoadChatHistory = async () => {
 
           // 同步所有消息到本地数据库
           if (messagesResponse && messagesResponse.data && messagesResponse.data.success) {
-            console.log('获取到消息数量:', messagesResponse.data.data.length)
+            console.log('获取到消息:', messagesResponse.data.data)
 
             // 使用syncUnifiedMessages一次性同步所有消息
             const syncMessagesResult = await window.api.syncUnifiedMessages(

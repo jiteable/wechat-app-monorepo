@@ -115,6 +115,8 @@ class DatabaseManager {
         mediaUrl TEXT,
         fileName TEXT,
         fileSize INTEGER,
+        senderName TEXT,
+        senderAvatar TEXT,
         isRecalled BOOLEAN DEFAULT 0,
         isDeleted BOOLEAN DEFAULT 0,
         status TEXT DEFAULT 'SENDING',
@@ -713,9 +715,9 @@ class DatabaseManager {
       // 插入消息记录
       const result = await db.run(
         `INSERT INTO UnifiedMessage 
-         (id, sessionId, senderId, receiverId, groupId, content, messageType, mediaUrl, fileName, fileSize, 
+         (id, sessionId, senderId, receiverId, groupId, content, messageType, mediaUrl, fileName, fileSize, senderName, senderAvatar,
           isRecalled, isDeleted, status, readStatus, createdAt, updatedAt, recalledAt, deletedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           messageData.id || generateUUID(),
           messageData.sessionId,
@@ -727,6 +729,8 @@ class DatabaseManager {
           messageData.mediaUrl || null,
           messageData.fileName || null,
           messageData.fileSize || null,
+          messageData.senderName || null,
+          messageData.senderAvatar || null,
           messageData.isRecalled ? 1 : 0,
           messageData.isDeleted ? 1 : 0,
           messageData.status || 'SENT',
@@ -801,12 +805,20 @@ class DatabaseManager {
       const totalMessages = totalResult.count
 
       // 查询消息记录，按创建时间倒序排列（从新到旧）
+      // 增强查询，包含更多相关信息
       const messages = await db.all(
         `SELECT m.*, 
                 f.thumbnailUrl as file_thumbnailUrl,
+                f.fileExtension as file_extension,
+                f.mimeType as mime_type,
+                f.name as file_name,
+                f.size as file_size,
                 v.duration as video_duration,
                 v.width as video_width,
-                v.height as video_height
+                v.height as video_height,
+                v.bitrate as video_bitrate,
+                v.codec as video_codec,
+                v.fps as video_fps
          FROM UnifiedMessage m
          LEFT JOIN File f ON m.id = f.unifiedMessageId
          LEFT JOIN Video v ON f.id = v.fileId
@@ -818,10 +830,17 @@ class DatabaseManager {
 
       // 处理消息数据，确保视频文件的thumbnailUrl被包含
       const processedMessages = messages.map((message) => {
-        if (message.file_thumbnailUrl) {
+        // 处理基础文件信息
+        if (message.file_thumbnailUrl || message.file_extension || message.mime_type) {
           const processedMessage = {
             ...message,
-            thumbnailUrl: message.file_thumbnailUrl
+            thumbnailUrl: message.file_thumbnailUrl,
+            fileExtension: message.file_extension,
+            mimeType: message.mime_type,
+            fileName: message.file_name,
+            fileSize: message.file_size,
+            senderAvatar: message.senderAvatar,
+            senderName: message.senderName
           }
 
           // 如果文件有关联的视频信息，也包含视频的宽度和高度
@@ -829,13 +848,22 @@ class DatabaseManager {
             processedMessage.videoInfo = {
               duration: message.video_duration,
               width: message.video_width,
-              height: message.video_height
+              height: message.video_height,
+              bitrate: message.video_bitrate,
+              codec: message.video_codec,
+              fps: message.video_fps
             }
           }
 
           return processedMessage
         }
-        return message
+
+        // 即使没有文件信息，也要确保发送者信息被包含
+        return {
+          ...message,
+          senderAvatar: message.senderAvatar,
+          senderName: message.senderName
+        }
       })
 
       // 计算分页信息
@@ -844,6 +872,8 @@ class DatabaseManager {
       const hasPrevPage = page > 1
 
       await db.close()
+
+      console.log('processedMessages', processedMessages)
 
       return {
         messages: processedMessages,
@@ -906,6 +936,8 @@ class DatabaseManager {
         driver: sqlite3.Database
       })
 
+      console.log('aaaaaaaamessages: ', messages)
+
       for (const message of messages) {
         // 检查消息是否已存在
         const existing = await db.get(`SELECT id FROM UnifiedMessage WHERE id = ?`, [message.id])
@@ -914,9 +946,9 @@ class DatabaseManager {
           // 插入消息
           await db.run(
             `INSERT INTO UnifiedMessage 
-            (id, sessionId, senderId, receiverId, groupId, content, messageType, mediaUrl, fileName, fileSize, 
+            (id, sessionId, senderId, receiverId, groupId, content, messageType, mediaUrl, fileName, fileSize, senderName, senderAvatar,
              isRecalled, isDeleted, status, readStatus, createdAt, updatedAt, recalledAt, deletedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               message.id,
               message.sessionId,
@@ -928,6 +960,8 @@ class DatabaseManager {
               message.mediaUrl || null,
               message.fileName || null,
               message.fileSize || null,
+              message.sender.username || null,
+              message.sender.avatar || null,
               message.isRecalled ? 1 : 0,
               message.isDeleted ? 1 : 0,
               message.status || 'SENT',
@@ -996,7 +1030,6 @@ class DatabaseManager {
       throw error
     }
   }
-
   // File 表相关操作
   /**
    * 根据ID删除File记录
@@ -1030,6 +1063,41 @@ class DatabaseManager {
    */
   public getDbPath(): string {
     return this.dbPath
+  }
+
+  /**
+   * 根据用户ID数组获取用户信息
+   */
+  public async getUsersByIds(userIds: string[]): Promise<any[]> {
+    try {
+      if (!userIds || userIds.length === 0) {
+        return []
+      }
+
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      // 创建占位符
+      const placeholders = userIds.map(() => '?').join(',')
+      const query = `SELECT * FROM ChatSessionUser WHERE userId IN (${placeholders})`
+
+      const users = await db.all(query, userIds)
+
+      await db.close()
+
+      // 处理布尔值
+      return users.map((user) => ({
+        ...user,
+        isMuted: !!user.isMuted,
+        isPinned: !!user.isPinned,
+        showMemberNameCard: !!user.showMemberNameCard
+      }))
+    } catch (error) {
+      console.error('Get users by IDs failed:', error)
+      throw error
+    }
   }
 }
 

@@ -92,5 +92,6 @@ interface Window {
     // 同步相关函数
     syncUnifiedMessages: (messages: any[]) => Promise<any>
     syncChatSessionUsers: (users: any[]) => Promise<any>
+    getUsersByIds: (userIds: string[]) => Promise<any>
   }
 }

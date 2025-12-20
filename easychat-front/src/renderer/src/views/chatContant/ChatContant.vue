@@ -504,6 +504,7 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
   try {
     // 使用 window.api.getMessagesBySessionId 替代 getMessages API 调用
     const response = await window.api.getMessagesBySessionId(sessionId, page, 20)
+    console.log('responseaw: ', response)
     if (response.success) {
       // 更新分页信息
       pagination.value = response.data.pagination
@@ -514,8 +515,8 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
           id: msg.id,
           type: msg.messageType,
           senderId: msg.senderId,
-          senderName: msg.sender?.username || '未知用户',
-          senderAvatar: msg.sender?.avatar,
+          senderName: msg.senderName || '未知用户',
+          senderAvatar: msg.senderAvatar,
           content: msg.content,
           createdAt: msg.createdAt,
           imageUrl: msg.mediaUrl,
@@ -526,8 +527,8 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         if (msg.messageType === 'file') {
           return {
             ...baseMessage,
-            fileExtension: msg.file?.fileExtension || msg.fileExtension || msg.fileExtension, // 从文件对象或直接从消息获取扩展名
-            size: formatFileSize(msg.fileSize || msg.fileSize) // 格式化文件大小
+            fileExtension: msg.file_extension, // 从文件对象或直接从消息获取扩展名
+            size: formatFileSize(msg.file_size) // 格式化文件大小
           }
         }
 
@@ -536,9 +537,9 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
           return {
             ...baseMessage,
             mediaUrl: msg.mediaUrl,
-            thumbnailUrl: msg.thumbnailUrl || msg.video?.thumbnailUrl,
-            size: formatFileSize(msg.fileSize || msg.fileSize),
-            fileExtension: msg.file?.fileExtension || msg.fileExtension || msg.fileExtension,
+            thumbnailUrl: msg.file_thumbnailUrl,
+            size: formatFileSize(msg.file_size),
+            fileExtension: msg.file_extension,
             videoInfo: msg.videoInfo ||
               msg.video || {
                 duration: msg.videoInfo?.duration || msg.video?.duration,
