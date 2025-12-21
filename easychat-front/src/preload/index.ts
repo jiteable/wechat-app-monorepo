@@ -109,6 +109,8 @@ const api = {
     ipcRenderer.invoke('delete-chat-session', sessionId),
   deleteUnifiedMessage: (id: string): Promise<any> =>
     ipcRenderer.invoke('delete-unified-message', id),
+  deleteUnifiedMessagesBySessionId: (sessionId: string): Promise<any> =>
+    ipcRenderer.invoke('delete-unified-messages-by-session-id', sessionId),
   deleteFile: (id: string): Promise<any> => ipcRenderer.invoke('delete-file', id),
   syncUnifiedMessages: (messages: any[]): Promise<any> =>
     ipcRenderer.invoke('sync-unified-messages', messages),

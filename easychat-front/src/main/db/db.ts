@@ -927,6 +927,48 @@ class DatabaseManager {
   }
 
   /**
+   * 根据会话ID删除所有相关的UnifiedMessage记录
+   * @param sessionId 会话ID
+   */
+  public async deleteUnifiedMessagesBySessionId(sessionId: string): Promise<void> {
+    try {
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      // 查找该会话下的所有消息记录
+      const messages = await db.all(`SELECT id FROM UnifiedMessage WHERE sessionId = ?`, [
+        sessionId
+      ])
+
+      // 删除每条消息及其关联的文件和视频记录
+      for (const message of messages) {
+        const messageId = message.id
+
+        // 查找关联的文件记录
+        const file = await db.get(`SELECT id FROM File WHERE unifiedMessageId = ?`, [messageId])
+        if (file) {
+          const fileId = file.id
+          // 删除关联的视频记录
+          await db.run(`DELETE FROM Video WHERE fileId = ?`, [fileId])
+
+          // 删除文件记录
+          await db.run(`DELETE FROM File WHERE id = ?`, [fileId])
+        }
+
+        // 删除消息记录
+        await db.run(`DELETE FROM UnifiedMessage WHERE id = ?`, [messageId])
+      }
+
+      await db.close()
+    } catch (error) {
+      console.error('Delete UnifiedMessages by sessionId failed:', error)
+      throw error
+    }
+  }
+
+  /**
    * 同步UnifiedMessage数据到本地数据库
    */
   public async syncUnifiedMessages(messages: any[]): Promise<void> {

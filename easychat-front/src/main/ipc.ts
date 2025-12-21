@@ -863,4 +863,13 @@ export function setupIpcHandlers(icon: string): void {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
+
+  ipcMain.handle('delete-unified-messages-by-session-id', async (_, sessionId) => {
+    try {
+      await databaseManager.deleteUnifiedMessagesBySessionId(sessionId)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
 }

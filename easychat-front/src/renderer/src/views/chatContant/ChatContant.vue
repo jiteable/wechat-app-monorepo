@@ -1422,10 +1422,33 @@ const clearChatHistory = () => {
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
+    .then(async () => {
       // 执行清空聊天记录的逻辑
-      console.log('清空聊天记录')
-      ElMessage.success('聊天记录已清空')
+      try {
+        const sessionId = contactStore.selectedContact?.id
+        if (sessionId) {
+          // 调用API删除该会话的所有消息记录
+          const result = await window.api.deleteUnifiedMessagesBySessionId(sessionId)
+
+          if (result.success) {
+            // 清空当前消息列表
+            messages.value = []
+
+            // 显示成功消息
+            ElMessage.success('聊天记录已清空')
+
+            console.log('聊天记录已清空，会话ID:', sessionId)
+          } else {
+            ElMessage.error('清空聊天记录失败: ' + result.error)
+            console.error('清空聊天记录失败:', result.error)
+          }
+        } else {
+          ElMessage.warning('未找到有效的会话信息')
+        }
+      } catch (error) {
+        ElMessage.error('清空聊天记录时发生错误')
+        console.error('清空聊天记录时发生错误:', error)
+      }
     })
     .catch(() => {
       // 用户取消操作
@@ -2662,7 +2685,7 @@ const formatDuration = (seconds) => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 0;
+  padding: 10px 0;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
