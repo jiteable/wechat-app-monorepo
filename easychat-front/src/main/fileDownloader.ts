@@ -6,7 +6,7 @@ import * as path from 'path'
  * 下载文件到指定路径
  * @param url 文件URL
  * @param fileName 文件名
- * @param savePath 保存路径
+ * @param savePath 保存路径基础目录
  * @returns 保存的完整文件路径
  */
 export async function downloadFile(
@@ -23,18 +23,22 @@ export async function downloadFile(
       return
     }
 
+    // 构建带日期的完整保存路径: 基础路径/files/年月/
+    const currentDate = new Date().toISOString().slice(0, 7) // 格式: YYYY-MM
+    const finalSavePath = path.join(savePath, 'files', currentDate)
+
     // 确保保存目录存在
-    if (!fs.existsSync(savePath)) {
+    if (!fs.existsSync(finalSavePath)) {
       try {
-        fs.mkdirSync(savePath, { recursive: true })
+        fs.mkdirSync(finalSavePath, { recursive: true })
       } catch (err) {
-        reject(new Error(`无法创建目录: ${err.message}`))
+        reject(new Error(`无法创建目录: ${(err as Error).message}`))
         return
       }
     }
 
     // 构建完整的文件路径
-    const fullPath = path.join(savePath, fileName)
+    const fullPath = path.join(finalSavePath, fileName)
 
     // 处理文件名冲突
     const finalPath = getUniqueFilePath(fullPath)
@@ -77,12 +81,12 @@ export async function downloadFile(
       })
 
       fileStream.on('error', (err) => {
-        reject(new Error(`写入文件失败: ${err.message}`))
+        reject(new Error(`写入文件失败: ${(err as Error).message}`))
       })
     })
 
     request.on('error', (err) => {
-      reject(new Error(`网络请求失败: ${err.message}`))
+      reject(new Error(`网络请求失败: ${(err as Error).message}`))
     })
 
     request.end()
