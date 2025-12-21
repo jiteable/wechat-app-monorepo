@@ -173,6 +173,11 @@
 import { ref, nextTick } from 'vue'
 import { EditPen } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  updateGroupInfo,
+  updateSessionRemark,
+  updateUserNicknameInGroup
+} from '@/api/editGroupInfo'
 
 // Props
 const props = defineProps({
@@ -343,15 +348,60 @@ const startEditGroupName = () => {
 }
 
 // 保存群名称
-const saveGroupName = () => {
+const saveGroupName = async () => {
   if (editingField.value === 'groupName') {
-    emit('updateGroupName', groupEditForm.value.name)
+    try {
+      // 调用API更新群名称
+      const response = await updateGroupInfo({
+        groupId: props.group?.id,
+        name: groupEditForm.value.name
+      })
 
-    // 重置编辑状态
-    editingField.value = ''
+      if (response.code === 200) {
+        // 通知父组件更新群名称
+        emit('updateGroupName', groupEditForm.value.name)
 
-    // 显示成功消息
-    ElMessage.success('群名称修改成功')
+        // 重置编辑状态
+        editingField.value = ''
+
+        // 显示成功消息
+        ElMessage.success('群名称修改成功')
+      } else {
+        ElMessage.error(response.message || '群名称修改失败')
+      }
+    } catch (error) {
+      console.error('更新群名称时出错:', error)
+      ElMessage.error('群名称修改失败')
+    }
+  }
+}
+
+// 保存群公告
+const saveAnnouncement = async () => {
+  if (editingField.value === 'announcement') {
+    try {
+      // 调用API更新群公告
+      const response = await updateGroupInfo({
+        groupId: props.group?.id,
+        announcement: groupEditForm.value.announcement
+      })
+
+      if (response.code === 200) {
+        // 通知父组件更新群公告
+        emit('updateAnnouncement', groupEditForm.value.announcement)
+
+        // 重置编辑状态
+        editingField.value = ''
+
+        // 显示成功消息
+        ElMessage.success('群公告修改成功')
+      } else {
+        ElMessage.error(response.message || '群公告修改失败')
+      }
+    } catch (error) {
+      console.error('更新群公告时出错:', error)
+      ElMessage.error('群公告修改失败')
+    }
   }
 }
 
@@ -364,19 +414,6 @@ const startEditAnnouncement = () => {
   })
 }
 
-// 保存群公告
-const saveAnnouncement = () => {
-  if (editingField.value === 'announcement') {
-    emit('updateAnnouncement', groupEditForm.value.announcement)
-
-    // 重置编辑状态
-    editingField.value = ''
-
-    // 显示成功消息
-    ElMessage.success('群公告修改成功')
-  }
-}
-
 // 开始编辑备注
 const startEditRemark = () => {
   editingField.value = 'remark'
@@ -387,15 +424,31 @@ const startEditRemark = () => {
 }
 
 // 保存备注
-const saveRemark = () => {
+const saveRemark = async () => {
   if (editingField.value === 'remark') {
-    emit('updateRemark', groupEditForm.value.remark)
+    try {
+      // 调用API更新会话备注
+      const response = await updateSessionRemark({
+        sessionId: props.group?.sessionId, // 需要确认是否有sessionId属性传入
+        remark: groupEditForm.value.remark
+      })
 
-    // 重置编辑状态
-    editingField.value = ''
+      if (response.code === 200) {
+        // 通知父组件更新备注
+        emit('updateRemark', groupEditForm.value.remark)
 
-    // 显示成功消息
-    ElMessage.success('备注修改成功')
+        // 重置编辑状态
+        editingField.value = ''
+
+        // 显示成功消息
+        ElMessage.success('备注修改成功')
+      } else {
+        ElMessage.error(response.message || '备注修改失败')
+      }
+    } catch (error) {
+      console.error('更新备注时出错:', error)
+      ElMessage.error('备注修改失败')
+    }
   }
 }
 
@@ -409,15 +462,31 @@ const startEditNickname = () => {
 }
 
 // 保存我在本群的昵称
-const saveNickname = () => {
+const saveNickname = async () => {
   if (editingField.value === 'nickname') {
-    emit('updateNickname', groupEditForm.value.nickname)
+    try {
+      // 调用API更新用户在群组中的昵称
+      const response = await updateUserNicknameInGroup({
+        groupId: props.group?.id,
+        nickname: groupEditForm.value.nickname
+      })
 
-    // 重置编辑状态
-    editingField.value = ''
+      if (response.code === 200) {
+        // 通知父组件更新昵称
+        emit('updateNickname', groupEditForm.value.nickname)
 
-    // 显示成功消息
-    ElMessage.success('昵称修改成功')
+        // 重置编辑状态
+        editingField.value = ''
+
+        // 显示成功消息
+        ElMessage.success('昵称修改成功')
+      } else {
+        ElMessage.error(response.message || '昵称修改失败')
+      }
+    } catch (error) {
+      console.error('更新昵称时出错:', error)
+      ElMessage.error('昵称修改失败')
+    }
   }
 }
 </script>
