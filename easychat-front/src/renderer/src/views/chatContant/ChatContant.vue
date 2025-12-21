@@ -272,7 +272,7 @@
         @close="onDrawerClose"
       >
         <div class="drawer-content">
-          <div class="session-users-section">
+          <div v-if="isGroupChat" class="session-users-section">
             <div class="section-title">群成员</div>
             <div class="users-grid">
               <div v-for="(user, index) in displayedUsers" :key="user.id" class="user-item">
@@ -364,7 +364,7 @@
             <el-switch v-model="pinChat" />
           </div>
 
-          <div class="drawer-item">
+          <div v-if="isGroupChat" class="drawer-item">
             <span>显示成员名称</span>
             <el-switch v-model="muteNotifications" />
           </div>
@@ -1288,23 +1288,26 @@ const toggleChat = () => {
 
 const sessionUsers = computed(() => {
   const session = contactStore.selectedContact
-  console.log('sessionaaaaaaaa: ', session.group.members)
-  // 注意：目前前端的 ChatSession 类型定义中缺少 ChatSessionUsers 属性
-  // 需要确认后端是否返回了这部分数据
-  return session && session.group.members ? session.group.members : []
+  console.log('sessionaaaaaaaa: ', session?.group?.members)
+  return session && session.group && session.group.members ? session.group.members : []
 })
 
 const displayedUsers = computed(() => {
   console.log('sessionUsers....', sessionUsers.value)
   // 最多显示15个成员
-  return sessionUsers.value.slice(0, 15)
+  return sessionUsers.value ? sessionUsers.value.slice(0, 15) : []
 })
 
 // 是否显示添加按钮
 const shouldShowAddButton = computed(() => {
   const session = contactStore.selectedContact
   // 只有在群聊中才显示添加按钮
-  return session && session.sessionType === 'group' && sessionUsers.value.length > 0
+  return (
+    session &&
+    session.sessionType === 'group' &&
+    sessionUsers.value &&
+    sessionUsers.value.length > 0
+  )
 })
 
 // 添加成员方法
