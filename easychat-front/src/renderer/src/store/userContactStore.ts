@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { defineStore } from 'pinia'
 import type { ChatSession } from '@/api/chatSession/type'
 
@@ -5,23 +6,29 @@ const STORE_UPDATE_EVENT = 'contactStoreUpdated'
 
 interface ContactState {
   selectedContact: ChatSession | null
+  selectedUser: any | null // 专门用于联系人页面的用户选择
 }
 
 export const userContactStore = defineStore('contact', {
   state: (): ContactState => ({
-    selectedContact: null
+    selectedContact: null,
+    selectedUser: null
   }),
   actions: {
     setSelectedContact(contact: ChatSession) {
       this.selectedContact = contact
-
-      // 同步到其他窗口
       this.syncToOtherWindows()
     },
     clearSelectedContact() {
       this.selectedContact = null
-
-      // 同步到其他窗口
+      this.syncToOtherWindows()
+    },
+    setSelectedUser(user: any) {
+      this.selectedUser = user
+      this.syncToOtherWindows()
+    },
+    clearSelectedUser() {
+      this.selectedUser = null
       this.syncToOtherWindows()
     },
 
@@ -47,6 +54,7 @@ export const userContactStore = defineStore('contact', {
      */
     syncFromOtherWindows(state: ContactState) {
       this.selectedContact = state.selectedContact
+      this.selectedUser = state.selectedUser
     }
   }
 })

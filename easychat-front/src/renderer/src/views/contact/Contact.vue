@@ -95,6 +95,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import convertToPinyinInitials from '@/utils/changeChinese'
 import { getContact, getGroup } from '@/api/getRelationship'
+import { getGroupInfo } from '@/api/chatSession'
 import { userContactStore } from '@/store/userContactStore'
 
 const searchText = ref('')
@@ -256,15 +257,44 @@ const isItemSelected = (itemId, type) => {
 }
 
 const selectContact = (contact) => {
-  selectItem(contact, 'contact')
-  // 设置选中的联系人信息到store中
-  contactStore.setSelectedContact(contact)
-  // 导航回联系人详情页面
+  selectedItemId.value = contact.id
+  selectedItemType.value = 'contact'
+
+  contactStore.setSelectedUser(contact)
+
   router.push('/contact')
 }
 
-const selectGroup = (group) => {
+const selectGroup = async (group) => {
   selectItem(group, 'group')
+
+  // 获取完整的群组信息
+  try {
+    const response = await getGroupInfo(group.id)
+    if (response && response.success) {
+      // 确保群组信息包含 sessionType 字段
+      const groupInfo = {
+        ...response.data,
+        sessionType: 'group'
+      }
+      // 设置完整的群组信息
+      contactStore.setSelectedUser(groupInfo)
+    } else {
+      // 如果获取失败，使用基本信息并添加 sessionType
+      contactStore.setSelectedUser({
+        ...group,
+        sessionType: 'group'
+      })
+    }
+  } catch (error) {
+    console.error('获取群组信息失败:', error)
+    // 如果获取失败，使用基本信息并添加 sessionType
+    contactStore.setSelectedUser({
+      ...group,
+      sessionType: 'group'
+    })
+  }
+
   // 导航回联系人详情页面
   router.push('/contact')
 }

@@ -7,12 +7,21 @@
     <div v-if="currentContact" class="chat-contant">
       <!-- 头像与昵称 -->
       <div class="chat-contant-info">
-        <el-avatar shape="square" :size="60" :src="currentContact.avatar" />
+        <el-avatar
+          shape="square"
+          :size="60"
+          :src="currentContact.image ? currentContact.image : currentContact.avatar"
+        />
         <div class="chat-contant-info-name">
           <div class="name">{{ currentContact.name }}</div>
           <div class="info-names">
-            <div class="info-name">昵称: {{ currentContact.name }}</div>
-            <div class="info-name">微信ID: {{ currentContact.chatId || 'N/A' }}</div>
+            <div v-if="!isGroup" class="info-name">昵称: {{ currentContact.name }}</div>
+            <div v-if="!isGroup" class="info-name">
+              微信ID: {{ currentContact.chatId || 'N/A' }}
+            </div>
+            <div v-if="isGroup" class="info-name">
+              成员数: {{ currentContact.memberCount || currentContact.members?.length || 0 }}
+            </div>
           </div>
         </div>
         <div class="popover-container">
@@ -28,23 +37,30 @@
               <button class="chat-contant-button no-drag" @click.stop>...</button>
             </template>
             <div class="popover-menu">
-              <div class="popover-menu-item">设置备注和标签</div>
-              <div class="popover-menu-item">设置朋友权限</div>
-              <div class="popover-menu-item">删除联系人</div>
-              <div class="popover-menu-item">加入黑名单</div>
+              <div v-if="!isGroup" class="popover-menu-item">设置备注和标签</div>
+              <div v-if="!isGroup" class="popover-menu-item">设置朋友权限</div>
+              <div v-if="!isGroup" class="popover-menu-item">删除联系人</div>
+              <div v-if="!isGroup" class="popover-menu-item">加入黑名单</div>
+              <div v-else class="popover-menu-item">群设置</div>
             </div>
           </el-popover>
         </div>
       </div>
 
       <!-- 备注信息 -->
-      <div class="remark-section">
+      <div v-if="!isGroup" class="remark-section">
         <span class="label">备注</span>
         <span class="value">{{ currentContact.remark || currentContact.name }}</span>
       </div>
 
+      <!-- 群聊公告 -->
+      <div v-else-if="currentContact.announcement" class="remark-section">
+        <span class="label">群公告</span>
+        <span class="value">{{ currentContact.announcement }}</span>
+      </div>
+
       <!-- 共同群聊 & 个性签名 & 来源 -->
-      <div class="common-group-section">
+      <div v-if="!isGroup" class="common-group-section">
         <div class="item">
           <span class="label">共同群聊</span>
           <span class="value">{{ currentContact.groupCount || 0 }}个</span>
@@ -59,10 +75,24 @@
         </div>
       </div>
 
+      <!-- 成员列表 -->
+      <div
+        v-else-if="currentContact.members && currentContact.members.length > 0"
+        class="common-group-section"
+      >
+        <span class="label">群成员</span>
+        <div class="members-list">
+          <div v-for="member in currentContact.members" :key="member.id" class="member-item">
+            <el-avatar shape="square" :size="30" :src="member.avatar" />
+            <span class="member-name">{{ member.name }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 操作按钮 -->
       <div class="action-buttons">
         <div class="action-btn" @click="sendMessage">
-          <span>发消息</span>
+          <span>{{ isGroup ? '进入群聊' : '发消息' }}</span>
         </div>
       </div>
     </div>
@@ -88,7 +118,12 @@ const userStore = useUserStore()
 const router = useRouter()
 
 // 计算属性：当前选中的联系人
-const currentContact = computed(() => contactStore.selectedContact)
+const currentContact = computed(() => contactStore.selectedUser)
+
+// 判断是否为群组
+const isGroup = computed(() => {
+  return currentContact.value && currentContact.value.sessionType === 'group'
+})
 
 const handleContainerClick = () => {
   if (popoverRef.value) {
@@ -100,15 +135,27 @@ const handleContainerClick = () => {
 const sendMessage = async () => {
   if (!currentContact.value) return
 
+  console.log('currendContact: ', currentContact.value)
+
   let session = null
 
   try {
     // 尝试获取现有会话
-    const sessionResponse = await getSessions(currentContact.value.id)
+    const sessionResponse = await getSessions(isGroup.value ? undefined : currentContact.value.id)
 
     if (sessionResponse && sessionResponse.success) {
-      // 存在会话
-      session = sessionResponse.data
+      // 如果是群组，需要找到对应的群聊会话
+      if (isGroup.value) {
+        const groupSession = sessionResponse.data.find(
+          (s) => s.sessionType === 'group' && s.group?.id === currentContact.value.id
+        )
+        if (groupSession) {
+          session = groupSession
+        }
+      } else {
+        // 存在会话
+        session = sessionResponse.data
+      }
       console.log('获取到现有会话:', session)
     }
   } catch (error) {
@@ -126,8 +173,9 @@ const sendMessage = async () => {
   if (!session) {
     try {
       const createResponse = await createSession({
-        sessionType: 'private',
-        userIds: [userStore.userId, currentContact.value.id]
+        sessionType: isGroup.value ? 'group' : 'private',
+        userIds: isGroup.value ? undefined : [userStore.userId, currentContact.value.id],
+        groupId: isGroup.value ? currentContact.value.id : undefined
       })
 
       if (createResponse && createResponse.success) {
@@ -165,7 +213,17 @@ const sendMessage = async () => {
   // 使用获取到的或新建的会话进行导航
   if (session) {
     console.log('将会话信息传递给聊天页面:', session)
-    // 这里可以添加路由跳转逻辑，例如：
+    // 设置正确的会话信息到store
+    contactStore.setSelectedContact(session)
+
+    // 触发自定义事件，强制ChatContant.vue重新加载消息
+    window.dispatchEvent(
+      new CustomEvent('contactStoreUpdated', {
+        detail: { selectedContact: session }
+      })
+    )
+
+    // 进行路由跳转
     router.push(`/chat/${session.id}`)
   }
 }
@@ -310,6 +368,7 @@ onDeactivated(() => {
 /* 共同群聊 & 个性签名 */
 .common-group-section {
   margin-bottom: 30px;
+  padding-bottom: 10px;
   border-bottom: 1px solid rgb(225, 225, 225);
 }
 
@@ -374,5 +433,29 @@ onDeactivated(() => {
 
 .placeholder-text {
   font-size: 16px;
+}
+
+.members-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.member-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 60px;
+}
+
+.member-name {
+  font-size: 12px;
+  margin-top: 5px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
 }
 </style>

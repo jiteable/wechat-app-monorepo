@@ -641,4 +641,92 @@ router.get('/getSessionUsers', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/getGroup/:groupId', authenticateToken, async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const currentUserId = req.user.id;
+
+    // 检查用户是否有权限访问该群组（是否是群组成员）
+    const isGroupMember = await db.chatSessionUser.findFirst({
+      where: {
+        userId: currentUserId,
+        session: {
+          sessionType: 'group',
+          groupId: groupId
+        }
+      }
+    });
+
+    if (!isGroupMember) {
+      return res.status(403).json({
+        success: false,
+        error: '您不是该群组的成员'
+      });
+    }
+
+    console.log('groupId: ', groupId)
+
+    // 获取群组详细信息
+    const group = await db.group.findUnique({
+      where: {
+        id: groupId
+      },
+      include: {
+        chatSessions: {
+          include: {
+            ChatSessionUsers: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    username: true,
+                    avatar: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        error: '群组不存在'
+      });
+    }
+
+    // 构造返回数据
+    const groupData = {
+      id: group.id,
+      name: group.name,
+      ownerId: group.ownerId,
+      adminIds: group.adminIds,
+      announcement: group.announcement,
+      createdAt: group.createdAt,
+      updatedAt: group.updatedAt,
+      image: group.image,
+      type: group.type,
+      memberCount: group.chatSessions[0]?.ChatSessionUsers.length || 0,
+      members: group.chatSessions[0]?.ChatSessionUsers.map(userSession => ({
+        id: userSession.user.id,
+        name: userSession.user.username,
+        avatar: userSession.user.avatar
+      })) || []
+    };
+
+    res.json({
+      success: true,
+      data: groupData
+    });
+  } catch (error) {
+    console.error('获取群组信息失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取群组信息失败'
+    });
+  }
+});
+
 module.exports = router;

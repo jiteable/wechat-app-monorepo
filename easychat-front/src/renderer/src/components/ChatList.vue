@@ -67,10 +67,7 @@ const fetchSessions = async () => {
   try {
     const response = await getSessions()
     if (response && response.success) {
-      console.log('getSession_response: ', response)
       sessions.value = response.data
-      console.log('unreadCountaaaaa: ', sessions.value)
-      console.log('unreadCount: ', sessions.value[0].unreadCount)
     } else {
       ElMessage.error('获取会话失败')
     }
@@ -172,7 +169,7 @@ const handleClickSession = async (session) => {
       )
       sessions.value = updatedSessions
 
-      // 更新store中的会话信息
+      // 更新store中的会话信息，以便ChatContant组件可以获取到正确的会话信息
       contactStore.setSelectedContact({
         ...session,
         unreadCount: 0
@@ -181,7 +178,7 @@ const handleClickSession = async (session) => {
       console.error('标记消息为已读失败:', error)
     }
   } else {
-    // 将当前会话保存到 Pinia 状态
+    // 将当前会话保存到 Pinia 状态，以便ChatContant组件可以获取到正确的会话信息
     contactStore.setSelectedContact(session)
   }
 
@@ -196,10 +193,8 @@ const handleClickSession = async (session) => {
   console.log('未读消息数:', session.unreadCount)
   console.log('更新时间:', session.updatedAt)
 
-  // 跳转到聊天页面（可使用 router 或 window.api）
   router.push(`/chat/${session.id}`)
 }
-
 // 获取当前选中的会话ID
 const getSelectedSessionId = () => {
   return selectedSessionId.value
@@ -279,7 +274,6 @@ onMounted(() => {
   window.api.onNewMessage(handleNewMessage)
   // 添加本地消息监听
   window.addEventListener('newMessageSent', handleLocalNewMessage)
-  console.log('刷新了')
 })
 
 // 组件卸载时移除监听

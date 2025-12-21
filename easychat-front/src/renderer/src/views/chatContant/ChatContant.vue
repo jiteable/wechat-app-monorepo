@@ -491,6 +491,9 @@ const debouncedUpdateInputEmptyState = debounce(updateInputEmptyState, 100)
 
 onMounted(() => {
   addMessageListener()
+
+  // 添加对 contactStoreUpdated 事件的监听
+  window.addEventListener('contactStoreUpdated', handleContactStoreUpdate)
 })
 
 // 清理 MutationObserver
@@ -571,7 +574,6 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
 
 const addMessageListener = () => {
   if (!isMessageListenerAdded) {
-    console.log('添加消息监听器')
     window.api.onNewMessage(async (data) => {
       console.log('getuserMessage:', data)
 
@@ -1219,14 +1221,28 @@ const sendMessageHandler = async () => {
 }
 
 onUnmounted(() => {
-  console.log('ChatContant组件将要卸载')
   // 移除WebSocket消息监听器
   if (window.api && typeof window.api.removeNewMessageListener === 'function') {
-    console.log('移除WebSocket消息监听器')
     window.api.removeNewMessageListener()
     isMessageListenerAdded = false
   }
+  window.removeEventListener('contactStoreUpdated', handleContactStoreUpdate)
 })
+
+const handleContactStoreUpdate = async (event) => {
+  const session = event.detail?.selectedContact
+  if (session && session.id !== contactStore.selectedContact?.id) {
+    contactStore.setSelectedContact(session)
+    await loadMessages(session.id).then(() => {
+      nextTick(() => {
+        if (messagesContainer.value) {
+          messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+        }
+      })
+    })
+  }
+}
+
 const handleInputKeydown = (event) => {
   // 如果按下的是 Ctrl+Enter 或 Shift+Enter，则换行
   if (event.key === 'Enter' && (event.ctrlKey || event.shiftKey)) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import http from '../../utils/http'
 import config from '../../config'
 import {
@@ -56,5 +57,19 @@ export async function createSession(
   } catch (error) {
     console.error('创建会话失败:', error)
     return null
+  }
+}
+
+/**
+ * 获取群组信息
+ * @param groupId 群组ID
+ */
+export async function getGroupInfo(groupId: string): Promise<any> {
+  try {
+    const response = await http.get(`${config.api}/chatSession/getGroup/${groupId}`)
+    return response.data
+  } catch (error) {
+    console.error('获取群组信息失败:', error)
+    throw error
   }
 }
