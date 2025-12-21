@@ -264,124 +264,27 @@
         </el-icon>
         <p>请选择一个聊天</p>
       </div>
-      <el-drawer
-        v-model="drawer"
-        title="更多选项"
-        modal-penetrable
-        :width="300"
+
+      <!-- 使用新创建的 GroupDrawer 组件 -->
+      <GroupDrawer
+        v-model:visible="drawer"
+        :is-group-chat="isGroupChat"
+        :group="contactStore.selectedContact?.group"
+        :remark="contactStore.selectedContact?.remark"
+        :nickname="contactStore.selectedContact?.nickname"
+        :displayed-users="displayedUsers"
+        :should-show-add-button="shouldShowAddButton"
+        :is-group-owner-or-admin="isGroupOwnerOrAdmin"
         @close="onDrawerClose"
-      >
-        <div class="drawer-content">
-          <div v-if="isGroupChat" class="session-users-section">
-            <div class="section-title">群成员</div>
-            <div class="users-grid">
-              <div v-for="(user, index) in displayedUsers" :key="user.id" class="user-item">
-                <el-avatar
-                  shape="square"
-                  :size="40"
-                  :src="user.avatar"
-                  @error="handleAvatarError"
-                />
-                <div class="user-name">{{ getUserDisplayName(user) }}</div>
-              </div>
-              <div v-if="shouldShowAddButton" class="user-item add-member-item" @click="addMember">
-                <div class="add-avatar">
-                  <span class="icon iconfont icon-add"></span>
-                </div>
-                <div class="user-name">添加</div>
-              </div>
-            </div>
-          </div>
-          <div v-if="isGroupChat" class="group-info-section">
-            <!-- 群聊名称 -->
-            <div class="info-item">
-              <span class="label">群聊名称:</span>
-              <div
-                class="editable-value"
-                @mouseover="showEditIcon('groupName')"
-                @mouseleave="hideEditIcon('groupName')"
-              >
-                <input
-                  v-if="editingField === 'groupName'"
-                  ref="groupNameInput"
-                  v-model="groupEditForm.name"
-                  class="edit-input"
-                  @blur="saveGroupName"
-                  @keyup.enter="saveGroupName"
-                />
-                <span v-else class="value">{{
-                  contactStore.selectedContact?.group?.name || '未知群聊'
-                }}</span>
-                <el-icon
-                  v-if="
-                    isGroupOwnerOrAdmin &&
-                    showEditIconFlags.groupName &&
-                    editingField !== 'groupName'
-                  "
-                  class="edit-icon"
-                  @click="startEditGroupName"
-                >
-                  <EditPen />
-                </el-icon>
-              </div>
-            </div>
-
-            <!-- 群公告 -->
-            <div class="info-item">
-              <span class="label">群公告:</span>
-              <span class="value">{{
-                contactStore.selectedContact?.group?.announcement || '暂无公告'
-              }}</span>
-            </div>
-
-            <!-- 备注 -->
-            <div class="info-item">
-              <span class="label">备注:</span>
-              <span class="value">{{ contactStore.selectedContact?.remark || '暂无备注' }}</span>
-            </div>
-
-            <!-- 我在本群的昵称 -->
-            <div class="info-item">
-              <span class="label">我在本群的昵称:</span>
-              <span class="value">{{ contactStore.selectedContact?.nickname || '未设置' }}</span>
-            </div>
-          </div>
-
-          <!-- 查找聊天内容 -->
-          <div class="drawer-item" @click="searchMessages">
-            <span>查找聊天内容</span>
-          </div>
-
-          <!-- 消息免打扰 -->
-          <div class="drawer-item">
-            <span>消息免打扰</span>
-            <el-switch v-model="muteNotifications" />
-          </div>
-
-          <!-- 置顶聊天 -->
-          <div class="drawer-item">
-            <span>置顶聊天</span>
-            <el-switch v-model="pinChat" />
-          </div>
-
-          <div v-if="isGroupChat" class="drawer-item">
-            <span>显示成员名称</span>
-            <el-switch v-model="muteNotifications" />
-          </div>
-
-          <!--清空聊天记录-->
-          <div class="drawer-item danger-item" @click="clearChatHistory">
-            <span class="icon iconfont icon-delete"></span>
-            <span>清空聊天记录</span>
-          </div>
-
-          <!--退出群聊-->
-          <div v-if="isGroupChat" class="drawer-item danger-item" @click="leaveGroup">
-            <span class="icon iconfont icon-exit"></span>
-            <span>退出群聊</span>
-          </div>
-        </div>
-      </el-drawer>
+        @search-messages="searchMessages"
+        @clear-chat-history="clearChatHistory"
+        @leave-group="leaveGroup"
+        @update-group-name="handleUpdateGroupName"
+        @update-announcement="handleUpdateAnnouncement"
+        @update-remark="handleUpdateRemark"
+        @update-nickname="handleUpdateNickname"
+        @add-member="addMember"
+      />
     </div>
 
     <!-- 添加聊天输入区域 -->
@@ -401,6 +304,7 @@ import { ElMessage, ElLoading } from 'element-plus'
 import { uploadImage, uploadFile } from '@/api/upload'
 import WindowControls from '@/components/WindowControls.vue'
 import PreviewImage from '@/components/previewImage.vue'
+import GroupDrawer from '@/components/GroupDrawer.vue'
 import { uploadVideo } from '@/api/upload'
 
 const route = useRoute()
@@ -781,6 +685,26 @@ const shouldShowSenderName = (message) => {
   }
 
   return false
+}
+
+const handleUpdateGroupName = (newName) => {
+  // 这里可以调用API更新群名称
+  console.log('新群名称:', newName)
+}
+
+const handleUpdateAnnouncement = (newAnnouncement) => {
+  // 这里可以调用API更新群公告
+  console.log('新群公告:', newAnnouncement)
+}
+
+const handleUpdateRemark = (newRemark) => {
+  // 这里可以调用API更新备注
+  console.log('新备注:', newRemark)
+}
+
+const handleUpdateNickname = (newNickname) => {
+  // 这里可以调用API更新我在本群的昵称
+  console.log('新昵称:', newNickname)
 }
 
 // 处理滚动事件，实现无限滚动加载
@@ -1316,35 +1240,6 @@ const addMember = () => {
   // 这里可以实现添加成员的逻辑
 }
 
-const getUserDisplayName = (userSession) => {
-  // 根据会话用户信息获取显示名称
-  // 针对 member 类型（群成员基本数据结构）
-  if (userSession.name) {
-    return userSession.name
-  }
-
-  // 针对 ChatSessionUser 类型（如果有 user 对象）
-  if (userSession.user && userSession.user.username) {
-    return userSession.user.username
-  }
-
-  // 针对 ChatSessionUser 类型（如果有 nickname）
-  if (userSession.nickname) {
-    return userSession.nickname
-  }
-
-  return '未知用户'
-}
-
-const handleAvatarError = () => {
-  // 头像加载错误处理
-  console.log('头像加载失败')
-}
-
-// 添加新的数据属性
-const muteNotifications = ref(false)
-const pinChat = ref(false)
-
 // 添加新的方法
 const searchMessages = () => {
   console.log('查找聊天内容')
@@ -1352,20 +1247,6 @@ const searchMessages = () => {
   window.api.openChatMessageWindow()
   window.api.openChatMessageWindow(selectedContact)
 }
-
-// 添加响应式数据
-const showEditIconFlags = ref({
-  groupName: false,
-  announcement: false
-})
-
-const editingField = ref('') // 当前正在编辑的字段
-const groupEditForm = ref({
-  name: '',
-  announcement: ''
-})
-
-const groupNameInput = ref(null)
 
 // 计算是否为群主或管理员
 const isGroupOwnerOrAdmin = computed(() => {
@@ -1383,40 +1264,6 @@ const isGroupOwnerOrAdmin = computed(() => {
 
   return false
 })
-
-// 控制编辑图标显示的方法
-const showEditIcon = (field) => {
-  if (isGroupOwnerOrAdmin.value) {
-    showEditIconFlags.value[field] = true
-  }
-}
-
-const hideEditIcon = (field) => {
-  showEditIconFlags.value[field] = false
-}
-
-// 开始编辑群名称
-const startEditGroupName = () => {
-  editingField.value = 'groupName'
-  groupEditForm.value.name = contactStore.selectedContact?.group?.name || ''
-  nextTick(() => {
-    groupNameInput.value?.focus()
-  })
-}
-
-// 保存群名称
-const saveGroupName = () => {
-  if (editingField.value === 'groupName') {
-    // 这里可以调用API更新群名称
-    console.log('新群名称:', groupEditForm.value.name)
-
-    // 重置编辑状态
-    editingField.value = ''
-
-    // 显示成功消息
-    ElMessage.success('群名称修改成功')
-  }
-}
 
 // 添加清空聊天记录和退出群聊的方法
 const clearChatHistory = () => {
@@ -2661,163 +2508,6 @@ const formatDuration = (seconds) => {
 
 .demo-panel {
   height: 100%;
-}
-
-.group-info-section {
-  margin-bottom: 10px;
-  padding: 5px;
-  border-bottom: 1px solid rgb(242, 242, 242);
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-.info-item .label {
-  color: #606266;
-  font-weight: 500;
-  margin-bottom: 8px;
-  font-size: 13px;
-}
-
-.info-item .value {
-  color: rgb(158, 158, 158);
-  word-break: break-word;
-  font-size: 12px;
-}
-
-.edit-input {
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  font-size: 12px;
-  outline: none;
-  width: 100%;
-}
-
-.edit-input:focus {
-  border-color: #409eff;
-}
-
-.editable-value {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.editable-value {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.edit-icon {
-  margin-left: 8px;
-  color: #409eff;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.drawer-content {
-  height: 100%;
-}
-
-.drawer-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.drawer-item:hover {
-  background-color: #f5f5f5;
-}
-
-.drawer-item .iconfont {
-  font-size: 18px;
-  color: #606266;
-}
-
-.drawer-item .el-switch {
-  margin-left: auto;
-  margin-right: 10px;
-}
-
-.session-users-section {
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgb(242, 242, 242);
-}
-
-.users-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-}
-
-.user-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.user-item .el-avatar {
-  margin-bottom: 5px;
-}
-
-.user-name {
-  font-size: 12px;
-  text-align: center;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.add-member-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-}
-
-.add-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  background-color: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 5px;
-}
-
-.add-avatar .icon-add {
-  font-size: 24px;
-  color: #999;
-}
-
-.add-member-item:hover .add-avatar {
-  background-color: #e0e0e0;
-}
-
-.add-member-item:hover .user-name {
-  color: #409eff;
-}
-
-.drawer-item.danger-item {
-  color: #f56c6c;
-}
-
-.drawer-item.danger-item:hover {
-  background-color: #fef0f0;
-}
-
-.drawer-item.danger-item .iconfont {
-  color: #f56c6c;
 }
 
 /* 弹窗整体样式 */
