@@ -24,21 +24,8 @@ export const beforeEach = (to: any, from: any, next) => {
   // 当进入/chat路由时，向ChatSession表中添加一条数据
   if (to.path === '/chat' || to.path.startsWith('/chat/')) {
     // 调用主进程方法添加数据
-    if (window.api)  {
-      console.log('waaaaa: ', window.api.getAllUnifiedMessages())
-    }
-  }
-
-  // 当进入/contact路由时，打印ChatSession表中的所有数据
-  if (to.path.startsWith('/contact')) {
     if (window.api) {
-      window.api.getAllChatSessions().then((result) => {
-        if (result.success) {
-          console.log('ChatSessionaaaa表中的所有数据:', result.data)
-        } else {
-          console.error('error :', result.error)
-        }
-      })
+      console.log('waaaaa: ', window.api.getAllUnifiedMessages())
     }
   }
 
@@ -53,4 +40,4 @@ export const beforeEach = (to: any, from: any, next) => {
   return
 }
 
-export function afterEach() { }
+export function afterEach() {}

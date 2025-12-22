@@ -84,13 +84,18 @@ const fetchSessions = async () => {
   try {
     // 首先尝试从本地数据库获取会话
     if (window.api && typeof window.api.getAllChatSessions === 'function') {
-      const localResult = await window.api.getAllChatSessions()
+      // 获取当前用户ID（假设可以从userStore中获取）
+      const userId = contactStore.currentUser?.id
 
-      if (localResult.success && localResult.data) {
-        // 从本地数据库获取到了会话数据
-        sessions.value = localResult.data
-        console.log('从本地数据库获取会话成功:', localResult.data)
-        return
+      if (userId) {
+        const localResult = await window.api.getAllChatSessions(userId)
+
+        if (localResult.success && localResult.data) {
+          // 从本地数据库获取到了会话数据
+          sessions.value = localResult.data
+          console.log('从本地数据库获取会话成功:', localResult.data)
+          return
+        }
       }
     }
 
@@ -107,6 +112,9 @@ const fetchSessions = async () => {
         try {
           await window.api.syncChatSessions(response.data)
           console.log('会话数据已同步到本地数据库')
+
+          // 同步 ChatSessionUser 数据
+          // 这里需要获取当前用户的会话关系数据并同步
         } catch (syncError) {
           console.error('同步会话到本地数据库失败:', syncError)
         }

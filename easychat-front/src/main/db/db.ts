@@ -255,7 +255,7 @@ class DatabaseManager {
   /**
    * 获取ChatSession表中的所有数据
    */
-  public async getAllChatSessions(): Promise<any[]> {
+  public async getAllChatSessions(userId: string): Promise<any[]> {
     try {
       // 确保表存在
       await this.initializeTables()
@@ -265,14 +265,25 @@ class DatabaseManager {
         driver: sqlite3.Database
       })
 
-      // 查询所有ChatSession数据
-      const sessions = await db.all(`SELECT * FROM ChatSession`)
+      // 通过ChatSessionUser表关联查询用户参与的所有会话
+      const sessions = await db.all(
+        `
+        SELECT DISTINCT cs.* 
+        FROM ChatSession cs
+        INNER JOIN ChatSessionUser csu ON cs.id = csu.sessionId
+        WHERE csu.userId = ?
+        ORDER BY cs.updatedAt DESC
+      `,
+        [userId]
+      )
+
+      console.log('sessionssa: ', sessions)
 
       await db.close()
 
       return sessions
     } catch (error) {
-      console.error('查询ChatSession表失败:', error)
+      console.error('根据用户ID查询ChatSession失败:', error)
       throw error
     }
   }

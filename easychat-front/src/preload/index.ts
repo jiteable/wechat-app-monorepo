@@ -74,7 +74,7 @@ const api = {
 
   // 本地数据库相关
   addChatSession: (): Promise<any> => ipcRenderer.invoke('add-chat-session'),
-  getAllChatSessions: (): Promise<any> => ipcRenderer.invoke('get-all-chat-sessions'),
+  getAllChatSessions: (userId: string): Promise<any> => ipcRenderer.invoke('get-all-chat-sessions', userId),
   clearChatSessions: (): Promise<any> => ipcRenderer.invoke('clear-chat-sessions'),
   syncChatSessions: (sessions: any[]): Promise<any> =>
     ipcRenderer.invoke('sync-chat-sessions', sessions),

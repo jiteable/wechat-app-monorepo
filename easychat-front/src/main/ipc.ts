@@ -614,9 +614,9 @@ export function setupIpcHandlers(icon: string): void {
   })
 
   // 添加获取所有ChatSession的IPC处理程序
-  ipcMain.handle('get-all-chat-sessions', async () => {
+  ipcMain.handle('get-all-chat-sessions', async (_, userId) => {
     try {
-      const sessions = await databaseManager.getAllChatSessions()
+      const sessions = await databaseManager.getAllChatSessions(userId)
       return { success: true, data: sessions }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
