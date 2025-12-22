@@ -23,7 +23,7 @@
           <!-- 信息区域和时间 -->
           <div class="content-wrapper">
             <div class="info">
-              <div class="title">{{ session.name }}</div>
+              <div class="title">{{ session.userRemark || session.name }}</div>
               <div class="last-message">
                 {{ formatLastMessage(session.lastMessage, session.sessionType) }}
               </div>
@@ -54,6 +54,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
+import { useUserStore } from '@/store/userStore'
 import { getSessions } from '@/api/chatSession'
 import { markAsRead } from '@/api/chat'
 import { useRouter } from 'vue-router'
@@ -84,11 +85,15 @@ const fetchSessions = async () => {
   try {
     // 首先尝试从本地数据库获取会话
     if (window.api && typeof window.api.getAllChatSessions === 'function') {
-      // 获取当前用户ID（假设可以从userStore中获取）
-      const userId = contactStore.currentUser?.id
+      // 获取当前用户ID（从 userStore 中获取）
+      const userStore = useUserStore()
+      const userId = userStore.userId
+
+      console.log('Fetching sessions for userId:', userId)
 
       if (userId) {
         const localResult = await window.api.getAllChatSessions(userId)
+        console.log('localResult: ', localResult)
 
         if (localResult.success && localResult.data) {
           // 从本地数据库获取到了会话数据
@@ -96,6 +101,8 @@ const fetchSessions = async () => {
           console.log('从本地数据库获取会话成功:', localResult.data)
           return
         }
+      } else {
+        console.log('用户ID未找到，可能用户尚未登录')
       }
     }
 
@@ -546,9 +553,9 @@ defineExpose({
 }
 
 .last-message {
-  font-size: 13px;
+  font-size: 12px;
   color: rgb(150, 150, 150);
-  padding-top: 8px;
+  padding-top: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -265,12 +265,26 @@ class DatabaseManager {
         driver: sqlite3.Database
       })
 
-      // 通过ChatSessionUser表关联查询用户参与的所有会话
+      // 通过ChatSessionUser表关联查询用户参与的所有会话，并包含remark信息和最新消息
       const sessions = await db.all(
         `
-        SELECT DISTINCT cs.* 
+        SELECT DISTINCT 
+          cs.*, 
+          csu.remark as userRemark,
+          um.content as lastMessageContent,
+          um.messageType as lastMessageType,
+          um.fileName as lastMessageFileName,
+          um.senderName as lastMessageSenderName,
+          um.isRecalled as lastMessageIsRecalled,
+          um.isDeleted as lastMessageIsDeleted
         FROM ChatSession cs
         INNER JOIN ChatSessionUser csu ON cs.id = csu.sessionId
+        LEFT JOIN UnifiedMessage um ON cs.id = um.sessionId 
+          AND um.createdAt = (
+            SELECT MAX(createdAt) 
+            FROM UnifiedMessage 
+            WHERE sessionId = cs.id
+          )
         WHERE csu.userId = ?
         ORDER BY cs.updatedAt DESC
       `,
@@ -281,7 +295,21 @@ class DatabaseManager {
 
       await db.close()
 
-      return sessions
+      // 处理布尔值
+      return sessions.map((session) => ({
+        ...session,
+        lastMessage:
+          session.lastMessageContent || session.lastMessageType
+            ? {
+                content: session.lastMessageContent,
+                messageType: session.lastMessageType,
+                fileName: session.lastMessageFileName,
+                senderName: session.lastMessageSenderName,
+                isRecalled: !!session.lastMessageIsRecalled,
+                isDeleted: !!session.lastMessageIsDeleted
+              }
+            : null
+      }))
     } catch (error) {
       console.error('根据用户ID查询ChatSession失败:', error)
       throw error
