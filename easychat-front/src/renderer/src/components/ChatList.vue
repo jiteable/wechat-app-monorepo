@@ -296,10 +296,20 @@ const handleDeleteSession = (session) => {
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
-      // 执行删除操作
-      sessions.value = sessions.value.filter((s) => s.id !== session.id)
-      ElMessage.success('删除成功')
+    .then(async () => {
+      try {
+        // 从本地数据库中删除会话及相关数据
+        if (window.api && typeof window.api.deleteChatSession === 'function') {
+          await window.api.deleteChatSession(session.id)
+        }
+
+        // 从界面中移除会话
+        sessions.value = sessions.value.filter((s) => s.id !== session.id)
+        ElMessage.success('删除成功')
+      } catch (error) {
+        console.error('删除会话失败:', error)
+        ElMessage.error('删除会话失败')
+      }
     })
     .catch(() => {
       // 用户取消删除

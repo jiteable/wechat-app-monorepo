@@ -403,7 +403,15 @@ class DatabaseManager {
         driver: sqlite3.Database
       })
 
+      // 首先删除与该会话相关的所有消息及其关联的文件和视频
+      await this.deleteUnifiedMessagesBySessionId(sessionId)
+
+      // 删除与该会话相关的ChatSessionUser记录
+      await db.run(`DELETE FROM ChatSessionUser WHERE sessionId = ?`, [sessionId])
+
+      // 删除ChatSession记录本身
       await db.run(`DELETE FROM ChatSession WHERE id = ?`, [sessionId])
+
       await db.close()
     } catch (error) {
       console.error('Delete ChatSession failed:', error)
