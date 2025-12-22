@@ -278,8 +278,8 @@ class DatabaseManager {
   }
 
   /**
-  * 根据ID获取ChatSession数据
-  */
+   * 根据ID获取ChatSession数据
+   */
   public async getChatSessionById(sessionId: string): Promise<any> {
     try {
       // 确保表存在

@@ -68,10 +68,8 @@ export async function downloadFile(
       }
 
       const fileStream = fs.createWriteStream(finalPath)
-      let receivedBytes = 0
 
       response.on('data', (chunk) => {
-        receivedBytes += chunk.length
         fileStream.write(chunk)
       })
 

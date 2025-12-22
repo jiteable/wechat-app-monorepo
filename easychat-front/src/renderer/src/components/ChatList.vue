@@ -62,12 +62,38 @@ const searchText = ref('')
 // 当前选中的会话ID
 const selectedSessionId = ref(null)
 
-// 获取所有会话
+// 从本地数据库获取会话
 const fetchSessions = async () => {
   try {
+    // 首先尝试从本地数据库获取会话
+    if (window.api && typeof window.api.getAllChatSessions === 'function') {
+      const localResult = await window.api.getAllChatSessions()
+
+      if (localResult.success && localResult.data) {
+        // 从本地数据库获取到了会话数据
+        sessions.value = localResult.data
+        console.log('从本地数据库获取会话成功:', localResult.data)
+        return
+      }
+    }
+
     const response = await getSessions()
     if (response && response.success) {
       sessions.value = response.data
+
+      // 将服务器获取到的会话同步到本地数据库
+      if (
+        window.api &&
+        typeof window.api.syncChatSessions === 'function' &&
+        response.data.length > 0
+      ) {
+        try {
+          await window.api.syncChatSessions(response.data)
+          console.log('会话数据已同步到本地数据库')
+        } catch (syncError) {
+          console.error('同步会话到本地数据库失败:', syncError)
+        }
+      }
     } else {
       ElMessage.error('获取会话失败')
     }
@@ -244,7 +270,7 @@ const handleNewMessage = (data) => {
 }
 
 const handleLocalNewMessage = (event) => {
-  const { sessionId, lastMessage, timestamp } = event.detail;
+  const { sessionId, lastMessage, timestamp } = event.detail
 
   // 查找对应的会话
   const sessionIndex = sessions.value.findIndex((session) => session.id === sessionId)
