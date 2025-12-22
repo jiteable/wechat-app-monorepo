@@ -152,8 +152,12 @@ const formatLastMessage = (msg, sessionType) => {
   if (msg.isRecalled) return '消息已撤回'
   if (msg.isDeleted) return '消息已删除'
 
-  // 如果是群聊且消息有发送者信息，则显示发送者用户名
-  if (sessionType === 'group' && msg.senderName) {
+  // 获取当前用户ID
+  const userStore = useUserStore()
+  const currentUserId = userStore.userId
+
+  // 如果是群聊且消息有发送者信息，且发送者不是当前用户，则显示发送者用户名
+  if (sessionType === 'group' && msg.senderName && msg.senderId !== currentUserId) {
     if (msg.messageType === 'image') return `${msg.senderName}: [图片]`
     if (msg.messageType === 'file') return `${msg.senderName}: [文件]: ${msg.fileName || ''}`
     if (msg.messageType === 'voice') return `${msg.senderName}: [语音]`

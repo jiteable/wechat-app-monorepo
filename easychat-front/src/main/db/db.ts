@@ -275,6 +275,7 @@ class DatabaseManager {
           um.messageType as lastMessageType,
           um.fileName as lastMessageFileName,
           um.senderName as lastMessageSenderName,
+          um.senderId as lastMessageSenderId,
           um.isRecalled as lastMessageIsRecalled,
           um.isDeleted as lastMessageIsDeleted
         FROM ChatSession cs
@@ -305,6 +306,7 @@ class DatabaseManager {
                 messageType: session.lastMessageType,
                 fileName: session.lastMessageFileName,
                 senderName: session.lastMessageSenderName,
+                senderId: session.lastMessageSenderId,
                 isRecalled: !!session.lastMessageIsRecalled,
                 isDeleted: !!session.lastMessageIsDeleted
               }
