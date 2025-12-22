@@ -278,6 +278,31 @@ class DatabaseManager {
   }
 
   /**
+  * 根据ID获取ChatSession数据
+  */
+  public async getChatSessionById(sessionId: string): Promise<any> {
+    try {
+      // 确保表存在
+      await this.initializeTables()
+
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      // 根据ID查询ChatSession数据
+      const session = await db.get(`SELECT * FROM ChatSession WHERE id = ?`, [sessionId])
+
+      await db.close()
+
+      return session
+    } catch (error) {
+      console.error('查询ChatSession失败:', error)
+      throw error
+    }
+  }
+
+  /**
    * 清空ChatSession表中的所有数据
    */
   public async clearChatSessions(): Promise<void> {

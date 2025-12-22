@@ -94,5 +94,6 @@ interface Window {
     syncUnifiedMessages: (messages: any[]) => Promise<any>
     syncChatSessionUsers: (users: any[]) => Promise<any>
     getUsersByIds: (userIds: string[]) => Promise<any>
+    getChatSessionById: (sessionId: string) => Promise<any>
   }
 }

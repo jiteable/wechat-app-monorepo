@@ -117,7 +117,9 @@ const api = {
   syncChatSessionUsers: (users: any[]): Promise<any> =>
     ipcRenderer.invoke('sync-chat-session-users', users),
   getUsersByIds: (userIds: string[]): Promise<any> =>
-    ipcRenderer.invoke('get-users-by-ids', userIds)
+    ipcRenderer.invoke('get-users-by-ids', userIds),
+  getChatSessionById: (sessionId: string): Promise<any> =>
+    ipcRenderer.invoke('get-chat-session-by-id', sessionId)
 }
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

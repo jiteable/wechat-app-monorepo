@@ -140,23 +140,61 @@ const sendMessage = async () => {
   let session = null
 
   try {
-    // 尝试获取现有会话
-    const sessionResponse = await getSessions(isGroup.value ? undefined : currentContact.value.id)
-
-    if (sessionResponse && sessionResponse.success) {
-      // 如果是群组，需要找到对应的群聊会话
-      if (isGroup.value) {
-        const groupSession = sessionResponse.data.find(
-          (s) => s.sessionType === 'group' && s.group?.id === currentContact.value.id
-        )
-        if (groupSession) {
-          session = groupSession
+    // 首先尝试从本地数据库获取会话
+    if (window.api && typeof window.api.getChatSessionById === 'function') {
+      try {
+        // 构造会话ID（对于私聊，通常基于两个用户ID）
+        let sessionId
+        if (isGroup.value) {
+          sessionId = currentContact.value.id
         }
-      } else {
-        // 存在会话
-        session = sessionResponse.data
+        // 注意：私聊会话ID的构造取决于你的业务逻辑
+
+        if (sessionId) {
+          const localSessionResult = await window.api.getChatSessionById(sessionId)
+          if (localSessionResult.success && localSessionResult.data) {
+            session = localSessionResult.data
+            console.log('从本地数据库获取到会话:', session)
+          }
+        }
+      } catch (localError) {
+        console.error('从本地数据库获取会话时出错:', localError)
       }
-      console.log('获取到现有会话:', session)
+    }
+
+    // 如果本地数据库没有找到会话，则从服务器获取
+    if (!session) {
+      const sessionResponse = await getSessions(isGroup.value ? undefined : currentContact.value.id)
+
+      if (sessionResponse && sessionResponse.success) {
+        // 如果是群组，需要找到对应的群聊会话
+        if (isGroup.value) {
+          const groupSession = sessionResponse.data.find(
+            (s) => s.sessionType === 'group' && s.group?.id === currentContact.value.id
+          )
+          if (groupSession) {
+            session = groupSession
+          }
+        } else {
+          // 存在会话
+          session = sessionResponse.data
+        }
+        console.log('从服务器获取到现有会话:', session)
+
+        // 将从服务器获取的会话保存到本地数据库
+        if (session && window.api && typeof window.api.addChatSession === 'function') {
+          try {
+            const result = await window.api.addChatSession(session)
+            if (result.success) {
+              console.log('成功将会话同步到本地数据库:', result.data)
+            } else {
+              console.error('同步会话到本地数据库失败:', result.error)
+            }
+          } catch (dbError) {
+            console.error('调用本地数据库添加会话时出错:', dbError)
+          }
+        }
+      }
     }
   } catch (error) {
     // 检查是否是404错误（会话不存在）
@@ -196,7 +234,6 @@ const sendMessage = async () => {
         }
 
         // 触发ChatList.vue刷新数据
-        // 可以通过全局事件或状态管理实现
         window.dispatchEvent(new CustomEvent('sessionCreated'))
 
         console.log('创建了新会话:', session)
@@ -215,13 +252,6 @@ const sendMessage = async () => {
     console.log('将会话信息传递给聊天页面:', session)
     // 设置正确的会话信息到store
     contactStore.setSelectedContact(session)
-
-    // 触发自定义事件，强制ChatContant.vue重新加载消息
-    window.dispatchEvent(
-      new CustomEvent('contactStoreUpdated', {
-        detail: { selectedContact: session }
-      })
-    )
 
     // 进行路由跳转
     router.push(`/chat/${session.id}`)

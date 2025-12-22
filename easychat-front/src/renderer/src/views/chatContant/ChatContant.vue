@@ -300,13 +300,14 @@ import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
 import { Message } from '@element-plus/icons-vue'
 import { ref, nextTick, watch, computed, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
-import { sendMessage, getMessages } from '@/api/chat'
+import { sendMessage } from '@/api/chat'
 import { ElMessage, ElLoading } from 'element-plus'
 import { uploadImage, uploadFile } from '@/api/upload'
 import WindowControls from '@/components/WindowControls.vue'
 import PreviewImage from '@/components/previewImage.vue'
 import GroupDrawer from '@/components/GroupDrawer.vue'
 import { uploadVideo } from '@/api/upload'
+import { getSessions } from '@/api/chatSession'
 
 const route = useRoute()
 const contactStore = userContactStore()
@@ -633,7 +634,53 @@ watch(
   { immediate: true }
 )
 
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
+}
+
 console.log(route.params.id) // 当前会话ID
+
+const loadSessionAndMessages = async () => {
+  try {
+    const sessionId = route.params.id
+
+    if (!sessionId) {
+      console.warn('没有提供会话ID')
+      return
+    }
+
+    // 获取会话信息
+    const sessionResponse = await getSessions()
+    if (sessionResponse && sessionResponse.success) {
+      const session = sessionResponse.data.find(s => s.id === sessionId)
+      if (session) {
+        contactStore.setSelectedContact(session)
+      }
+    }
+
+    // 加载消息
+    await loadMessages()
+
+    scrollToBottom()
+  } catch (error) {
+    console.error('加载会话和消息失败:', error)
+  }
+}
+
+watch(
+  () => route.params.id,
+  (newSessionId, oldSessionId) => {
+    if (newSessionId && newSessionId !== oldSessionId) {
+      // 当路由参数变化时，重新加载数据
+      loadSessionAndMessages()
+    }
+  },
+  { immediate: true }
+)
 
 // 计算属性：根据会话类型显示不同的名称
 const getDisplayName = computed(() => {
@@ -691,14 +738,6 @@ const shouldShowSenderName = (message) => {
 const handleUpdateGroupName = (newName) => {
   console.log('新群名称:', newName)
 
-  if (contactStore.selectedContact && contactStore.selectedContact.group) {
-    contactStore.selectedContact.group.name = newName
-  }
-}
-
-const handleUpdateGroupName = (newName) => {
-  console.log('新群名称:', newName)
-  // 更新联系人存储中的群名称
   if (contactStore.selectedContact && contactStore.selectedContact.group) {
     contactStore.selectedContact.group.name = newName
   }

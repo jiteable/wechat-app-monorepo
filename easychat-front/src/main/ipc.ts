@@ -815,6 +815,16 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
+  // 获取指定ChatSession的IPC处理程序
+  ipcMain.handle('get-chat-session-by-id', async (_, sessionId) => {
+    try {
+      const session = await databaseManager.getChatSessionById(sessionId)
+      return { success: true, data: session }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
   // 删除UnifiedMessage的IPC处理程序
   ipcMain.handle('delete-unified-message', async (_, id) => {
     try {
