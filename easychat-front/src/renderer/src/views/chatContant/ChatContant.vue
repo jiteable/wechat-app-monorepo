@@ -411,6 +411,8 @@ onBeforeUnmount(() => {
 })
 // 加载消息数据（带分页）
 const loadMessages = async (sessionId, page = 1, prepend = false) => {
+  console.log('sessionId: ', sessionId)
+  console.log('page: ', page)
   try {
     // 使用 window.api.getMessagesBySessionId 替代 getMessages API 调用
     const response = await window.api.getMessagesBySessionId(sessionId, page, 20)
@@ -635,49 +637,24 @@ watch(
   { immediate: true }
 )
 
-const scrollToBottom = () => {
-  nextTick(() => {
-    if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-    }
-  })
-}
-
-console.log(route.params.id) // 当前会话ID
-
-const loadSessionAndMessages = async () => {
-  try {
-    const sessionId = route.params.id
-
-    if (!sessionId) {
-      console.warn('没有提供会话ID')
-      return
-    }
-
-    // 获取会话信息
-    const sessionResponse = await getSessions()
-    if (sessionResponse && sessionResponse.success) {
-      const session = sessionResponse.data.find(s => s.id === sessionId)
-      if (session) {
-        contactStore.setSelectedContact(session)
-      }
-    }
-
-    // 加载消息
-    await loadMessages()
-
-    scrollToBottom()
-  } catch (error) {
-    console.error('加载会话和消息失败:', error)
-  }
-}
-
 watch(
   () => route.params.id,
-  (newSessionId, oldSessionId) => {
+  async (newSessionId, oldSessionId) => {
     if (newSessionId && newSessionId !== oldSessionId) {
-      // 当路由参数变化时，重新加载数据
-      loadSessionAndMessages()
+      // 当路由参数变化时，获取会话信息并设置到 store 中
+      try {
+        const sessionResponse = await getSessions()
+        if (sessionResponse && sessionResponse.success) {
+          const session = sessionResponse.data.find((s) => s.id === newSessionId)
+          if (session) {
+            contactStore.setSelectedContact(session)
+          } else {
+            console.warn('未找到会话:', newSessionId)
+          }
+        }
+      } catch (error) {
+        console.error('获取会话信息失败:', error)
+      }
     }
   },
   { immediate: true }
@@ -769,7 +746,7 @@ const handleUpdateNickname = (newNickname) => {
     // 查找当前用户并更新其昵称
     const members = contactStore.selectedContact.group.members
     if (members && Array.isArray(members)) {
-      const currentUser = members.find(member => member.id === userStore.userId)
+      const currentUser = members.find((member) => member.id === userStore.userId)
       if (currentUser) {
         currentUser.name = newNickname
       }
