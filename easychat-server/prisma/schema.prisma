@@ -54,8 +54,6 @@ model User {
   uploadedFiles             File[]           // 用户上传的文件
 }
 
-
-
 model VerificationToken {
   identifier String    @id                             // 标识符
   token      String                                   // 验证令牌
@@ -108,7 +106,7 @@ model Group {
   // 反向关系字段
   invitations GroupInvitation[]
   messages    UnifiedMessage[] @relation("GroupMessages")
-  chatSessions ChatSession[]                         // 群组关联的聊天会话
+  chatSession ChatSession?                         
 }
 
 model UserSetting{
@@ -280,8 +278,8 @@ model ChatSession {
   
   // 关系
   group           Group?      @relation(fields: [groupId], references: [id])  // 关联的群组 (仅群聊)
-  groupId         String?                                                    // 群组ID (仅群聊)
-  ChatSessionUsers           ChatSessionUser[]                                          // 参与此会话的用户
+  groupId         String?     @unique                                         // 群组ID (仅群聊)
+  ChatSessionUsers           ChatSessionUser[]                                // 参与此会话的用户
   unifiedMessages UnifiedMessage[]    @relation("SessionMessages")
   files           File[]                              // 与此会话关联的文件
   

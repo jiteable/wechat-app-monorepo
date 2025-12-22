@@ -267,7 +267,7 @@
 
       <!-- 使用新创建的 GroupDrawer 组件 -->
       <GroupDrawer
-        v-model:visible="drawer"
+        :visible="drawer"
         :is-group-chat="isGroupChat"
         :group="contactStore.selectedContact?.group"
         :remark="contactStore.selectedContact?.remark"
@@ -275,6 +275,7 @@
         :displayed-users="displayedUsers"
         :should-show-add-button="shouldShowAddButton"
         :is-group-owner-or-admin="isGroupOwnerOrAdmin"
+        @update:visible="drawer = $event"
         @close="onDrawerClose"
         @search-messages="searchMessages"
         @clear-chat-history="clearChatHistory"
@@ -688,23 +689,50 @@ const shouldShowSenderName = (message) => {
 }
 
 const handleUpdateGroupName = (newName) => {
-  // 这里可以调用API更新群名称
   console.log('新群名称:', newName)
+
+  if (contactStore.selectedContact && contactStore.selectedContact.group) {
+    contactStore.selectedContact.group.name = newName
+  }
+}
+
+const handleUpdateGroupName = (newName) => {
+  console.log('新群名称:', newName)
+  // 更新联系人存储中的群名称
+  if (contactStore.selectedContact && contactStore.selectedContact.group) {
+    contactStore.selectedContact.group.name = newName
+  }
 }
 
 const handleUpdateAnnouncement = (newAnnouncement) => {
-  // 这里可以调用API更新群公告
   console.log('新群公告:', newAnnouncement)
+  // 更新联系人存储中的群公告
+  if (contactStore.selectedContact && contactStore.selectedContact.group) {
+    contactStore.selectedContact.group.announcement = newAnnouncement
+  }
 }
 
 const handleUpdateRemark = (newRemark) => {
-  // 这里可以调用API更新备注
   console.log('新备注:', newRemark)
+  // 更新联系人存储中的备注
+  if (contactStore.selectedContact) {
+    contactStore.selectedContact.remark = newRemark
+  }
 }
 
 const handleUpdateNickname = (newNickname) => {
-  // 这里可以调用API更新我在本群的昵称
   console.log('新昵称:', newNickname)
+  // 更新联系人存储中的昵称
+  if (contactStore.selectedContact && contactStore.selectedContact.group) {
+    // 查找当前用户并更新其昵称
+    const members = contactStore.selectedContact.group.members
+    if (members && Array.isArray(members)) {
+      const currentUser = members.find(member => member.id === userStore.userId)
+      if (currentUser) {
+        currentUser.name = newNickname
+      }
+    }
+  }
 }
 
 // 处理滚动事件，实现无限滚动加载

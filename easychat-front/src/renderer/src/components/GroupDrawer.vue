@@ -170,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import { EditPen } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -253,6 +253,34 @@ const groupNameInput = ref(null)
 const announcementInput = ref(null)
 const remarkInput = ref(null)
 const nicknameInput = ref(null)
+
+// Watch props changes to update form data
+watch(
+  () => props.group,
+  (newGroup) => {
+    if (newGroup) {
+      groupEditForm.value.name = newGroup.name || ''
+      groupEditForm.value.announcement = newGroup.announcement || ''
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.remark,
+  (newRemark) => {
+    groupEditForm.value.remark = newRemark || ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.nickname,
+  (newNickname) => {
+    groupEditForm.value.nickname = newNickname || ''
+  },
+  { immediate: true }
+)
 
 // Methods
 const onClose = () => {
@@ -358,6 +386,7 @@ const saveGroupName = async () => {
       })
 
       if (response.code === 200) {
+        console.log('groupEditForm.value.name: ', groupEditForm.value.name)
         // 通知父组件更新群名称
         emit('updateGroupName', groupEditForm.value.name)
 

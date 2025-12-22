@@ -672,7 +672,7 @@ router.get('/getGroup/:groupId', authenticateToken, async (req, res) => {
         id: groupId
       },
       include: {
-        chatSessions: {
+        chatSession: {
           include: {
             ChatSessionUsers: {
               include: {
@@ -708,8 +708,8 @@ router.get('/getGroup/:groupId', authenticateToken, async (req, res) => {
       updatedAt: group.updatedAt,
       image: group.image,
       type: group.type,
-      memberCount: group.chatSessions[0]?.ChatSessionUsers.length || 0,
-      members: group.chatSessions[0]?.ChatSessionUsers.map(userSession => ({
+      memberCount: group.chatSession?.ChatSessionUsers.length || 0,
+      members: group.chatSession?.ChatSessionUsers.map(userSession => ({
         id: userSession.user.id,
         name: userSession.user.username,
         avatar: userSession.user.avatar

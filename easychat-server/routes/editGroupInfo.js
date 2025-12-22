@@ -55,10 +55,18 @@ router.put('/groupUpdate', authenticateToken, async function (req, res, next) {
 
     // 如果群名称有变更，也需要更新会话中的名称
     if (name !== undefined) {
-      await db.chatSession.update({
-        where: { groupId: groupId },
-        data: { name: name }
+      // 查找对应的chatSession（一对一关系，直接通过groupId获取）
+      const chatSession = await db.chatSession.findUnique({
+        where: { groupId: groupId }
       });
+
+      if (chatSession) {
+        // 使用chatSession的id来更新
+        await db.chatSession.update({
+          where: { id: chatSession.id },
+          data: { name: name }
+        });
+      }
     }
 
     // 返回成功响应
@@ -176,7 +184,7 @@ router.put('/memberNickname', authenticateToken, async function (req, res, next)
       });
     }
 
-    // 查找用户在该群组会话中的记录
+    // 查找用户在该群组会话中的记录（一对一关系，直接通过groupId获取）
     const session = await db.chatSession.findUnique({
       where: { groupId: groupId }
     });

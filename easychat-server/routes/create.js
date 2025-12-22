@@ -55,7 +55,7 @@ router.post('/createGroup', authenticateToken, async function (req, res, next) {
       }
     });
 
-    // 创建群聊会话
+    // 创建群组对应的聊天会话
     const chatSession = await db.chatSession.create({
       data: {
         sessionType: 'group',
