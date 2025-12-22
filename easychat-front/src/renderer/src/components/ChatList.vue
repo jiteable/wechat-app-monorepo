@@ -41,7 +41,7 @@
     <!-- 全局右键菜单 -->
     <div
       v-show="contextMenuVisible"
-      class="context-menu"
+      class="context-menu no-drag"
       :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
     >
       <div class="context-menu-item" @click="handleContextCommand('top')">置顶</div>
@@ -303,9 +303,17 @@ const handleDeleteSession = (session) => {
           await window.api.deleteChatSession(session.id)
         }
 
+        // 检查是否删除的是当前选中的会话
+        const isCurrentSession = selectedSessionId.value === session.id
+
         // 从界面中移除会话
         sessions.value = sessions.value.filter((s) => s.id !== session.id)
         ElMessage.success('删除成功')
+
+        // 如果删除的是当前选中的会话，则跳转到 /chat
+        if (isCurrentSession) {
+          router.push('/chat')
+        }
       } catch (error) {
         console.error('删除会话失败:', error)
         ElMessage.error('删除会话失败')
