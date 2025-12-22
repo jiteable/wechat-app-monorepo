@@ -2,40 +2,51 @@
   <div class="chat-list-container">
     <!-- 会话列表 -->
     <div class="chat-list no-drag">
-      <button
-        v-for="session in filteredSessions"
-        :key="session.id"
-        class="chat-item"
-        :class="{ active: selectedSessionId === session.id }"
-        @click="handleClickSession(session)"
-      >
-        <!-- 头像 -->
-
-        <div>
-          <!-- 未读消息红点 -->
-          <div v-if="session.unreadCount > 0" class="unread-badge">
-            {{ session.unreadCount > 99 ? '~' : session.unreadCount }}
-          </div>
-          <div class="avatar-wrapper">
-            <el-avatar :src="session.avatar" alt="avatar" class="avatar" shape="square" />
-          </div>
-        </div>
-
-        <!-- 信息区域和时间 -->
-        <div class="content-wrapper">
-          <div class="info">
-            <div class="title">{{ session.name }}</div>
-            <div class="last-message">
-              {{ formatLastMessage(session.lastMessage, session.sessionType) }}
+      <div v-for="session in filteredSessions" :key="session.id" class="chat-item-wrapper">
+        <button
+          class="chat-item"
+          :class="{ active: selectedSessionId === session.id }"
+          @click="handleClickSession(session)"
+          @contextmenu.prevent="showContextMenu($event, session)"
+        >
+          <!-- 头像 -->
+          <div>
+            <!-- 未读消息红点 -->
+            <div v-if="session.unreadCount > 0" class="unread-badge">
+              {{ session.unreadCount > 99 ? '~' : session.unreadCount }}
+            </div>
+            <div class="avatar-wrapper">
+              <el-avatar :src="session.avatar" alt="avatar" class="avatar" shape="square" />
             </div>
           </div>
 
-          <!-- 时间移到右上角 -->
-          <div class="time">
-            {{ formatDate(session.updatedAt) }}
+          <!-- 信息区域和时间 -->
+          <div class="content-wrapper">
+            <div class="info">
+              <div class="title">{{ session.name }}</div>
+              <div class="last-message">
+                {{ formatLastMessage(session.lastMessage, session.sessionType) }}
+              </div>
+            </div>
+
+            <!-- 时间移到右上角 -->
+            <div class="time">
+              {{ formatDate(session.updatedAt) }}
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+      </div>
+    </div>
+
+    <!-- 全局右键菜单 -->
+    <div
+      v-show="contextMenuVisible"
+      class="context-menu"
+      :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+    >
+      <div class="context-menu-item" @click="handleContextCommand('top')">置顶</div>
+      <div class="context-menu-item" @click="handleContextCommand('mute')">消息免打扰</div>
+      <div class="context-menu-item danger" @click="handleContextCommand('delete')">删除</div>
     </div>
   </div>
 </template>
@@ -46,7 +57,7 @@ import { userContactStore } from '@/store/userContactStore'
 import { getSessions } from '@/api/chatSession'
 import { markAsRead } from '@/api/chat'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const contactStore = userContactStore()
 const router = useRouter()
@@ -61,6 +72,12 @@ const searchText = ref('')
 
 // 当前选中的会话ID
 const selectedSessionId = ref(null)
+
+// 右键菜单相关
+const contextMenuVisible = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const contextMenuSession = ref(null)
 
 // 从本地数据库获取会话
 const fetchSessions = async () => {
@@ -180,6 +197,9 @@ const formatDate = (dateStr) => {
 
 // 点击会话跳转
 const handleClickSession = async (session) => {
+  // 隐藏右键菜单
+  contextMenuVisible.value = false
+
   // 设置当前选中的会话ID
   selectedSessionId.value = session.id
 
@@ -221,9 +241,82 @@ const handleClickSession = async (session) => {
 
   router.push(`/chat/${session.id}`)
 }
+
+// 显示右键菜单
+const showContextMenu = (event, session) => {
+  event.preventDefault()
+
+  // 记录当前会话
+  contextMenuSession.value = session
+
+  // 设置菜单位置
+  contextMenuX.value = event.clientX
+  contextMenuY.value = event.clientY
+
+  // 显示菜单
+  contextMenuVisible.value = true
+}
+
+// 处理右键菜单命令
+const handleContextCommand = (command) => {
+  // 隐藏菜单
+  contextMenuVisible.value = false
+
+  if (!contextMenuSession.value) return
+
+  switch (command) {
+    case 'top':
+      handleTopSession(contextMenuSession.value)
+      break
+    case 'mute':
+      handleMuteSession(contextMenuSession.value)
+      break
+    case 'delete':
+      handleDeleteSession(contextMenuSession.value)
+      break
+  }
+}
+
+// 置顶会话
+const handleTopSession = (session) => {
+  ElMessage.info(`将会话 "${session.name}" 置顶`)
+  // 实现置顶逻辑
+}
+
+// 消息免打扰
+const handleMuteSession = (session) => {
+  ElMessage.info(`设置会话 "${session.name}" 消息免打扰`)
+  // 实现免打扰逻辑
+}
+
+// 删除会话
+const handleDeleteSession = (session) => {
+  ElMessageBox.confirm(`确定要删除会话 "${session.name}" 吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(() => {
+      // 执行删除操作
+      sessions.value = sessions.value.filter((s) => s.id !== session.id)
+      ElMessage.success('删除成功')
+    })
+    .catch(() => {
+      // 用户取消删除
+      ElMessage.info('已取消删除')
+    })
+}
+
 // 获取当前选中的会话ID
 const getSelectedSessionId = () => {
   return selectedSessionId.value
+}
+
+// 点击其他地方隐藏菜单
+const handleClickOutside = (event) => {
+  if (contextMenuVisible.value) {
+    contextMenuVisible.value = false
+  }
 }
 
 // 页面加载时获取会话
@@ -300,6 +393,8 @@ onMounted(() => {
   window.api.onNewMessage(handleNewMessage)
   // 添加本地消息监听
   window.addEventListener('newMessageSent', handleLocalNewMessage)
+  // 添加全局点击事件监听器
+  document.addEventListener('click', handleClickOutside)
 })
 
 // 组件卸载时移除监听
@@ -308,6 +403,8 @@ onUnmounted(() => {
   // 如果API提供了移除WebSocket监听的方法，也需要在这里调用
   // window.api.offNewMessage(handleNewMessage)
   window.removeEventListener('newMessageSent', handleLocalNewMessage)
+  // 移除全局点击事件监听器
+  document.removeEventListener('click', handleClickOutside)
 })
 
 // 如果需要在父组件中访问选中ID，可以暴露这个方法
@@ -322,11 +419,16 @@ defineExpose({
   display: flex;
   flex-direction: column;
   background-color: #f5f7fa;
+  position: relative;
 }
 
 .chat-list {
   display: flex;
   flex-direction: column;
+}
+
+.chat-item-wrapper {
+  position: relative;
 }
 
 .chat-item {
@@ -434,5 +536,37 @@ defineExpose({
   flex-shrink: 0;
   min-width: 40px;
   text-align: right;
+}
+
+/* 右键菜单样式 */
+.context-menu {
+  position: fixed;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  min-width: 120px;
+  padding: 5px 0;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #606266;
+}
+
+.context-menu-item:hover {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+.context-menu-item.danger {
+  color: #f56c6c;
+}
+
+.context-menu-item.danger:hover {
+  background-color: #fef0f0;
+  color: #f56c6c;
 }
 </style>
