@@ -687,9 +687,11 @@ const getDisplayName = computed(() => {
   const session = contactStore.selectedContact
   if (!session) return ''
 
-  // 如果是群聊，显示群名称
+  // 如果是群聊，显示群名称和成员数
   if (session.sessionType === 'group' && session.group) {
-    return session.group.name || '群聊'
+    const groupName = session.group.name || '群聊'
+    const memberCount = session.group.members ? session.group.members.length : 0
+    return `${groupName}(${memberCount})`
   }
 
   // 如果是私聊，显示对方用户名

@@ -252,7 +252,6 @@ import { ElDatePicker, ElPopover, ElMessage } from 'element-plus'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
-import { getMessages } from '@/api/chat'
 
 interface Message {
   id: string | number
@@ -370,40 +369,40 @@ onUnmounted(() => {
 const loadMessages = async (sessionId) => {
   try {
     loading.value = true
-    const response = await getMessages({ sessionId, page: 1, limit: 50 })
+    // 使用 window.api.getMessagesBySessionId 替代 getMessages API 调用
+    const response = await window.api.getMessagesBySessionId(sessionId, 1, 50)
 
-    if (response.data.success) {
+    if (response.success) {
       // 更新消息数量
-      messageCount.value = response.data.data.pagination.totalMessages
+      messageCount.value = response.data.pagination.totalMessages
 
       // 将获取到的消息转换为组件所需格式
-      messages.value = response.data.data.messages.map((msg) => {
+      messages.value = response.data.messages.map((msg) => {
         const baseMessage = {
           id: msg.id,
           content: msg.content,
           time: formatTime(msg.updatedAt),
           type: msg.messageType,
-          senderName: msg.sender?.username || '未知用户',
-          senderAvatar:
-            msg.sender?.avatar ||
-            'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
+          senderName: msg.senderName || '未知用户',
+          senderAvatar: msg.senderAvatar,
           imageUrl: msg.mediaUrl,
           fileName: msg.fileName,
-          fileExtension: msg.file?.fileExtension || msg.fileExtension,
-          size: formatFileSize(msg.fileSize),
+          fileExtension: msg.file_extension, // 从文件对象或直接从消息获取扩展名
+          size: formatFileSize(msg.file_size), // 格式化文件大小
           mediaUrl: msg.mediaUrl,
-          thumbnailUrl: msg.video?.thumbnailUrl || msg.thumbnailUrl
+          thumbnailUrl: msg.file_thumbnailUrl
         }
 
         // 如果是视频类型消息，添加视频相关信息
         if (msg.messageType === 'video') {
           return {
             ...baseMessage,
-            videoInfo: msg.video || {
-              duration: msg.videoInfo?.duration,
-              width: msg.videoWidth || msg.videoInfo?.width,
-              height: msg.videoHeight || msg.videoInfo?.height
-            }
+            videoInfo: msg.videoInfo ||
+              msg.video || {
+                duration: msg.videoInfo?.duration || msg.video?.duration,
+                width: msg.videoInfo?.width || msg.video?.width,
+                height: msg.videoInfo?.height || msg.video?.height
+              }
           }
         }
 
@@ -411,7 +410,7 @@ const loadMessages = async (sessionId) => {
       })
     }
 
-    console.log('messagessss: ', response.data.data.messages)
+    console.log('messagessss: ', response.data.messages)
   } catch (error) {
     console.error('获取消息失败:', error)
   } finally {

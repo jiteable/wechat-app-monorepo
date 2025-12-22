@@ -11,7 +11,12 @@
 
     <div class="add-friend-content">
       <div class="search-section">
-        <el-input v-model="searchText" placeholder="请输入ChatID/邮箱/用户名" class="search-input" @keyup.enter="handleSearch">
+        <el-input
+          v-model="searchText"
+          placeholder="请输入ChatID/邮箱/用户名"
+          class="search-input"
+          @keyup.enter="handleSearch"
+        >
           <template #suffix>
             <el-icon class="search-icon" @click="handleSearch">
               <Search />
@@ -25,15 +30,25 @@
       </div>
 
       <div v-else-if="searchResults.length > 0" class="search-results">
-        <div v-for="user in searchResults" :key="user.id" class="result-item" @click="selectUser(user)">
+        <div
+          v-for="user in searchResults"
+          :key="user.id"
+          class="result-item"
+          @click="selectUser(user)"
+        >
           <el-avatar :size="40" :src="user.avatar || ''" shape="square" />
           <div class="user-info">
             <div class="user-name">{{ user.username }}</div>
             <div class="user-id">ChatID: {{ user.chatId }}</div>
           </div>
           <div class="action-button">
-            <el-button size="small" :type="getButtonType(user)" :disabled="user.isFriend" round
-              @click.stop="addFriendHandler(user)">
+            <el-button
+              size="small"
+              :type="getButtonType(user)"
+              :disabled="user.isFriend"
+              round
+              @click.stop="addFriendHandler(user)"
+            >
               {{ getButtonText(user) }}
             </el-button>
           </div>
