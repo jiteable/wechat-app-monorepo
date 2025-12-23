@@ -72,13 +72,12 @@ const handleAddFriend = () => {
 }
 
 .chat-title {
-  border-bottom: 1px solid #e0e0e0;
   height: 80px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   padding: 0 5px;
-  background-color: #ffffff;
+  background-color: rgb(247, 247, 247);
 }
 
 .search-box {

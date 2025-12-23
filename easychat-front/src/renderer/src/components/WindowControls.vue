@@ -65,7 +65,6 @@ onUnmounted(() => {
 
 <style scoped>
 .window-controls {
-  border-bottom: 1px solid rgb(213, 213, 213);
   height: 80px;
   flex-shrink: 0;
   position: relative;

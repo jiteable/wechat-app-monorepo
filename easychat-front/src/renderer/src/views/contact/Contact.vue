@@ -309,13 +309,12 @@ const selectGroup = async (group) => {
 }
 
 .contact-left-title {
-  border-bottom: 1px solid #e0e0e0;
-  height: 80px;
+  height: 70px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   padding: 0 5px;
-  background-color: #ffffff;
+  background-color: rgb(247, 247, 247);
 }
 
 .avatar {
@@ -327,6 +326,7 @@ const selectGroup = async (group) => {
 
 .search-box {
   width: 100%;
+  padding-top: 10px;
 }
 
 .search-input {

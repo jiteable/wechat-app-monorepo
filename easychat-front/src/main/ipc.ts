@@ -297,6 +297,8 @@ export function createMainWindow(icon: string): BrowserWindow {
   const newMainWindow = new BrowserWindow({
     width: Math.round(1250 / scaleFactor),
     height: Math.round(750 / scaleFactor),
+    minWidth: Math.round(800 / scaleFactor),
+    minHeight: Math.round(750 / scaleFactor),
     frame: false,
     show: false,
     autoHideMenuBar: true,
