@@ -15,6 +15,7 @@ let addFriendWindow: BrowserWindow | null = null
 let setWindow: BrowserWindow | null = null
 let createGroupWindow: BrowserWindow | null = null
 let chatMessageWindow: BrowserWindow | null = null
+let setRemarkAndTagWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 
 // 存储用户信息
@@ -338,6 +339,54 @@ export function createMainWindow(icon: string): BrowserWindow {
   return newMainWindow
 }
 
+export function createSetRemarkAndTagWindow(icon: string, contactData?: any): void {
+  // 如果设置备注和标签窗口已存在，直接显示并获得焦点
+  if (setRemarkAndTagWindow) {
+    setRemarkAndTagWindow.show()
+    setRemarkAndTagWindow.focus()
+
+    // 如果窗口已存在且提供了联系人数据，通过IPC发送联系人数据
+    if (contactData) {
+      setRemarkAndTagWindow.webContents.send('set-contact-data', contactData)
+    }
+    return
+  }
+
+  setRemarkAndTagWindow = new BrowserWindow({
+    width: Math.round(450 / scaleFactor),
+    height: Math.round(750 / scaleFactor),
+    frame: false,
+    show: false,
+    autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  setRemarkAndTagWindow.on('ready-to-show', () => {
+    setRemarkAndTagWindow!.show()
+    // 窗口准备好后发送联系人数据
+    if (contactData) {
+      setRemarkAndTagWindow!.webContents.send('set-contact-data', contactData)
+    }
+  })
+
+  setRemarkAndTagWindow.on('closed', () => {
+    setRemarkAndTagWindow = null
+  })
+
+  // Load the remote URL for development or the local html file for production.
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    setRemarkAndTagWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/set-remark-and-tag')
+  } else {
+    setRemarkAndTagWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      hash: '/set-remark-and-tag'
+    })
+  }
+}
+
 export function setupIpcHandlers(icon: string): void {
   // 监听登录/注册表单切换事件并调整窗口大小
   ipcMain.on('login-form-toggle', (event, isLogin) => {
@@ -391,6 +440,18 @@ export function setupIpcHandlers(icon: string): void {
       mainWindow.show()
     } else {
       mainWindow = createMainWindow(icon)
+    }
+  })
+
+  // 设置备注和标签窗口相关事件
+  ipcMain.on('open-set-remark-and-tag-window', (event, contactData) => {
+    createSetRemarkAndTagWindow(icon, contactData)
+  })
+
+  ipcMain.on('close-set-remark-and-tag-window', () => {
+    if (setRemarkAndTagWindow) {
+      setRemarkAndTagWindow.close()
+      setRemarkAndTagWindow = null
     }
   })
 

@@ -72,5 +72,9 @@ export const AppRoutes = [
   {
     path: '/settings',
     component: () => import('../views/setting/Setting.vue')
+  },
+  {
+    path: '/set-remark-and-tag',
+    component: () => import('../views/setFriendInfo/SetRemarkAndTag.vue')
   }
 ]

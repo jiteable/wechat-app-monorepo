@@ -43,6 +43,11 @@ const api = {
   closeChatMessageWindow: (): void => ipcRenderer.send('close-chat-message-window'),
   minimizeChatMessageWindow: (): void => ipcRenderer.send('minimize-chat-message-window'),
 
+  // 设置备注和标签窗口相关
+  openSetRemarkAndTagWindow: (contactData?: any): void =>
+    ipcRenderer.send('open-set-remark-and-tag-window', contactData),
+  closeSetRemarkAndTagWindow: (): void => ipcRenderer.send('close-set-remark-and-tag-window'),
+
   // 用户信息相关
   setUserInfo: (userInfo: UserInfo): void => ipcRenderer.send('set-user-info', userInfo),
   getUserInfo: (): Promise<UserInfo> => ipcRenderer.invoke('get-user-info'),
@@ -74,7 +79,8 @@ const api = {
 
   // 本地数据库相关
   addChatSession: (): Promise<any> => ipcRenderer.invoke('add-chat-session'),
-  getAllChatSessions: (userId: string): Promise<any> => ipcRenderer.invoke('get-all-chat-sessions', userId),
+  getAllChatSessions: (userId: string): Promise<any> =>
+    ipcRenderer.invoke('get-all-chat-sessions', userId),
   clearChatSessions: (): Promise<any> => ipcRenderer.invoke('clear-chat-sessions'),
   syncChatSessions: (sessions: any[]): Promise<any> =>
     ipcRenderer.invoke('sync-chat-sessions', sessions),

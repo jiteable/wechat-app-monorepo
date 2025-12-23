@@ -24,7 +24,7 @@
             </div>
           </div>
         </div>
-        <div class="popover-container">
+        <div class="popover-container no-drag">
           <el-popover
             ref="popoverRef"
             placement="bottom-end"
@@ -37,7 +37,7 @@
               <button class="chat-contant-button no-drag" @click.stop>...</button>
             </template>
             <div class="popover-menu">
-              <div v-if="!isGroup" class="popover-menu-item">设置备注和标签</div>
+              <div v-if="!isGroup" class="popover-menu-item" @click="openSetRemarkAndTag">设置备注和标签</div>
               <div v-if="!isGroup" class="popover-menu-item">设置朋友权限</div>
               <div v-if="!isGroup" class="popover-menu-item">删除联系人</div>
               <div v-if="!isGroup" class="popover-menu-item">加入黑名单</div>
@@ -255,6 +255,29 @@ const sendMessage = async () => {
 
     // 进行路由跳转
     router.push(`/chat/${session.id}`)
+  }
+}
+
+// 添加打开设置备注和标签窗口的方法
+const openSetRemarkAndTag = () => {
+  if (window.api && typeof window.api.openSetRemarkAndTagWindow === 'function') {
+    // 创建一个可序列化的联系人数据对象
+    const serializableContact = {
+      id: currentContact.value.id,
+      name: currentContact.value.name,
+      chatId: currentContact.value.chatId,
+      avatar: currentContact.value.avatar,
+      image: currentContact.value.image,
+      remark: currentContact.value.remark,
+      groupCount: currentContact.value.groupCount,
+      signature: currentContact.value.signature,
+      source: currentContact.value.source,
+      memberCount: currentContact.value.memberCount,
+      members: currentContact.value.members,
+      announcement: currentContact.value.announcement,
+      sessionType: currentContact.value.sessionType
+    }
+    window.api.openSetRemarkAndTagWindow(serializableContact)
   }
 }
 
