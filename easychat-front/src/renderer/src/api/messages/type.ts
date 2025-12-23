@@ -97,9 +97,19 @@ export interface SendGroupInvitationsResponse {
 }
 
 export interface AcceptFriendRequestParams {
-  requestId: string;
+  requestId: string
 }
 
 export interface RejectFriendRequestParams {
-  requestId: string;
+  requestId: string
+}
+
+export interface RejectFriendRequestParams {
+  requestId: string
+}
+
+export interface DeleteAllRequestsResponse {
+  success: boolean
+  message?: string
+  error?: string
 }

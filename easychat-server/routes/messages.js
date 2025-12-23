@@ -391,4 +391,38 @@ router.post('/rejectFriendRequest', authenticateToken, async (req, res) => {
   }
 });
 
+// 删除所有好友请求和群组邀请
+router.post('/deleteAllRequests', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 删除当前用户收到的所有待处理好友请求
+    await db.friendRequest.deleteMany({
+      where: {
+        toUserId: userId,
+        status: 'pending'
+      }
+    });
+
+    // 删除当前用户收到的所有待处理群组邀请
+    await db.groupInvitation.deleteMany({
+      where: {
+        inviteeId: userId,
+        status: 'pending'
+      }
+    });
+
+    res.json({
+      success: true,
+      message: '所有待处理的申请和邀请已清除'
+    });
+  } catch (error) {
+    console.error('删除所有申请和邀请失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '删除失败'
+    });
+  }
+});
+
 module.exports = router;

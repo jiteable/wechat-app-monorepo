@@ -8,7 +8,8 @@ import {
   SendFriendRequestResponse,
   SendGroupInvitationsResponse,
   AcceptFriendRequestParams,
-  RejectFriendRequestParams
+  RejectFriendRequestParams,
+  DeleteAllRequestsResponse
 } from './type'
 
 // 枚举地址
@@ -20,7 +21,9 @@ enum API {
   SEND_FRIEND_REQUEST_URL = '/messages/sendFriendRequest',
   SEND_GROUP_INVITATIONS_URL = '/messages/sendGroupInvitations',
   ACCEPT_FRIEND_REQUEST_URL = '/messages/acceptFriendRequest',
-  REJECT_FRIEND_REQUEST_URL = '/messages/rejectFriendRequest'
+  REJECT_FRIEND_REQUEST_URL = '/messages/rejectFriendRequest',
+  // 删除所有好友请求和群组邀请
+  DELETE_ALL_REQUESTS_URL = '/messages/deleteAllRequests'
 }
 
 /**
@@ -93,5 +96,14 @@ export const acceptFriendRequest = async (params: AcceptFriendRequestParams) => 
 
 export const rejectFriendRequest = async (params: RejectFriendRequestParams) => {
   const response = await http.post(`${config.api}${API.REJECT_FRIEND_REQUEST_URL}`, params)
+  return response.data
+}
+
+/**
+ * 删除所有好友请求和群组邀请
+ * @returns 处理结果
+ */
+export const deleteAllRequests = async (): Promise<DeleteAllRequestsResponse> => {
+  const response = await http.post<DeleteAllRequestsResponse>(`${config.api}${API.DELETE_ALL_REQUESTS_URL}`)
   return response.data
 }

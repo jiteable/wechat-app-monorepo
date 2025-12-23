@@ -10,6 +10,17 @@
         :show-top-border="true"
         :infinite-scroll-immediate="false"
       >
+        <!-- 添加删除所有按钮 -->
+        <div class="delete-all-section">
+          <el-button
+            type="danger"
+            :disabled="friendApplyList.length === 0 && groupInviteList.length === 0"
+            @click="handleDeleteAllRequests"
+          >
+            删除所有申请和邀请
+          </el-button>
+        </div>
+
         <!-- 好友申请 -->
         <div class="section">
           <div class="section-title">好友申请</div>
@@ -98,8 +109,10 @@ import {
   getFriendRequest,
   getGroupInvitations,
   acceptFriendRequest,
-  rejectFriendRequest
+  rejectFriendRequest,
+  deleteAllRequests
 } from '@/api/messages'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
 const defaultGroupAvatar = 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png'
@@ -177,6 +190,38 @@ const handleRejectGroup = (invite) => {
     invite.status = 'rejected'
   }
 }
+
+// 处理删除所有申请和邀请
+const handleDeleteAllRequests = async () => {
+  try {
+    // 显示确认对话框
+    const confirmed = await ElMessageBox.confirm(
+      '确定要删除所有好友申请和群组邀请吗？此操作不可恢复。',
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    const response = await deleteAllRequests()
+    if (response.success) {
+      // 清空本地列表
+      friendApplyList.value = []
+      groupInviteList.value = []
+      ElMessage.success(response.message || '所有申请和邀请已删除')
+    } else {
+      ElMessage.error(response.error || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      // 如果不是用户取消操作
+      console.error('删除所有申请和邀请失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -190,6 +235,12 @@ const handleRejectGroup = (invite) => {
 .contact-apply-content {
   flex: 1;
   overflow-y: auto;
+}
+
+.delete-all-section {
+  padding: 10px 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .section {
