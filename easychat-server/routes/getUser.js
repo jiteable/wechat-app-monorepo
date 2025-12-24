@@ -47,6 +47,7 @@ router.get('/getContact', authenticateToken, async function (req, res, next) {
         region: friendInfo.region,
         remark: userFriend.remark,
         source: userFriend.source,
+        labels: userFriend.labels, // 添加标签字段
       };
     });
 

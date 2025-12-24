@@ -12,18 +12,18 @@
     <div class="form-item">
       <label class="label">标签</label>
       <el-select
-        v-model="selectedTags"
+        v-model="selectedLabels"
         placeholder="请选择或创建标签..."
         multiple
         filterable
         remote
         :remote-method="handleRemoteMethod"
         style="width: 100%"
-        popper-class="custom-tag-select"
+        popper-class="custom-label-select"
         @focus="onFocus"
         @blur="onBlur"
       >
-        <el-option v-for="item in tagOptions" :key="item" :label="item" :value="item" />
+        <el-option v-for="item in labelOptions" :key="item" :label="item" :value="item" />
       </el-select>
     </div>
 
@@ -54,15 +54,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { getUserLabels, setFriendLabel } from '@/api/setFriendInfo'
 
 const remark = ref('')
-const selectedTags = ref([]) // 修改为数组以支持多选
+const selectedLabels = ref([]) // 修改为数组以支持多选
 const description = ref('')
 const phoneList = ref([])
 const contactData = ref(null)
 
-// 标签选项列表（模拟数据）
-const tagOptions = ref(['客户开店1', '哦', '未命名', '你好'])
+// 标签选项列表
+const labelOptions = ref([])
 
 // 搜索关键词
 const searchKeyword = ref('')
@@ -70,20 +71,38 @@ const searchKeyword = ref('')
 // 模拟远程搜索（实际可调用 API）
 const handleRemoteMethod = (query) => {
   if (!query) {
-    tagOptions.value = ['客户开店', '客户开店', '客户开店3', '客户开店4', '客户开店5', '哦', '未命名', '你好']
+    // 调用API获取用户标签列表
+    getUserLabels()
+      .then((response) => {
+        if (response.success) {
+          labelOptions.value = response.labels
+        }
+      })
+      .catch((error) => {
+        console.error('获取用户标签失败:', error)
+      })
     return
   }
 
   // 这里可以调用接口查询标签
-  const filtered = tagOptions.value.filter((item) =>
+  const filtered = labelOptions.value.filter((item) =>
     item.toLowerCase().includes(query.toLowerCase())
   )
-  tagOptions.value = filtered
+  labelOptions.value = filtered
 }
 
 // 点击输入框时触发
 const onFocus = () => {
-  console.log('聚焦')
+  // 获取用户标签列表
+  getUserLabels()
+    .then((response) => {
+      if (response.success) {
+        labelOptions.value = response.labels
+      }
+    })
+    .catch((error) => {
+      console.error('获取用户标签失败:', error)
+    })
 }
 
 // 失焦时隐藏下拉
@@ -115,13 +134,35 @@ const cancel = () => {
 
 // 提交
 const confirm = () => {
-  const tagsString = selectedTags.value.join(',') // 将选中的标签数组转换为逗号分隔的字符串
+  const labelsArray = selectedLabels.value // 将选中的标签数组直接使用
   console.log('提交：', {
     remark: remark.value,
-    tag: tagsString, // 提交时使用逗号分隔的字符串
+    labels: labelsArray, // 提交时使用标签数组
     description: description.value,
     contactId: contactData.value?.id
   })
+
+  // 调用API设置好友标签
+  if (contactData.value?.id) {
+    setFriendLabel({
+      friendId: contactData.value.id,
+      labels: labelsArray
+    })
+      .then((response) => {
+        if (response.success) {
+          console.log('设置好友标签成功:', response.message)
+          // 可以在这里添加成功提示
+        } else {
+          console.error('设置好友标签失败:', response.error)
+          // 可以在这里添加错误提示
+        }
+      })
+      .catch((error) => {
+        console.error('设置好友标签请求失败:', error)
+        // 可以在这里添加错误提示
+      })
+  }
+
   if (window.api && typeof window.api.closeSetRemarkAndTagWindow === 'function') {
     window.api.closeSetRemarkAndTagWindow()
   }
@@ -134,10 +175,21 @@ onMounted(() => {
       contactData.value = data
       remark.value = data.remark || data.name || ''
       // 如果后端传来的标签是逗号分隔的字符串，则拆分为数组
-      selectedTags.value = data.tag ? data.tag.split(',') : []
+      selectedLabels.value = data.labels ? data.labels : []
       description.value = data.description || ''
     })
   }
+
+  // 初始化时获取用户标签列表
+  getUserLabels()
+    .then((response) => {
+      if (response.success) {
+        labelOptions.value = response.labels
+      }
+    })
+    .catch((error) => {
+      console.error('获取用户标签失败:', error)
+    })
 })
 </script>
 
@@ -246,7 +298,7 @@ onMounted(() => {
   }
 
   // 自定义下拉菜单样式
-  .custom-tag-select {
+  .custom-label-select {
     .el-select-dropdown {
       border: 1px solid #dcdfe6;
       border-radius: 6px;

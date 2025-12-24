@@ -28,7 +28,7 @@
             </div>
             <div class="contact-info">
               <div class="contact-name">{{ contact.name }}</div>
-              <div v-if="contact.tag" class="contact-tag">{{ contact.tag }}</div>
+              <div v-if="contact.labels" class="contact-label">{{ contact.labels }}</div>
             </div>
             <div class="contact-checkbox">
               <div class="checkbox" :class="{ checked: contact.selected }">
@@ -115,7 +115,7 @@ interface Contact {
   id: string
   name: string
   avatar: string
-  tag: string
+  labels: string[]
   selected: boolean
 }
 
@@ -164,7 +164,7 @@ export default defineComponent({
               avatar:
                 contact.avatar ||
                 'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-              tag: '',
+              labels: [],
               selected: false
             })
           })
@@ -502,7 +502,7 @@ export default defineComponent({
   color: #333;
 }
 
-.contact-tag {
+.contact-label {
   background-color: #409eff;
   color: white;
   font-size: 10px;

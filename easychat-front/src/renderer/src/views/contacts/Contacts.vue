@@ -35,15 +35,15 @@
                   </el-button>
                 </div>
 
-                <el-button class="button no-active" @click="toggleIcon('tag')">
+                <el-button class="button no-active" @click="toggleIcon('label')">
                   <span class="button-text1">标签</span>
                   <el-icon class="arrow-icon">
-                    <component :is="iconStates.tag ? 'ArrowDown' : 'ArrowRight'" />
+                    <component :is="iconStates.label ? 'ArrowDown' : 'ArrowRight'" />
                   </el-icon>
                 </el-button>
 
                 <!-- 添加的标签列表 -->
-                <div v-show="iconStates.tag" class="label-list">
+                <div v-show="iconStates.label" class="label-list">
                   <el-button
                     v-for="item in labelList"
                     :key="item.id"
@@ -56,18 +56,18 @@
 
                   <!-- 新建标签按钮 -->
                   <el-button
-                    v-if="!showNewTagInput"
+                    v-if="!showNewLabelInput"
                     class="button label-item-button"
-                    @click="showNewTagInput = true"
+                    @click="showNewLabelInput = true"
                   >
                     <span class="button-text2">+ 新建标签</span>
                   </el-button>
 
                   <!-- 新建标签输入框 -->
-                  <div v-else class="new-tag-input-container">
+                  <div v-else class="new-label-input-container">
                     <el-input
-                      ref="newTagInputRef"
-                      v-model="newTagName"
+                      ref="newLabelInputRef"
+                      v-model="newLabelName"
                       placeholder="输入标签名称"
                       size="small"
                       @blur="createNewLabel"
@@ -156,7 +156,7 @@
                   </template>
                 </el-table-column>
                 <el-table-column prop="remark" label="备注" width="100" show-overflow-tooltip />
-                <el-table-column prop="tag" label="标签" width="100" show-overflow-tooltip />
+                <el-table-column prop="label" label="标签" width="100" show-overflow-tooltip />
                 <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
               </el-table>
               <!-- 群聊筛选模式下显示的数据 -->
@@ -179,7 +179,7 @@
                   </template>
                 </el-table-column>
                 <el-table-column prop="remark" label="备注" width="10" show-overflow-tooltip />
-                <el-table-column prop="tag" label="标签" width="100" show-overflow-tooltip />
+                <el-table-column prop="label" label="标签" width="100" show-overflow-tooltip />
                 <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
               </el-table>
               <div v-else>右侧内容区域</div>
@@ -263,7 +263,7 @@ const selectedGroup = ref(null)
 
 const iconStates = reactive({
   friend: false,
-  tag: false,
+  label: false,
   group: false
 })
 
@@ -278,8 +278,8 @@ const friendAuthorityList = ref([
 const labelList = ref([])
 
 // 新建标签相关
-const showNewTagInput = ref(false)
-const newTagName = ref('未命名标签')
+const showNewLabelInput = ref(false)
+const newLabelName = ref('未命名标签')
 
 // 群聊列表数据
 const chatGroupList = ref([])
@@ -332,7 +332,7 @@ const clearContactsData = () => {
 
   // 重置展开状态
   iconStates.friend = false
-  iconStates.tag = false
+  iconStates.label = false
   iconStates.group = false
 }
 
@@ -357,22 +357,22 @@ const fetchLabels = async () => {
   }
 }
 
-// 创建新标签
+// 创建NewLabel
 const createNewLabel = async () => {
-  if (!newTagName.value.trim()) {
-    showNewTagInput.value = false
+  if (!newLabelName.value.trim()) {
+    showNewLabelInput.value = false
     return
   }
 
   try {
-    const response = await addUserLabel({ label: newTagName.value.trim() })
+    const response = await addUserLabel({ label: newLabelName.value.trim() })
     if (response && response.success) {
       // 更新标签列表
       const newLabel = {
         id: labelList.value.length,
-        name: newTagName.value.trim()
+        name: newLabelName.value.trim()
       }
-      // 移除临时的"未命名"标签，添加新标签
+      // 移除临时的"未命名"标签，添加NewLabel
       labelList.value = [
         { id: 0, name: '无标签' },
         ...response.labels.map((label, index) => ({
@@ -380,8 +380,8 @@ const createNewLabel = async () => {
           name: label
         }))
       ]
-      showNewTagInput.value = false
-      newTagName.value = '未命名标签'
+      showNewLabelInput.value = false
+      newLabelName.value = '未命名标签'
     } else {
       console.error('创建标签失败:', response?.error || '未知错误')
     }
@@ -390,10 +390,10 @@ const createNewLabel = async () => {
   }
 }
 
-// 取消创建新标签
+// 取消创建NewLabel
 const cancelNewLabel = () => {
-  showNewTagInput.value = false
-  newTagName.value = '未命名标签'
+  showNewLabelInput.value = false
+  newLabelName.value = '未命名标签'
 }
 
 // 获取联系人数据
@@ -409,7 +409,7 @@ const fetchContacts = async () => {
           contact.avatar ||
           'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
         remark: contact.remark || '',
-        tag: contact.tag || '',
+        label: contact.labels || '',
         permission: '仅聊天', // 默认权限
         chatId: contact.chatId, // 保留 chatId 字段
         signature: contact.signature, // 也可以添加其他字段
@@ -462,11 +462,11 @@ const filteredTableData = computed(() => {
       const label = labelList.value.find((item) => item.id === id)
       if (label) {
         if (label.name === '无标签') {
-          // 筛选无标签的数据（即tag字段为空或不存在）
-          data = data.filter((item) => !item.tag || item.tag.trim() === '')
+          // 筛选无标签的数据（即label字段为空或不存在）
+          data = data.filter((item) => !item.label || item.label.trim() === '')
         } else {
           // 筛选包含指定标签的数据
-          data = data.filter((item) => item.tag && item.tag.includes(label.name))
+          data = data.filter((item) => item.label && item.label.includes(label.name))
         }
       }
     }
@@ -479,7 +479,7 @@ const filteredTableData = computed(() => {
       (item) =>
         (item.name && item.name.toLowerCase().includes(keyword)) ||
         (item.remark && item.remark.toLowerCase().includes(keyword)) ||
-        (item.tag && item.tag.toLowerCase().includes(keyword))
+        (item.label && item.label.toLowerCase().includes(keyword))
     )
   }
 
@@ -513,7 +513,7 @@ const filteredGroupContacts = computed(() => {
       (item) =>
         (item.name && item.name.toLowerCase().includes(keyword)) ||
         (item.remark && item.remark.toLowerCase().includes(keyword)) ||
-        (item.tag && item.tag.toLowerCase().includes(keyword))
+        (item.label && item.label.toLowerCase().includes(keyword))
     )
   }
 
@@ -585,17 +585,17 @@ const toggleLabelDropdown = () => {
     // 获取当前选中行的标签
     if (selectedRows.value.length > 0) {
       // 提取所有选中行的标签，去重
-      const allTags = new Set()
+      const allLabels = new Set()
       selectedRows.value.forEach((row) => {
-        if (row.tag) {
-          row.tag.split(',').forEach((tag) => {
-            if (tag.trim()) {
-              allTags.add(tag.trim())
+        if (row.label) {
+          row.label.split(',').forEach((label) => {
+            if (label.trim()) {
+              allLabels.add(label.trim())
             }
           })
         }
       })
-      selectedLabels.value = Array.from(allTags)
+      selectedLabels.value = Array.from(allLabels)
     } else {
       selectedLabels.value = []
     }
@@ -827,12 +827,12 @@ const deleteContacts = () => {
   margin-left: 15px;
 }
 
-.new-tag-input-container {
+.new-label-input-container {
   padding: 0 16px;
   margin: 8px 0;
 }
 
-.new-tag-input-container .el-input__wrapper {
+.new-label-input-container .el-input__wrapper {
   padding: 0 8px;
 }
 

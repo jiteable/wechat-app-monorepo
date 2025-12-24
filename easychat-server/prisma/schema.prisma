@@ -77,7 +77,7 @@ model UserWithFriend{
   userId    String                                   // 用户ID
   friendId  String                                   // 朋友ID
   remark    String?                                  // 备注名，可选
-  tag       String?                                  // 标签，可选
+  labels    String[]                                  // 标签，可选
   source    String?                                  // 添加来源，可选
   description String?                                // 描述
   phone     String?                                  // 电话

@@ -170,4 +170,90 @@ router.post('/removeUserLabel', authenticateToken, async function (req, res, nex
   }
 });
 
+router.post('/setFriendLabel', authenticateToken, async function (req, res, next) {
+  try {
+    const userId = req.user.id; // 当前用户ID
+    const { friendId, labels } = req.body;
+
+    // 验证请求体
+    if (!friendId || typeof friendId !== 'string' || friendId.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: '好友ID不能为空'
+      });
+    }
+
+    if (!labels || !Array.isArray(labels)) {
+      return res.status(400).json({
+        success: false,
+        error: '标签列表必须是数组'
+      });
+    }
+
+    // 检查标签数量是否超过限制
+    if (labels.length > 20) {
+      return res.status(400).json({
+        success: false,
+        error: '每个好友最多只能有20个标签'
+      });
+    }
+
+    // 检查标签格式
+    for (const label of labels) {
+      if (typeof label !== 'string' || label.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: '标签名称不能为空'
+        });
+      }
+
+      if (label.length > 50) {
+        return res.status(400).json({
+          success: false,
+          error: '标签名称长度不能超过50个字符'
+        });
+      }
+    }
+
+    // 检查好友关系是否存在
+    const friendRelation = await db.userWithFriend.findFirst({
+      where: {
+        userId: userId,
+        friendId: friendId
+      }
+    });
+
+    if (!friendRelation) {
+      return res.status(404).json({
+        success: false,
+        error: '好友关系不存在'
+      });
+    }
+
+    // 更新好友的标签
+    const updatedFriendRelation = await db.userWithFriend.update({
+      where: {
+        id: friendRelation.id
+      },
+      data: {
+        labels: labels
+      }
+    });
+
+    res.json({
+      success: true,
+      message: '好友标签设置成功',
+      labels: updatedFriendRelation.labels
+    });
+  } catch (error) {
+    console.error('设置好友标签失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '服务器内部错误'
+    });
+  }
+})
+
+
+
 module.exports = router;

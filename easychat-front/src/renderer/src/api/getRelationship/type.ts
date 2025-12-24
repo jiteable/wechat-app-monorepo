@@ -8,6 +8,7 @@ export interface Contact {
   region: string | null
   remark: string | null
   source: string | null
+  label: string[] | null
 }
 
 export interface GetContactResponse {
