@@ -31,7 +31,9 @@
                     :class="{ active: activeButton === 'authority-' + item.id }"
                     @click="selectAuthority(item)"
                   >
-                    <span class="button-text2">{{ item.name }}</span>
+                    <span class="button-text2"
+                      >{{ item.name }}({{ getAuthorityCount(item.id) }})</span
+                    >
                   </el-button>
                 </div>
 
@@ -51,7 +53,7 @@
                     :class="{ active: activeButton === 'label-' + item.id }"
                     @click="selectLabel(item)"
                   >
-                    <span class="button-text2">{{ item.name }}</span>
+                    <span class="button-text2">{{ item.name }}({{ getLabelCount(item.id) }})</span>
                   </el-button>
 
                   <!-- 新建标签按钮 -->
@@ -156,7 +158,20 @@
                   </template>
                 </el-table-column>
                 <el-table-column prop="remark" label="备注" width="100" show-overflow-tooltip />
-                <el-table-column prop="label" label="标签" width="100" show-overflow-tooltip />
+                <el-table-column label="标签" width="100" show-overflow-tooltip>
+                  <template #default="scope">
+                    <div
+                      class="label-cell"
+                      :class="{ 'no-label': !hasLabels(scope.row.label) }"
+                      @click="!hasLabels(scope.row.label) ? openLabelDialog(scope.row) : null"
+                    >
+                      <span v-if="hasLabels(scope.row.label)">
+                        {{ formatLabels(scope.row.label) }}
+                      </span>
+                      <span v-else class="add-label-text">添加标签</span>
+                    </div>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
               </el-table>
 
@@ -347,6 +362,53 @@ const clearContactsData = () => {
   iconStates.group = false
 }
 
+// 检查是否有标签
+const hasLabels = (label) => {
+  if (!label) return false
+
+  // 如果是数组且为空数组
+  if (Array.isArray(label) && label.length === 0) {
+    return false
+  }
+
+  // 如果是字符串且为空字符串或只包含逗号分隔的空值
+  if (typeof label === 'string') {
+    const labels = label.split(',').map((l) => l.trim())
+    return labels.length > 0 && labels.some((l) => l !== '')
+  }
+
+  // 如果是数组且有元素
+  if (Array.isArray(label)) {
+    return label.length > 0
+  }
+
+  return true
+}
+
+// 格式化标签显示
+const formatLabels = (label) => {
+  if (!label) return ''
+
+  if (Array.isArray(label)) {
+    return label.join(', ')
+  }
+
+  if (typeof label === 'string') {
+    return label
+  }
+
+  return String(label)
+}
+
+// 打开标签对话框
+const openLabelDialog = (row) => {
+  console.log('为联系人', row.name, '打开标签对话框')
+  // 这里可以添加打开标签设置对话框的逻辑
+  // 比如设置当前选中的行并显示标签设置面板
+  selectedRows.value = [row]
+  showLabelDropdown.value = true
+}
+
 // 获取标签数据
 const fetchLabels = async () => {
   try {
@@ -366,6 +428,65 @@ const fetchLabels = async () => {
     // 出错时至少保留"无标签"选项
     labelList.value = [{ id: 0, name: '无标签' }]
   }
+}
+
+// 计算指定标签的联系人数量
+const getLabelCount = (labelId) => {
+  if (!tableData.value || tableData.value.length === 0) return 0
+
+  const label = labelList.value.find((item) => item.id === labelId)
+  if (!label) return 0
+
+  if (label.name === '无标签') {
+    // 计算没有标签的联系人数量
+    return tableData.value.filter((contact) => {
+      // 检查标签字段是否为空
+      if (!contact.label) {
+        return true
+      }
+
+      // 如果是数组且为空数组
+      if (Array.isArray(contact.label) && contact.label.length === 0) {
+        return true
+      }
+
+      // 如果是字符串且为空字符串或只包含逗号分隔的空值
+      if (typeof contact.label === 'string') {
+        const labels = contact.label.split(',').map((l) => l.trim())
+        return labels.length === 0 || labels.every((l) => l === '')
+      }
+
+      return false
+    }).length
+  } else {
+    // 计算有指定标签的联系人数量
+    return tableData.value.filter((contact) => {
+      if (!contact.label) return false
+
+      // 如果是数组，检查是否包含指定标签
+      if (Array.isArray(contact.label)) {
+        return contact.label.includes(label.name)
+      }
+
+      // 如果是字符串，分割后检查是否包含指定标签
+      if (typeof contact.label === 'string') {
+        const labels = contact.label.split(',').map((l) => l.trim())
+        return labels.includes(label.name)
+      }
+
+      return false
+    }).length
+  }
+}
+
+// 计算指定权限的联系人数量
+const getAuthorityCount = (authorityId) => {
+  if (!tableData.value || tableData.value.length === 0) return 0
+
+  const authority = friendAuthorityList.value.find((item) => item.id === authorityId)
+  if (!authority) return 0
+
+  return tableData.value.filter((contact) => contact.permission === authority.name).length
 }
 
 // 创建NewLabel
@@ -836,7 +957,7 @@ const deleteContacts = () => {
   right: 10px;
 }
 
-.button+.button {
+.button + .button {
   margin-left: 0 !important;
 }
 
@@ -1071,5 +1192,30 @@ const deleteContacts = () => {
   left: 0;
   z-index: 1;
   /* 确保空状态提示在合适层级，不影响左侧按钮交互 */
+}
+
+/* 标签列样式 */
+.label-cell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.label-cell.no-label {
+  color: #c0c4cc;
+  /* 淡灰色，表示提示文字 */
+  cursor: pointer;
+}
+
+.label-cell.no-label:hover {
+  color: #409eff;
+  /* 悬停时变为蓝色 */
+}
+
+.add-label-text {
+  font-style: italic;
+  font-size: 12px;
 }
 </style>
