@@ -29,7 +29,7 @@ model User {
   createdAt     DateTime      @default(now())           // 账户创建时间
   updatedAt     DateTime      @updatedAt                // 最后更新时间
   sessions      Session[]                              // 用户会话列表（一对多关系）
-  labels        String[]                               // 用户添加的标签
+  labels        String[]                               // 用户添加的标签（保留此字段用于其他用途）
   settings      UserSetting?                           // 用户设置（一对一关系）
   
   // 反向关系字段
@@ -48,10 +48,13 @@ model User {
   
   // 好友关系
   friends                UserWithFriend[] @relation("UserFriends")
-  friendOf               UserWithFriend[] @relation("FriendOfUser")
+  friendOf               UserWithFriend[] @relation("FriendRefOfUser")
   
   // 文件关系
   uploadedFiles             File[]           // 用户上传的文件
+  
+  // 用户创建的标签关系
+  createdLabels           UserLabel        // 用户创建的所有标签
 }
 
 model VerificationToken {
@@ -320,3 +323,12 @@ model ChatSessionUser {
   @@index([isPinned])
 }
 
+model UserLabel {
+  id          String    @id @default(cuid())          // 标签唯一标识符
+  Labels      String[]                                // 标签名称
+  userId      String                                  // 创建标签的用户ID
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)  // 关联的用户，级联删除
+  
+  @@unique([Labels, userId])                          // 同一用户不能有重名标签
+}
