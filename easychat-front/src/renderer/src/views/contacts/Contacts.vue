@@ -249,7 +249,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, onActivated, watch } f
 import { Minus, Close, Search, Lock, CollectionTag, Delete } from '@element-plus/icons-vue'
 import { getContact, getGroup } from '@/api/getRelationship'
 import { useUserStore } from '@/store/userStore'
-import { getUserLabels, addUserLabel } from '@/api/setFriendInfo'
+import { getUserLabels, addUserLabel, setFriendLabel } from '@/api/setFriendInfo'
 
 const userStore = useUserStore()
 
@@ -462,11 +462,44 @@ const filteredTableData = computed(() => {
       const label = labelList.value.find((item) => item.id === id)
       if (label) {
         if (label.name === '无标签') {
-          // 筛选无标签的数据（即label字段为空或不存在）
-          data = data.filter((item) => !item.label || item.label.trim() === '')
+          // 筛选无标签的数据（即label字段为空数组或不存在或为空字符串）
+          data = data.filter((item) => {
+            // 检查标签字段是否为空
+            if (!item.label) {
+              return true
+            }
+
+            // 如果是数组且为空数组
+            if (Array.isArray(item.label) && item.label.length === 0) {
+              return true
+            }
+
+            // 如果是字符串且为空字符串或只包含逗号分隔的空值
+            if (typeof item.label === 'string') {
+              const labels = item.label.split(',').map((l) => l.trim())
+              return labels.length === 0 || labels.every((l) => l === '')
+            }
+
+            return false
+          })
         } else {
           // 筛选包含指定标签的数据
-          data = data.filter((item) => item.label && item.label.includes(label.name))
+          data = data.filter((item) => {
+            if (!item.label) return false
+
+            // 如果是数组，检查是否包含指定标签
+            if (Array.isArray(item.label)) {
+              return item.label.includes(label.name)
+            }
+
+            // 如果是字符串，分割后检查是否包含指定标签
+            if (typeof item.label === 'string') {
+              const labels = item.label.split(',').map((l) => l.trim())
+              return labels.includes(label.name)
+            }
+
+            return false
+          })
         }
       }
     }
@@ -588,7 +621,15 @@ const toggleLabelDropdown = () => {
       const allLabels = new Set()
       selectedRows.value.forEach((row) => {
         if (row.label) {
-          row.label.split(',').forEach((label) => {
+          // 检查 row.label 是否为数组，如果不是则尝试分割字符串
+          let labelsArray = []
+          if (Array.isArray(row.label)) {
+            labelsArray = row.label
+          } else if (typeof row.label === 'string') {
+            labelsArray = row.label.split(',')
+          }
+
+          labelsArray.forEach((label) => {
             if (label.trim()) {
               allLabels.add(label.trim())
             }
@@ -601,7 +642,6 @@ const toggleLabelDropdown = () => {
     }
   }
 }
-
 // 标签选择变化
 const handleLabelChange = (value) => {
   selectedLabels.value = value
@@ -614,10 +654,29 @@ const cancelLabelChange = () => {
 }
 
 // 确认标签修改
-const confirmLabelChange = () => {
+const confirmLabelChange = async () => {
   console.log('确认标签修改:', selectedLabels.value)
-  // 这里可以添加实际的业务逻辑
-  // 例如，向后端API发送请求更新选中联系人的标签
+
+  // 遍历选中的联系人，为每个联系人设置标签
+  for (const contact of selectedRows.value) {
+    try {
+      const response = await setFriendLabel({
+        friendId: contact.id,
+        labels: selectedLabels.value
+      })
+
+      if (response.success) {
+        console.log(`为联系人 ${contact.name} 设置标签成功`)
+        // 更新本地数据
+        contact.label = selectedLabels.value.join(',')
+      } else {
+        console.error(`为联系人 ${contact.name} 设置标签失败:`, response.error)
+      }
+    } catch (error) {
+      console.error(`为联系人 ${contact.name} 设置标签时出错:`, error)
+    }
+  }
+
   showLabelDropdown.value = false
   selectedLabels.value = []
 }
