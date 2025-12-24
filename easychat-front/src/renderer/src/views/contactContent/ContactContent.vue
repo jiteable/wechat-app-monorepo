@@ -37,7 +37,9 @@
               <button class="chat-contant-button no-drag" @click.stop>...</button>
             </template>
             <div class="popover-menu">
-              <div v-if="!isGroup" class="popover-menu-item" @click="openSetRemarkAndTag">设置备注和标签</div>
+              <div v-if="!isGroup" class="popover-menu-item" @click="openSetRemarkAndTag">
+                设置备注和标签
+              </div>
               <div v-if="!isGroup" class="popover-menu-item">设置朋友权限</div>
               <div v-if="!isGroup" class="popover-menu-item">删除联系人</div>
               <div v-if="!isGroup" class="popover-menu-item">加入黑名单</div>

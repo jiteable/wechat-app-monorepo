@@ -59,14 +59,14 @@ import { getUserLabels, setFriendLabel } from '@/api/setFriendInfo'
 const remark = ref('')
 const selectedLabels = ref([]) // 修改为数组以支持多选
 const description = ref('')
-const phoneList = ref([])
+// const phoneList = ref([])
 const contactData = ref(null)
 
 // 标签选项列表
 const labelOptions = ref([])
 
 // 搜索关键词
-const searchKeyword = ref('')
+// const searchKeyword = ref('')
 
 // 模拟远程搜索（实际可调用 API）
 const handleRemoteMethod = (query) => {
@@ -111,9 +111,9 @@ const onBlur = () => {
 }
 
 // 选择标签后触发
-const handleChange = (value) => {
-  console.log('选中标签:', value)
-}
+// const handleChange = (value) => {
+//   console.log('选中标签:', value)
+// }
 
 // 添加电话
 const addPhone = () => {

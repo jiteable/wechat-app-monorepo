@@ -62,7 +62,7 @@
         </button>
         <div v-show="buttonStates[2]" class="sub-list">
           <div
-            v-for="(item, index) in sortedContactsWithHeaders"
+            v-for="item in sortedContactsWithHeaders"
             :key="item.id || item.header"
             :style="{ marginLeft: '0px' }"
             class="contact-item-wrapper"

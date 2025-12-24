@@ -137,7 +137,7 @@
                 v-if="
                   activeButton === 'all' ||
                   activeButton.startsWith('authority-') ||
-                  activeButton.startsWith('label-')
+                  (activeButton.startsWith('label-') && filteredTableData.length > 0)
                 "
                 :data="filteredTableData"
                 style="width: 100%"
@@ -159,6 +159,16 @@
                 <el-table-column prop="label" label="标签" width="100" show-overflow-tooltip />
                 <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
               </el-table>
+
+              <!-- 添加空状态提示 -->
+              <div
+                v-else-if="activeButton.startsWith('label-') && filteredTableData.length === 0"
+                class="empty-state"
+              >
+                <div class="empty-text">当前标签暂无成员</div>
+                <el-button class="add-button" @click="showAddContactDialog">添加</el-button>
+              </div>
+
               <!-- 群聊筛选模式下显示的数据 -->
               <el-table
                 v-else-if="activeButton.startsWith('group-')"
@@ -367,12 +377,6 @@ const createNewLabel = async () => {
   try {
     const response = await addUserLabel({ label: newLabelName.value.trim() })
     if (response && response.success) {
-      // 更新标签列表
-      const newLabel = {
-        id: labelList.value.length,
-        name: newLabelName.value.trim()
-      }
-      // 移除临时的"未命名"标签，添加NewLabel
       labelList.value = [
         { id: 0, name: '无标签' },
         ...response.labels.map((label, index) => ({
@@ -608,6 +612,14 @@ const clearSelection = () => {
 const modifyPermission = () => {
   console.log('修改权限:', selectedRows.value)
   // 这里可以添加实际的业务逻辑
+}
+
+// 添加方法：显示添加联系人对话框
+const showAddContactDialog = () => {
+  // 这里可以添加打开添加联系人对话框的逻辑
+  console.log('显示添加联系人对话框')
+  // 实际项目中可能需要调用某个方法来打开对话框
+  // 例如：openAddContactDialog()
 }
 
 // 设置标签 - 显示下拉菜单
@@ -996,5 +1008,33 @@ const deleteContacts = () => {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 10px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 20px;
+}
+
+.add-button {
+  padding: 8px 20px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-button:hover {
+  background-color: #e0e0e0;
 }
 </style>

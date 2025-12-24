@@ -80,7 +80,7 @@ import { useUserStore } from '@/store/userStore'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserSetStore } from '@/store/userSetStore'
 import { getSessions } from '@/api/chatSession'
-import { getMessages, getAllMessages } from '@/api/chat' // 更新导入
+import { getAllMessages } from '@/api/chat' // 更新导入
 import { getUserInfo, getUserSettingInfo } from '@/api/user'
 import { ElMessage } from 'element-plus'
 

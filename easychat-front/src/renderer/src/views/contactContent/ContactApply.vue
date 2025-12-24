@@ -195,15 +195,11 @@ const handleRejectGroup = (invite) => {
 const handleDeleteAllRequests = async () => {
   try {
     // 显示确认对话框
-    const confirmed = await ElMessageBox.confirm(
-      '确定要删除所有好友申请和群组邀请吗？此操作不可恢复。',
-      '删除确认',
-      {
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+    await ElMessageBox.confirm('确定要删除所有好友申请和群组邀请吗？此操作不可恢复。', '删除确认', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
 
     const response = await deleteAllRequests()
     if (response.success) {
