@@ -17,6 +17,7 @@ var messagesRouter = require('./routes/messages')
 var chatSessionRouter = require('./routes/chatSession')
 var chatRouter = require('./routes/chat')
 var editGroupRouter = require('./routes/editGroupInfo')
+var setFriendInfoRouter = require('./routes/setFriendInfo')
 
 var app = express();
 
@@ -43,6 +44,7 @@ app.use('/messages', messagesRouter)
 app.use('/chatSession', chatSessionRouter)
 app.use('/chat', chatRouter)
 app.use('/editGroup', editGroupRouter)
+app.use('/setFriendInfo', setFriendInfoRouter)
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

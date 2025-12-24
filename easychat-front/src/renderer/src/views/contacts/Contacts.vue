@@ -53,6 +53,28 @@
                   >
                     <span class="button-text2">{{ item.name }}</span>
                   </el-button>
+
+                  <!-- 新建标签按钮 -->
+                  <el-button
+                    v-if="!showNewTagInput"
+                    class="button label-item-button"
+                    @click="showNewTagInput = true"
+                  >
+                    <span class="button-text2">+ 新建标签</span>
+                  </el-button>
+
+                  <!-- 新建标签输入框 -->
+                  <div v-else class="new-tag-input-container">
+                    <el-input
+                      ref="newTagInputRef"
+                      v-model="newTagName"
+                      placeholder="输入标签名称"
+                      size="small"
+                      @blur="createNewLabel"
+                      @keyup.enter="createNewLabel"
+                      @keyup.esc="cancelNewLabel"
+                    />
+                  </div>
                 </div>
 
                 <el-button class="button no-active" @click="toggleIcon('group')">
@@ -172,6 +194,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, onActivated, watch } f
 import { Minus, Close, Search } from '@element-plus/icons-vue'
 import { getContact, getGroup } from '@/api/getRelationship'
 import { useUserStore } from '@/store/userStore'
+import { getUserLabels, addUserLabel } from '@/api/setFriendInfo'
 
 const userStore = useUserStore()
 
@@ -197,10 +220,11 @@ const friendAuthorityList = ref([
 ])
 
 // 标签列表数据
-const labelList = ref([
-  { id: 1, name: '无标签' },
-  { id: 2, name: '未命名' }
-])
+const labelList = ref([])
+
+// 新建标签相关
+const showNewTagInput = ref(false)
+const newTagName = ref('未命名标签')
 
 // 群聊列表数据
 const chatGroupList = ref([])
@@ -209,6 +233,7 @@ const chatGroupList = ref([])
 onMounted(async () => {
   await fetchContacts()
   await fetchGroups()
+  await fetchLabels()
 })
 
 // 组件卸载时清除数据
@@ -219,6 +244,7 @@ onUnmounted(() => {
 onActivated(async () => {
   await fetchContacts()
   await fetchGroups()
+  await fetchLabels()
 })
 
 // 监听用户信息变化，当用户切换账号时重新获取联系人数据
@@ -229,6 +255,7 @@ watch(
     if (newUserId !== oldUserId) {
       await fetchContacts()
       await fetchGroups()
+      await fetchLabels()
     }
   }
 )
@@ -245,6 +272,66 @@ const clearContactsData = () => {
   iconStates.friend = false
   iconStates.tag = false
   iconStates.group = false
+}
+
+// 获取标签数据
+const fetchLabels = async () => {
+  try {
+    const response = await getUserLabels()
+    if (response && response.success) {
+      // 将获取到的标签转换为前端需要的格式
+      labelList.value = response.labels.map((label, index) => ({
+        id: index + 1,
+        name: label
+      }))
+
+      // 添加"无标签"选项
+      labelList.value.unshift({ id: 0, name: '无标签' })
+    }
+  } catch (error) {
+    console.error('获取标签失败:', error)
+    // 出错时至少保留"无标签"选项
+    labelList.value = [{ id: 0, name: '无标签' }]
+  }
+}
+
+// 创建新标签
+const createNewLabel = async () => {
+  if (!newTagName.value.trim()) {
+    showNewTagInput.value = false
+    return
+  }
+
+  try {
+    const response = await addUserLabel({ label: newTagName.value.trim() })
+    if (response && response.success) {
+      // 更新标签列表
+      const newLabel = {
+        id: labelList.value.length,
+        name: newTagName.value.trim()
+      }
+      // 移除临时的"未命名"标签，添加新标签
+      labelList.value = [
+        { id: 0, name: '无标签' },
+        ...response.labels.map((label, index) => ({
+          id: index + 1,
+          name: label
+        }))
+      ]
+      showNewTagInput.value = false
+      newTagName.value = '未命名标签'
+    } else {
+      console.error('创建标签失败:', response?.error || '未知错误')
+    }
+  } catch (error) {
+    console.error('创建标签失败:', error)
+  }
+}
+
+// 取消创建新标签
+const cancelNewLabel = () => {
+  showNewTagInput.value = false
+  newTagName.value = '未命名标签'
 }
 
 // 获取联系人数据
@@ -298,6 +385,7 @@ const filteredTableData = computed(() => {
 
   // 应用按钮筛选
   if (activeButton.value !== 'all') {
+    // 解析按钮类型和ID
     // 解析按钮类型和ID
     const [type, idStr] = activeButton.value.split('-')
     const id = parseInt(idStr)
@@ -609,5 +697,14 @@ const selectGroup = (item) => {
 
 .button-text2 {
   margin-left: 15px;
+}
+
+.new-tag-input-container {
+  padding: 0 16px;
+  margin: 8px 0;
+}
+
+.new-tag-input-container .el-input__wrapper {
+  padding: 0 8px;
 }
 </style>
