@@ -787,6 +787,8 @@ const deleteContacts = () => {
   padding: 10px;
   overflow-y: auto;
   background-color: white;
+  position: relative;
+  /* 添加相对定位，使空状态提示相对于此容器定位 */
 }
 
 .window-controls {
@@ -1000,6 +1002,7 @@ const deleteContacts = () => {
   height: 16px;
 }
 
+/* 标签下拉菜单样式 */
 .set-label-dropdown {
   position: relative;
   display: inline-block;
@@ -1054,6 +1057,7 @@ const deleteContacts = () => {
   background-color: #e0e0e0;
 }
 
+/* 新增的居中空状态样式 */
 .empty-state-center {
   display: flex;
   flex-direction: column;
@@ -1064,25 +1068,8 @@ const deleteContacts = () => {
   text-align: center;
   position: absolute;
   top: 0;
-  left: 15%;
-}
-
-.empty-state-center .empty-text {
-  font-size: 14px;
-  color: #999;
-  margin-bottom: 20px;
-}
-
-.empty-state-center .add-button {
-  padding: 8px 20px;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.empty-state-center .add-button:hover {
-  background-color: #e0e0e0;
+  left: 0;
+  z-index: 1;
+  /* 确保空状态提示在合适层级，不影响左侧按钮交互 */
 }
 </style>
