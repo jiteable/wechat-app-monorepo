@@ -54,7 +54,7 @@ model User {
   uploadedFiles             File[]           // 用户上传的文件
   
   // 用户创建的标签关系
-  createdLabels           UserLabel        // 用户创建的所有标签
+  createdLabels           UserLabel?        // 用户创建的所有标签
 }
 
 model VerificationToken {
@@ -83,8 +83,8 @@ model UserWithFriend{
   phone     String?                                  // 电话
   createdAt DateTime @default(now())                 // 创建时间（成为好友的时间）
   
-  user      User      @relation("UserFriends", fields: [userId], references: [id])
-  friend    User      @relation("FriendOfUser", fields: [friendId], references: [id])
+  user      User      @relation("UserFriends", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User      @relation("FriendRefOfUser", fields: [friendId], references: [id], onDelete: Cascade)
   
   @@unique([userId, friendId])                       // 用户和朋友ID组合唯一索引
 }
@@ -326,9 +326,9 @@ model ChatSessionUser {
 model UserLabel {
   id          String    @id @default(cuid())          // 标签唯一标识符
   Labels      String[]                                // 标签名称
-  userId      String                                  // 创建标签的用户ID
+  userId      String    @unique                       // 创建标签的用户ID
   
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)  // 关联的用户，级联删除
+  user        User      @relation(fields: [userId], references: [id])  // 关联的用户
   
   @@unique([Labels, userId])                          // 同一用户不能有重名标签
 }
