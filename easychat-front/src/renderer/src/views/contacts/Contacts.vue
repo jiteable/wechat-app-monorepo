@@ -181,7 +181,12 @@
                 class="empty-state-center"
               >
                 <div class="empty-text">当前标签暂无成员</div>
-                <el-button class="add-button" @click="showAddContactDialog">添加</el-button>
+                <el-button
+                  v-if="!activeButton.startsWith('label-0')"
+                  class="add-button"
+                  @click="showAddContactDialog"
+                  >添加</el-button
+                >
               </div>
 
               <!-- 群聊筛选模式下显示的数据 -->
