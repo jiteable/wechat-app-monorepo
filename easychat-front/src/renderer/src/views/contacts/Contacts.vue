@@ -203,12 +203,35 @@
             </el-icon>
             <span>修改权限</span>
           </button>
-          <button class="action-btn set-label" @click="setLabel">
-            <el-icon>
-              <CollectionTag />
-            </el-icon>
-            <span>设置标签</span>
-          </button>
+          <div class="set-label-dropdown">
+            <button class="action-btn set-label" @click="toggleLabelDropdown">
+              <el-icon>
+                <CollectionTag />
+              </el-icon>
+              <span>设置标签</span>
+            </button>
+            <div v-if="showLabelDropdown" class="label-dropdown-menu">
+              <el-select
+                v-model="selectedLabels"
+                placeholder="请选择标签"
+                multiple
+                filterable
+                style="width: 100%"
+                @change="handleLabelChange"
+              >
+                <el-option
+                  v-for="item in labelList.filter((item) => item.id !== 0)"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.name"
+                />
+              </el-select>
+              <div class="dropdown-actions">
+                <el-button size="small" @click="cancelLabelChange">取消</el-button>
+                <el-button type="primary" size="small" @click="confirmLabelChange">确定</el-button>
+              </div>
+            </div>
+          </div>
           <button class="action-btn delete" @click="deleteContacts">
             <el-icon>
               <Delete />
@@ -263,6 +286,10 @@ const chatGroupList = ref([])
 
 // 选中的行数据
 const selectedRows = ref([])
+
+// 标签下拉菜单相关
+const showLabelDropdown = ref(false)
+const selectedLabels = ref([])
 
 // 组件挂载时获取联系人数据和群组数据
 onMounted(async () => {
@@ -550,10 +577,49 @@ const modifyPermission = () => {
   // 这里可以添加实际的业务逻辑
 }
 
-// 设置标签
-const setLabel = () => {
-  console.log('设置标签:', selectedRows.value)
+// 设置标签 - 显示下拉菜单
+const toggleLabelDropdown = () => {
+  showLabelDropdown.value = !showLabelDropdown.value
+  // 初始化选中的标签
+  if (showLabelDropdown.value) {
+    // 获取当前选中行的标签
+    if (selectedRows.value.length > 0) {
+      // 提取所有选中行的标签，去重
+      const allTags = new Set()
+      selectedRows.value.forEach((row) => {
+        if (row.tag) {
+          row.tag.split(',').forEach((tag) => {
+            if (tag.trim()) {
+              allTags.add(tag.trim())
+            }
+          })
+        }
+      })
+      selectedLabels.value = Array.from(allTags)
+    } else {
+      selectedLabels.value = []
+    }
+  }
+}
+
+// 标签选择变化
+const handleLabelChange = (value) => {
+  selectedLabels.value = value
+}
+
+// 取消标签修改
+const cancelLabelChange = () => {
+  showLabelDropdown.value = false
+  selectedLabels.value = []
+}
+
+// 确认标签修改
+const confirmLabelChange = () => {
+  console.log('确认标签修改:', selectedLabels.value)
   // 这里可以添加实际的业务逻辑
+  // 例如，向后端API发送请求更新选中联系人的标签
+  showLabelDropdown.value = false
+  selectedLabels.value = []
 }
 
 // 删除联系人
@@ -809,6 +875,7 @@ const deleteContacts = () => {
 .action-buttons {
   display: flex;
   gap: 16px;
+  position: relative;
 }
 
 .action-btn {
@@ -843,5 +910,32 @@ const deleteContacts = () => {
 .action-btn svg {
   width: 16px;
   height: 16px;
+}
+
+/* 标签下拉菜单样式 */
+.set-label-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.label-dropdown-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 300px;
+  background-color: white;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  z-index: 1001;
+  margin-bottom: 8px;
+}
+
+.dropdown-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
 }
 </style>
