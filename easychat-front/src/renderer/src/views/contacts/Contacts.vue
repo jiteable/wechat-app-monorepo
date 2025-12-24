@@ -141,6 +141,7 @@
                 "
                 :data="filteredTableData"
                 style="width: 100%"
+                @selection-change="handleSelectionChange"
               >
                 <el-table-column type="selection" width="40" />
                 <el-table-column label="名称" width="120" show-overflow-tooltip>
@@ -163,6 +164,7 @@
                 v-else-if="activeButton.startsWith('group-')"
                 :data="filteredGroupContacts"
                 style="width: 100%"
+                @selection-change="handleSelectionChange"
               >
                 <el-table-column type="selection" width="40" />
                 <el-table-column label="名称" width="120" show-overflow-tooltip>
@@ -176,7 +178,7 @@
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="备注" width="100" show-overflow-tooltip />
+                <el-table-column prop="remark" label="备注" width="10" show-overflow-tooltip />
                 <el-table-column prop="tag" label="标签" width="100" show-overflow-tooltip />
                 <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
               </el-table>
@@ -186,12 +188,42 @@
         </el-splitter-panel>
       </el-splitter>
     </div>
+
+    <!-- 底部抽屉组件 -->
+    <div v-if="selectedRows.length > 0" class="bottom-drawer">
+      <div class="drawer-content">
+        <div class="selected-info">
+          <span>已选择 {{ selectedRows.length }} 人</span>
+          <span class="cancel-select" @click="clearSelection">取消选择</span>
+        </div>
+        <div class="action-buttons">
+          <button class="action-btn modify-permission" @click="modifyPermission">
+            <el-icon>
+              <Lock />
+            </el-icon>
+            <span>修改权限</span>
+          </button>
+          <button class="action-btn set-label" @click="setLabel">
+            <el-icon>
+              <CollectionTag />
+            </el-icon>
+            <span>设置标签</span>
+          </button>
+          <button class="action-btn delete" @click="deleteContacts">
+            <el-icon>
+              <Delete />
+            </el-icon>
+            <span>删除</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, onActivated, watch } from 'vue'
-import { Minus, Close, Search } from '@element-plus/icons-vue'
+import { Minus, Close, Search, Lock, CollectionTag, Delete } from '@element-plus/icons-vue'
 import { getContact, getGroup } from '@/api/getRelationship'
 import { useUserStore } from '@/store/userStore'
 import { getUserLabels, addUserLabel } from '@/api/setFriendInfo'
@@ -228,6 +260,9 @@ const newTagName = ref('未命名标签')
 
 // 群聊列表数据
 const chatGroupList = ref([])
+
+// 选中的行数据
+const selectedRows = ref([])
 
 // 组件挂载时获取联系人数据和群组数据
 onMounted(async () => {
@@ -386,7 +421,6 @@ const filteredTableData = computed(() => {
   // 应用按钮筛选
   if (activeButton.value !== 'all') {
     // 解析按钮类型和ID
-    // 解析按钮类型和ID
     const [type, idStr] = activeButton.value.split('-')
     const id = parseInt(idStr)
 
@@ -497,6 +531,34 @@ const selectGroup = (item) => {
   console.log('选择了群聊:', item.name)
   activeButton.value = 'group-' + item.id
   selectedGroup.value = item
+  // 这里可以添加实际的业务逻辑
+}
+
+// 处理选中行的变化
+const handleSelectionChange = (val) => {
+  selectedRows.value = val
+}
+
+// 清空选中
+const clearSelection = () => {
+  selectedRows.value = []
+}
+
+// 修改权限
+const modifyPermission = () => {
+  console.log('修改权限:', selectedRows.value)
+  // 这里可以添加实际的业务逻辑
+}
+
+// 设置标签
+const setLabel = () => {
+  console.log('设置标签:', selectedRows.value)
+  // 这里可以添加实际的业务逻辑
+}
+
+// 删除联系人
+const deleteContacts = () => {
+  console.log('删除联系人:', selectedRows.value)
   // 这里可以添加实际的业务逻辑
 }
 </script>
@@ -706,5 +768,80 @@ const selectGroup = (item) => {
 
 .new-tag-input-container .el-input__wrapper {
   padding: 0 8px;
+}
+
+/* 底部抽屉样式 */
+.bottom-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  transition: opacity 0.3s ease;
+}
+
+.bottom-drawer .drawer-content {
+  background-color: white;
+  padding: 16px;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.selected-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  color: #666;
+}
+
+.cancel-select {
+  color: #0066cc;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background-color: #f5f5f5;
+}
+
+.modify-permission {
+  color: #0066cc;
+}
+
+.set-label {
+  color: #009966;
+}
+
+.delete {
+  color: #cc0000;
+}
+
+.action-btn svg {
+  width: 16px;
+  height: 16px;
 }
 </style>
