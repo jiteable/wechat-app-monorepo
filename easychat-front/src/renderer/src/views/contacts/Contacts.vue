@@ -163,7 +163,7 @@
               <!-- 添加空状态提示 -->
               <div
                 v-else-if="activeButton.startsWith('label-') && filteredTableData.length === 0"
-                class="empty-state"
+                class="empty-state-center"
               >
                 <div class="empty-text">当前标签暂无成员</div>
                 <el-button class="add-button" @click="showAddContactDialog">添加</el-button>
@@ -260,6 +260,7 @@ import { Minus, Close, Search, Lock, CollectionTag, Delete } from '@element-plus
 import { getContact, getGroup } from '@/api/getRelationship'
 import { useUserStore } from '@/store/userStore'
 import { getUserLabels, addUserLabel, setFriendLabel } from '@/api/setFriendInfo'
+import { ElMessage } from 'element-plus' // 添加消息提示组件
 
 const userStore = useUserStore()
 
@@ -371,6 +372,22 @@ const fetchLabels = async () => {
 const createNewLabel = async () => {
   if (!newLabelName.value.trim()) {
     showNewLabelInput.value = false
+    return
+  }
+
+  // 检查标签是否已存在
+  const existingLabel = labelList.value.find((label) => label.name === newLabelName.value.trim())
+
+  if (existingLabel) {
+    // 如果标签已存在，显示提示
+    ElMessage({
+      message: '标签已存在',
+      type: 'warning',
+      duration: 2000,
+      center: true
+    })
+    showNewLabelInput.value = false
+    newLabelName.value = '未命名标签'
     return
   }
 
@@ -817,7 +834,7 @@ const deleteContacts = () => {
   right: 10px;
 }
 
-.button + .button {
+.button+.button {
   margin-left: 0 !important;
 }
 
@@ -983,7 +1000,6 @@ const deleteContacts = () => {
   height: 16px;
 }
 
-/* 标签下拉菜单样式 */
 .set-label-dropdown {
   position: relative;
   display: inline-block;
@@ -1035,6 +1051,38 @@ const deleteContacts = () => {
 }
 
 .add-button:hover {
+  background-color: #e0e0e0;
+}
+
+.empty-state-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  text-align: center;
+  position: absolute;
+  top: 0;
+  left: 15%;
+}
+
+.empty-state-center .empty-text {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 20px;
+}
+
+.empty-state-center .add-button {
+  padding: 8px 20px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.empty-state-center .add-button:hover {
   background-color: #e0e0e0;
 }
 </style>
