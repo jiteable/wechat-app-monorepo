@@ -89,16 +89,12 @@ const fetchSessions = async () => {
       const userStore = useUserStore()
       const userId = userStore.userId
 
-      console.log('Fetching sessions for userId:', userId)
-
       if (userId) {
         const localResult = await window.api.getAllChatSessions(userId)
-        console.log('localResult: ', localResult)
 
         if (localResult.success && localResult.data) {
           // 从本地数据库获取到了会话数据
           sessions.value = localResult.data
-          console.log('从本地数据库获取会话成功:', localResult.data)
           return
         }
       } else {
@@ -195,30 +191,6 @@ const handleGroupInfoUpdated = (event) => {
   }
 }
 
-// 组件挂载时监听事件
-onMounted(() => {
-  window.addEventListener('sessionCreated', refreshSessions)
-  // 添加WebSocket消息监听
-  window.api.onNewMessage(handleNewMessage)
-  // 添加本地消息监听
-  window.addEventListener('newMessageSent', handleLocalNewMessage)
-  // 添加全局点击事件监听器
-  document.addEventListener('click', handleClickOutside)
-  // 添加群聊信息更新事件监听
-  window.addEventListener('groupInfoUpdated', handleGroupInfoUpdated)
-})
-
-// 组件卸载时移除监听
-onUnmounted(() => {
-  window.removeEventListener('sessionCreated', refreshSessions)
-
-  window.removeEventListener('newMessageSent', handleLocalNewMessage)
-  // 移除全局点击事件监听器
-  document.removeEventListener('click', handleClickOutside)
-  // 移除群聊信息更新事件监听
-  window.removeEventListener('groupInfoUpdated', handleGroupInfoUpdated)
-})
-
 // 格式化时间
 const formatDate = (dateStr) => {
   const date = new Date(dateStr)
@@ -260,6 +232,19 @@ const handleClickSession = async (session) => {
   // 隐藏右键菜单
   contextMenuVisible.value = false
 
+  // 如果点击的是当前已选中的会话，则不执行重复操作，但仍需确保数据正确
+  if (selectedSessionId.value === session.id) {
+    // 确保会话数据仍然在store中
+    console.log('重复会话')
+    // 发送事件更新会话信息，但不重新加载
+    window.dispatchEvent(
+      new CustomEvent('contactStoreUpdated', {
+        detail: { selectedContact: session }
+      })
+    )
+    return
+  }
+
   // 设置当前选中的会话ID
   selectedSessionId.value = session.id
 
@@ -289,15 +274,6 @@ const handleClickSession = async (session) => {
   }
 
   console.log('session: ', session)
-
-  // 打印被选中的会话信息
-  console.log('选中的会话信息:', session)
-  console.log('会话ID:', session.id)
-  console.log('会话名称:', session.name)
-  console.log('会话类型:', session.sessionType)
-  console.log('会话头像:', session.avatar)
-  console.log('未读消息数:', session.unreadCount)
-  console.log('更新时间:', session.updatedAt)
 
   router.push(`/chat/${session.id}`)
 }
@@ -473,6 +449,8 @@ onMounted(() => {
   window.addEventListener('newMessageSent', handleLocalNewMessage)
   // 添加全局点击事件监听器
   document.addEventListener('click', handleClickOutside)
+  // 添加群聊信息更新事件监听
+  window.addEventListener('groupInfoUpdated', handleGroupInfoUpdated)
 })
 
 // 组件卸载时移除监听
@@ -483,6 +461,8 @@ onUnmounted(() => {
   window.removeEventListener('newMessageSent', handleLocalNewMessage)
   // 移除全局点击事件监听器
   document.removeEventListener('click', handleClickOutside)
+  // 移除群聊信息更新事件监听
+  window.removeEventListener('groupInfoUpdated', handleGroupInfoUpdated)
 })
 
 // 如果需要在父组件中访问选中ID，可以暴露这个方法

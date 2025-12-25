@@ -138,7 +138,6 @@ onMounted(async () => {
 const fetchContacts = async () => {
   try {
     const response = await getContact()
-    console.log('response: ', response)
     if (response && response.contacts) {
       // 将后端返回的数据转换为前端需要的格式
       contacts.value = response.contacts.map((contact) => ({

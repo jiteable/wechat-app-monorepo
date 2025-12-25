@@ -21,14 +21,6 @@ export const beforeEach = (to: any, from: any, next) => {
     return
   }
 
-  // 当进入/chat路由时，向ChatSession表中添加一条数据
-  if (to.path === '/chat' || to.path.startsWith('/chat/')) {
-    // 调用主进程方法添加数据
-    if (window.api) {
-      console.log('waaaaa: ', window.api.getAllUnifiedMessages())
-    }
-  }
-
   // 当从 /contact 路由离开时，清除选中的联系人
   if (from.path.startsWith('/contact') && !to.path.startsWith('/contact')) {
     const contactStore = userContactStore()

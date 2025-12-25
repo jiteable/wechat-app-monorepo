@@ -156,7 +156,6 @@
 
               <!-- 加载更多提示 -->
               <div v-if="loadingMore" class="loading-more">
-                <el-spinner size="small" />
                 <span>加载中...</span>
               </div>
             </div>
@@ -202,15 +201,6 @@
 
                       <!-- 底部快捷栏 -->
                       <div class="emoji-footer">
-                        <div class="emoji-search">
-                          <el-input
-                            v-model="searchQuery"
-                            placeholder="搜索表情..."
-                            size="small"
-                            prefix-icon="Search"
-                            @input="filterEmojis"
-                          />
-                        </div>
                         <div class="emoji-shortcuts">
                           <div
                             v-for="shortcut in shortcuts"
@@ -276,7 +266,6 @@
         :should-show-add-button="shouldShowAddButton"
         :is-group-owner-or-admin="isGroupOwnerOrAdmin"
         @update:visible="drawer = $event"
-        @close="onDrawerClose"
         @search-messages="searchMessages"
         @clear-chat-history="clearChatHistory"
         @leave-group="leaveGroup"
@@ -317,6 +306,9 @@ const userSetStore = useUserSetStore()
 
 const drawer = ref(false)
 const richInputObserver = ref(null)
+
+// 添加当前选中会话ID变量
+const selectedSessionId = ref(null)
 
 // 图片预览相关
 const isPreviewVisible = ref(false)
@@ -599,13 +591,14 @@ watch(
   () => contactStore.selectedContact,
   async (newSession) => {
     if (newSession) {
-      console.log('ChatContant中获取到的会话信息:', newSession)
-      console.log('会话ID:', newSession.id)
-      console.log('会话名称:', newSession.name)
-      console.log('会话类型:', newSession.sessionType)
-      console.log('会话头像:', newSession.avatar)
-      console.log('未读消息数:', newSession.unreadCount)
-      console.log('更新时间:', newSession.updatedAt)
+      // 检查是否是当前已选中的会话，避免重复加载
+      if (selectedSessionId.value === newSession.id) {
+        console.log('当前会话已选中，跳过重复加载')
+        return
+      }
+
+      // 更新当前选中的会话ID
+      selectedSessionId.value = newSession.id
 
       // 当选中会话变化时，获取该会话的消息
       await loadMessages(newSession.id).then(() => {
@@ -1273,12 +1266,10 @@ const toggleChat = () => {
 
 const sessionUsers = computed(() => {
   const session = contactStore.selectedContact
-  console.log('sessionaaaaaaaa: ', session?.group?.members)
   return session && session.group && session.group.members ? session.group.members : []
 })
 
 const displayedUsers = computed(() => {
-  console.log('sessionUsers....', sessionUsers.value)
   // 最多显示15个成员
   return sessionUsers.value ? sessionUsers.value.slice(0, 15) : []
 })
