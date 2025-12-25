@@ -1301,8 +1301,10 @@ const handlePaste = (event) => {
 
 // 切换聊天状态
 const toggleChat = () => {
-  window.api.openChatMessageWindow()
-  window.api.openChatMessageWindow(selectedContact)
+  const contactData = contactStore.selectedContact
+    ? JSON.parse(JSON.stringify(contactStore.selectedContact))
+    : null
+  window.api.openChatMessageWindow(contactData)
 }
 
 const sessionUsers = computed(() => {
@@ -1337,8 +1339,10 @@ const addMember = () => {
 const searchMessages = () => {
   console.log('查找聊天内容')
   // 发送消息到主进程打开聊天消息窗口
-  window.api.openChatMessageWindow()
-  window.api.openChatMessageWindow(selectedContact)
+  const contactData = contactStore.selectedContact
+    ? JSON.parse(JSON.stringify(contactStore.selectedContact))
+    : null
+  window.api.openChatMessageWindow(contactData)
 }
 
 // 计算是否为群主或管理员

@@ -39,7 +39,8 @@ const api = {
   closeCreateGroupWindow: (): void => ipcRenderer.send('close-create-group-window'),
 
   // 聊天消息窗口相关
-  openChatMessageWindow: (): void => ipcRenderer.send('open-chat-message-window'),
+  openChatMessageWindow: (contactData?: any): void =>
+    ipcRenderer.send('open-chat-message-window', contactData),
   closeChatMessageWindow: (): void => ipcRenderer.send('close-chat-message-window'),
   minimizeChatMessageWindow: (): void => ipcRenderer.send('minimize-chat-message-window'),
 

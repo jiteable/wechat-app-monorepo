@@ -91,6 +91,7 @@ const fetchSessions = async () => {
 
       if (userId) {
         const localResult = await window.api.getAllChatSessions(userId)
+        console.log('getlocalResult: ', localResult)
 
         if (localResult.success && localResult.data) {
           // 从本地数据库获取到了会话数据
@@ -103,6 +104,8 @@ const fetchSessions = async () => {
     }
 
     const response = await getSessions()
+
+    console.log('getsession: ', response)
     if (response && response.success) {
       sessions.value = response.data
 

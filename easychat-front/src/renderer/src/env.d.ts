@@ -43,7 +43,7 @@ interface Window {
     closeCreateGroupWindow: () => void
 
     // 聊天消息窗口相关
-    openChatMessageWindow: () => void
+    openChatMessageWindow: (contactData?: any) => void
     closeChatMessageWindow: () => void
     minimizeChatMessageWindow: () => void
 
