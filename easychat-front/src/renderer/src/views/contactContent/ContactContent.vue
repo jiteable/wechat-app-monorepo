@@ -52,7 +52,26 @@
       <!-- 备注信息 -->
       <div v-if="!isGroup" class="remark-section">
         <span class="label">备注</span>
-        <span class="value">{{ currentContact.remark || currentContact.name }}</span>
+        <div class="remark-content">
+          <span v-if="!isEditingRemark" class="value" @dblclick="enableRemarkEdit">{{
+            currentContact.remark || currentContact.name
+          }}</span>
+          <input
+            v-else
+            ref="remarkInputRef"
+            v-model="editingRemark"
+            class="remark-input"
+            @blur="saveRemark"
+            @keyup.enter="saveRemark"
+            @keyup.esc="cancelRemarkEdit"
+          />
+          <el-icon v-if="!isEditingRemark" class="edit-icon" :size="16" @click="enableRemarkEdit">
+            <Edit />
+          </el-icon>
+          <el-icon v-else class="edit-icon" :size="16" @click="saveRemark">
+            <Check />
+          </el-icon>
+        </div>
       </div>
 
       <!-- 群聊公告 -->
@@ -108,7 +127,7 @@
 
 <script setup>
 import WindowControls from '@/components/WindowControls.vue'
-import { ref, computed, onDeactivated } from 'vue'
+import { ref, computed, onDeactivated, nextTick } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { useRouter } from 'vue-router'
@@ -118,6 +137,11 @@ const popoverRef = ref(null)
 const contactStore = userContactStore()
 const userStore = useUserStore()
 const router = useRouter()
+
+// 添加响应式数据用于备注编辑
+const isEditingRemark = ref(false)
+const editingRemark = ref('')
+const remarkInputRef = ref(null)
 
 // 计算属性：当前选中的联系人
 const currentContact = computed(() => contactStore.selectedUser)
@@ -260,6 +284,54 @@ const sendMessage = async () => {
   }
 }
 
+// 启用备注编辑
+const enableRemarkEdit = () => {
+  if (isGroup.value) return // 群组不支持编辑备注
+  editingRemark.value = currentContact.value.remark || currentContact.value.name || ''
+  isEditingRemark.value = true
+  // 在下一个tick聚焦到输入框
+  nextTick(() => {
+    if (remarkInputRef.value) {
+      remarkInputRef.value.focus()
+      remarkInputRef.value.select() // 选中所有文本
+    }
+  })
+}
+
+// 保存备注修改
+const saveRemark = async () => {
+  if (!isEditingRemark.value) return
+
+  // 检查备注是否有变化
+  if (editingRemark.value !== (currentContact.value.remark || currentContact.value.name)) {
+    try {
+      // 调用API更新备注信息
+      if (window.api && typeof window.api.updateContactRemark === 'function') {
+        const result = await window.api.updateContactRemark(currentContact.value.id, editingRemark.value)
+        if (result.success) {
+          // 更新联系人信息
+          currentContact.value.remark = editingRemark.value
+          // 更新store中的数据
+          contactStore.updateSelectedUserRemark(currentContact.value.id, editingRemark.value)
+          console.log('备注更新成功')
+        } else {
+          console.error('更新备注失败:', result.error)
+        }
+      }
+    } catch (error) {
+      console.error('更新备注时出错:', error)
+    }
+  }
+
+  isEditingRemark.value = false
+}
+
+// 取消备注编辑
+const cancelRemarkEdit = () => {
+  isEditingRemark.value = false
+  editingRemark.value = currentContact.value.remark || currentContact.value.name || ''
+}
+
 // 添加打开设置备注和标签窗口的方法
 const openSetRemarkAndTag = () => {
   if (window.api && typeof window.api.openSetRemarkAndTagWindow === 'function') {
@@ -376,9 +448,20 @@ onDeactivated(() => {
 .remark-section {
   display: flex;
   align-items: center;
+  height: 20px;
   margin-bottom: 20px;
-  padding: 10px 0;
+  padding-bottom: 10px;
   border-bottom: 1px solid #e0e0e0;
+  position: relative;
+}
+
+.remark-content {
+  display: flex;
+  height: 20px;
+  width: 282px;
+  margin-left: 40px;
+  align-items: center;
+  flex: 1;
 }
 
 .remark-section .label {
@@ -388,36 +471,37 @@ onDeactivated(() => {
 }
 
 .remark-section .value {
-  font-size: 16px;
+  font-size: 14px;
   color: #333;
 }
 
-/* 朋友圈 */
-.friend-circle-section {
-  margin-bottom: 20px;
-  padding: 10px 0;
-  border-bottom: 1px solid #e0e0e0;
+.remark-input {
+  flex: 1;
+  border: none;
+  font-size: 15px;
+  outline: none;
 }
 
-.friend-circle-section .label {
-  font-size: 14px;
+.remark-input:focus {
+  border-color: #409eff;
+}
+
+.edit-icon {
+  margin-left: 180px;
+  cursor: pointer;
   color: #999;
-  margin-bottom: 10px;
-  display: block;
+  transition: color 0.3s ease;
+  opacity: 0;
+  visibility: hidden;
 }
 
-.circle-images {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  white-space: nowrap;
+.remark-section:hover .edit-icon {
+  opacity: 1;
+  visibility: visible;
 }
 
-.circle-images img {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 4px;
+.edit-icon:hover {
+  color: #409eff;
 }
 
 /* 共同群聊 & 个性签名 */
