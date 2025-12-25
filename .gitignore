@@ -52,3 +52,5 @@ easychat-server/.env.local
 # Temporary files
 tmp/
 temp/
+
+待解决的问题.txt

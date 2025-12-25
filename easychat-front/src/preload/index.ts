@@ -79,7 +79,8 @@ const api = {
     ipcRenderer.invoke('download-file', url, fileName, savePath),
 
   // 本地数据库相关
-  addChatSession: (): Promise<any> => ipcRenderer.invoke('add-chat-session'),
+  addChatSession: (sessionData: any): Promise<any> =>
+    ipcRenderer.invoke('add-chat-session', sessionData),
   getAllChatSessions: (userId: string): Promise<any> =>
     ipcRenderer.invoke('get-all-chat-sessions', userId),
   clearChatSessions: (): Promise<any> => ipcRenderer.invoke('clear-chat-sessions'),

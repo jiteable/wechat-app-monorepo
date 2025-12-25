@@ -65,7 +65,7 @@ interface Window {
     downloadFile: (url: string, fileName: string, savePath: string) => Promise<any>
 
     //本地数据库相关
-    addChatSession: () => Promise<any>
+    addChatSession: (sessionData: any) => Promise<any>
     getAllChatSessions: (userId: string) => Promise<any>
     clearChatSessions: () => Promise<any>
     syncChatSessions: (sessions: any[]) => Promise<any>

@@ -61,6 +61,7 @@
             ref="remarkInputRef"
             v-model="editingRemark"
             class="remark-input"
+            spellcheck="false"
             @blur="saveRemark"
             @keyup.enter="saveRemark"
             @keyup.esc="cancelRemarkEdit"
@@ -178,6 +179,8 @@ const sendMessage = async () => {
 
         if (sessionId) {
           const localSessionResult = await window.api.getChatSessionById(sessionId)
+          console.log('localSession: ', sessionId)
+          console.log('localSessionResult: ', localSessionResult)
           if (localSessionResult.success && localSessionResult.data) {
             session = localSessionResult.data
             console.log('从本地数据库获取到会话:', session)
@@ -210,7 +213,9 @@ const sendMessage = async () => {
         // 将从服务器获取的会话保存到本地数据库
         if (session && window.api && typeof window.api.addChatSession === 'function') {
           try {
+            console.log('sessionawdwa: ', session)
             const result = await window.api.addChatSession(session)
+            console.log('sessionResult: ', result)
             if (result.success) {
               console.log('成功将会话同步到本地数据库:', result.data)
             } else {
@@ -307,7 +312,10 @@ const saveRemark = async () => {
     try {
       // 调用API更新备注信息
       if (window.api && typeof window.api.updateContactRemark === 'function') {
-        const result = await window.api.updateContactRemark(currentContact.value.id, editingRemark.value)
+        const result = await window.api.updateContactRemark(
+          currentContact.value.id,
+          editingRemark.value
+        )
         if (result.success) {
           // 更新联系人信息
           currentContact.value.remark = editingRemark.value
