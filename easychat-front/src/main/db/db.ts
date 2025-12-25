@@ -174,6 +174,8 @@ class DatabaseManager {
         id TEXT PRIMARY KEY,
         sessionId TEXT,
         userId TEXT,
+        contactId TEXT,
+        groupId TEXT,  
         joinTime DATETIME DEFAULT CURRENT_TIMESTAMP,
         lastReadTime DATETIME DEFAULT CURRENT_TIMESTAMP,
         isMuted BOOLEAN DEFAULT 0,
@@ -321,7 +323,7 @@ class DatabaseManager {
   /**
    * 根据ID获取ChatSession数据
    */
-  public async getChatSessionById(sessionId: string): Promise<any> {
+  public async getChatSessionById(id: string): Promise<any> {
     try {
       // 确保表存在
       await this.initializeTables()
@@ -331,8 +333,17 @@ class DatabaseManager {
         driver: sqlite3.Database
       })
 
-      // 根据ID查询ChatSession数据
-      const session = await db.get(`SELECT * FROM ChatSession WHERE id = ?`, [sessionId])
+      // 在ChatSessionUser表中通过contactId或groupId查找匹配的记录
+      const sessionUser = await db.get(
+        `SELECT * FROM ChatSessionUser WHERE contactId = ? OR groupId = ?`,
+        [id, id]
+      )
+
+      let session: any = null
+      if (sessionUser) {
+        // 如果在ChatSessionUser表中找到了匹配的记录，使用其sessionId查询ChatSession表
+        session = await db.get(`SELECT * FROM ChatSession WHERE id = ?`, [sessionUser.sessionId])
+      }
 
       await db.close()
 
@@ -487,8 +498,8 @@ class DatabaseManager {
         INSERT OR REPLACE INTO ChatSessionUser 
         (id, sessionId, userId, joinTime, lastReadTime, isMuted, isPinned, customRemark, 
          unreadCount, sessionType, identity, nickname, remark, showMemberNameCard, 
-         background, displayName, displayAvatar, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         background, displayName, displayAvatar, contactId, groupId, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
           userData.id,
@@ -508,6 +519,8 @@ class DatabaseManager {
           userData.background || null,
           userData.displayName || null,
           userData.displayAvatar || null,
+          userData.contactId || null,
+          userData.groupId || null,
           userData.createdAt || new Date().toISOString(),
           userData.updatedAt || new Date().toISOString()
         ]

@@ -18,6 +18,8 @@ export interface ChatSessionUser {
   displayAvatar: string | null
   createdAt: string
   updatedAt: string
+  contactId?: string | null
+  groupId?: string | null
   user: {
     id: string
     chatId: string
@@ -91,6 +93,7 @@ export interface ChatSession {
   lastMessage: LastMessage | null
   group: Group | null
   contactId?: string // 添加联系人ID(限私聊)
+  groupId?: string
 }
 
 // 获取会话响应
@@ -112,6 +115,7 @@ export interface CreateSessionRequest {
   avatar?: string
   userIds?: string[]
   groupId?: string
+  contactId?: string // 添加联系人ID字段
 }
 
 // 创建会话响应

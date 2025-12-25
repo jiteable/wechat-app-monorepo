@@ -171,11 +171,7 @@ const sendMessage = async () => {
     if (window.api && typeof window.api.getChatSessionById === 'function') {
       try {
         // 构造会话ID（对于私聊，通常基于两个用户ID）
-        let sessionId
-        if (isGroup.value) {
-          sessionId = currentContact.value.id
-        }
-        // 注意：私聊会话ID的构造取决于你的业务逻辑
+        const sessionId = currentContact.value.id
 
         if (sessionId) {
           const localSessionResult = await window.api.getChatSessionById(sessionId)

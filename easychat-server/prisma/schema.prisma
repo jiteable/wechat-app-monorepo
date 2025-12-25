@@ -303,6 +303,8 @@ model ChatSessionUser {
   customRemark        String?                       // 自定义备注名
   unreadCount         Int      @default(0)          // 未读消息数
   sessionType         String                        // 会话类型: private(私聊) 或 group(群聊)
+  contactId           String?                       // 联系人ID（私聊时使用）
+  groupId             String?                       // 群ID（群聊时使用）
   identity            String?                       // 在群中的身份（仅群聊）
   nickname            String?                       // 用户在群内的昵称（仅群聊）
   remark              String?                       // 群备注（仅群聊）
@@ -320,6 +322,8 @@ model ChatSessionUser {
   @@unique([sessionId, userId])
   @@index([userId])
   @@index([sessionType])
+  @@index([contactId]) // 为联系人ID添加索引
+  @@index([groupId])   // 为群ID添加索引
   @@index([isPinned])
 }
 

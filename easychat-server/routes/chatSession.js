@@ -96,6 +96,9 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         contactId = otherUsers[0].userId;
       }
 
+      // 添加对currentUserSessionInfo中contactId和groupId的处理
+      contactId = contactId || currentUserSessionInfo?.contactId || null;
+
       // 如果是群聊会话，获取群成员的部分信息
       let groupWithMembers = null;
       if (session.sessionType === 'group' && session.group) {
@@ -137,7 +140,9 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         unreadCount: currentUserSessionInfo?.unreadCount || 0,
         lastMessage: session.unifiedMessages.length > 0 ? session.unifiedMessages[0] : null,
         group: groupWithMembers || session.group || null,
-        contactId: contactId // 添加联系人ID(限私聊)
+        contactId: contactId, // 添加联系人ID(限私聊)
+        // 添加groupId字段
+        groupId: currentUserSessionInfo?.groupId || null
       };
 
       return res.json({
@@ -214,6 +219,9 @@ router.get('/getSession', authenticateToken, async (req, res) => {
           contactId = otherUsers[0].userId;
         }
 
+        // 添加对currentUserSessionInfo中contactId和groupId的处理
+        contactId = contactId || currentUserSessionInfo?.contactId || null;
+
         // 如果是群聊会话，获取群成员的部分信息
         let groupWithMembers = null;
         if (session.sessionType === 'group' && session.group) {
@@ -255,7 +263,9 @@ router.get('/getSession', authenticateToken, async (req, res) => {
           unreadCount: currentUserSessionInfo?.unreadCount || 0,
           lastMessage: session.unifiedMessages.length > 0 ? session.unifiedMessages[0] : null,
           group: groupWithMembers || session.group || null,
-          contactId: contactId // 添加联系人ID(限私聊)
+          contactId: contactId, // 添加联系人ID(限私聊)
+          // 添加groupId字段
+          groupId: currentUserSessionInfo?.groupId || null
         };
       }));
 
@@ -354,7 +364,9 @@ router.post('/createSession', authenticateToken, async (req, res) => {
               joinTime: new Date(),
               lastReadTime: new Date(),
               displayName,
-              displayAvatar
+              displayAvatar,
+              contactId: sessionType === 'private' && userId !== currentUserId ? userId : null,
+              groupId: sessionType === 'group' ? groupId : null
             };
           })
         }
@@ -411,6 +423,9 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       contactId = otherUsers[0].userId;
     }
 
+    // 添加对currentUserSessionInfo中contactId和groupId的处理
+    contactId = contactId || currentUserSessionInfo?.contactId || null;
+
     // 如果是群聊会话，获取群成员的部分信息
     let groupWithMembers = null;
     if (newSession.sessionType === 'group' && newSession.group) {
@@ -452,7 +467,9 @@ router.post('/createSession', authenticateToken, async (req, res) => {
       unreadCount: currentUserSessionInfo?.unreadCount || 0,
       lastMessage: newSession.unifiedMessages.length > 0 ? newSession.unifiedMessages[0] : null,
       group: groupWithMembers || newSession.group || null,
-      contactId: contactId // 添加联系人ID(限私聊)
+      contactId: contactId, // 添加联系人ID(限私聊)
+      // 添加groupId字段
+      groupId: currentUserSessionInfo?.groupId || null
     };
 
     // 添加时间戳消息
@@ -559,9 +576,18 @@ router.get('/getSessionUsers', authenticateToken, async (req, res) => {
       }
     });
 
+    // 处理返回数据，添加contactId和groupId
+    const processedChatSessionUsers = chatSessionUsers.map(item => {
+      return {
+        ...item,
+        contactId: item.contactId,
+        groupId: item.groupId
+      };
+    });
+
     res.json({
       success: true,
-      data: chatSessionUsers
+      data: processedChatSessionUsers
     });
   } catch (error) {
     console.error('获取会话用户信息失败:', error);
