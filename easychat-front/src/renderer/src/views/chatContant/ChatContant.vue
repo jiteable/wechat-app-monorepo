@@ -657,6 +657,13 @@ watch(
             // 设置选中的联系人
             contactStore.setSelectedContact(session)
 
+            // 触发全局事件，更新ChatList中的选中状态
+            window.dispatchEvent(
+              new CustomEvent('sessionSelected', {
+                detail: { sessionId: session.id }
+              })
+            )
+
             // 加载消息
             await loadMessages(session.id).then(() => {
               // 在消息加载完成后，将滚动条重置到底部
@@ -697,11 +704,23 @@ watch(
 // 计算属性：根据会话类型显示不同的名称
 const getDisplayName = computed(() => {
   const session = contactStore.selectedContact
-  if (!session) return ''
+  console.log('session: ', session)
+  if (!session) {
+    // 如果store中没有选中的联系人，尝试从路由参数获取
+    const sessionId = route.params.id
+    if (sessionId && messages.value.length > 0) {
+      // 如果有消息，说明这是有效的会话，但可能store未更新
+      const sessionFromMessages = messages.value.find((msg) => msg.sessionId === sessionId)
+      if (sessionFromMessages) {
+        return sessionFromMessages.sessionName || '聊天'
+      }
+    }
+    return ''
+  }
 
   // 如果是群聊，显示群名称和成员数
   if (session.sessionType === 'group' && session.group) {
-    const groupName = session.group.name || '群聊'
+    const groupName = session.group.name || session.name || '群聊'
     const memberCount = session.group.members ? session.group.members.length : 0
     return `${groupName}(${memberCount})`
   }
@@ -711,7 +730,7 @@ const getDisplayName = computed(() => {
     return session.name
   }
 
-  return '聊天'
+  return session.name || '聊天'
 })
 
 const isGroupChat = computed(() => {

@@ -57,12 +57,21 @@ import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { getSessions } from '@/api/chatSession'
 import { markAsRead } from '@/api/chat'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const contactStore = userContactStore()
 const router = useRouter()
+const route = useRoute() // 添加route
 
+const updateSelectedSessionFromRoute = () => {
+  const sessionId = route.params.id
+  if (sessionId) {
+    selectedSessionId.value = sessionId
+  } else {
+    selectedSessionId.value = null
+  }
+}
 // 定义刷新函数
 const refreshSessions = () => {
   fetchSessions()
@@ -454,6 +463,10 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   // 添加群聊信息更新事件监听
   window.addEventListener('groupInfoUpdated', handleGroupInfoUpdated)
+
+  // 监听路由变化
+  updateSelectedSessionFromRoute()
+  router.afterEach(updateSelectedSessionFromRoute)
 })
 
 // 组件卸载时移除监听
@@ -466,6 +479,9 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   // 移除群聊信息更新事件监听
   window.removeEventListener('groupInfoUpdated', handleGroupInfoUpdated)
+
+  // 移除路由监听
+  router.afterEach(() => {})
 })
 
 // 如果需要在父组件中访问选中ID，可以暴露这个方法
