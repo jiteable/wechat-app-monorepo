@@ -178,6 +178,47 @@ const formatLastMessage = (msg, sessionType) => {
     : msg.content || ''
 }
 
+// 添加对群聊信息更新事件的处理
+const handleGroupInfoUpdated = (event) => {
+  const { sessionId, newName } = event.detail
+
+  // 查找对应的会话并更新名称
+  const sessionIndex = sessions.value.findIndex((session) => session.id === sessionId)
+  if (sessionIndex !== -1) {
+    sessions.value[sessionIndex].name = newName
+    // 如果该会话在本地数据库中也存在，同步更新
+    if (window.api && typeof window.api.updateChatSessionName === 'function') {
+      window.api
+        .updateChatSessionName(sessionId, newName)
+        .catch((err) => console.error('更新本地会话名称失败:', err))
+    }
+  }
+}
+
+// 组件挂载时监听事件
+onMounted(() => {
+  window.addEventListener('sessionCreated', refreshSessions)
+  // 添加WebSocket消息监听
+  window.api.onNewMessage(handleNewMessage)
+  // 添加本地消息监听
+  window.addEventListener('newMessageSent', handleLocalNewMessage)
+  // 添加全局点击事件监听器
+  document.addEventListener('click', handleClickOutside)
+  // 添加群聊信息更新事件监听
+  window.addEventListener('groupInfoUpdated', handleGroupInfoUpdated)
+})
+
+// 组件卸载时移除监听
+onUnmounted(() => {
+  window.removeEventListener('sessionCreated', refreshSessions)
+
+  window.removeEventListener('newMessageSent', handleLocalNewMessage)
+  // 移除全局点击事件监听器
+  document.removeEventListener('click', handleClickOutside)
+  // 移除群聊信息更新事件监听
+  window.removeEventListener('groupInfoUpdated', handleGroupInfoUpdated)
+})
+
 // 格式化时间
 const formatDate = (dateStr) => {
   const date = new Date(dateStr)

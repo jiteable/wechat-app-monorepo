@@ -720,6 +720,20 @@ const handleUpdateGroupName = (newName) => {
 
   if (contactStore.selectedContact && contactStore.selectedContact.group) {
     contactStore.selectedContact.group.name = newName
+
+    // 更新会话名称并同步到全局状态
+    if (contactStore.selectedContact) {
+      contactStore.selectedContact.name = newName
+      // 触发全局事件，通知其他组件更新
+      window.dispatchEvent(
+        new CustomEvent('groupInfoUpdated', {
+          detail: {
+            sessionId: contactStore.selectedContact.id,
+            newName: newName
+          }
+        })
+      )
+    }
   }
 }
 
