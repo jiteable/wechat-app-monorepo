@@ -453,8 +453,4 @@ const selectGroup = async (group) => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-.search-input :deep(.el-input__wrapper) {
-  border-radius: 20px;
-}
 </style>

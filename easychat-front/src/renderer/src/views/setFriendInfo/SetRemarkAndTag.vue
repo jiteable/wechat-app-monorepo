@@ -1,15 +1,15 @@
 <template>
-  <div class="set-remark-and-tag-container">
+  <div class="set-remark-and-tag-container drag">
     <h3 class="title">设置备注和标签</h3>
 
     <!-- 备注名 -->
-    <div class="form-item">
+    <div class="form-item no-drag">
       <label class="label">备注名</label>
       <el-input v-model="remark" placeholder="请输入备注名" />
     </div>
 
     <!-- 标签 -->
-    <div class="form-item">
+    <div class="form-item no-drag">
       <label class="label">标签</label>
       <el-select
         v-model="selectedLabels"
@@ -28,24 +28,24 @@
     </div>
 
     <!-- 其他字段保持不变 -->
-    <div class="form-item">
+    <div class="form-item no-drag">
       <label class="label">电话</label>
       <div class="add-phone-btn" @click="addPhone"><i class="el-icon-plus"></i> 添加电话</div>
     </div>
 
-    <div class="form-item">
+    <div class="form-item no-drag">
       <label class="label">描述</label>
       <el-input v-model="description" type="textarea" :rows="3" placeholder="添加更多备注信息" />
     </div>
 
-    <div class="form-item">
+    <div class="form-item no-drag">
       <div class="add-image-btn" @click="addImage">
         <i class="el-icon-plus"></i>
         <span>添加图片</span>
       </div>
     </div>
 
-    <div class="action-buttons">
+    <div class="action-buttons no-drag">
       <el-button class="cancel-btn" @click="cancel">取消</el-button>
       <el-button class="confirm-btn" @click="confirm">完成</el-button>
     </div>

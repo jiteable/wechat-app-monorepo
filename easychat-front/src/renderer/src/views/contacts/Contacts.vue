@@ -271,6 +271,66 @@
         </div>
       </div>
     </div>
+
+    <el-dialog
+      v-model="showAddContactDialogVisible"
+      title="添加联系人"
+      width="600px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <div class="dialog-content">
+        <div class="search-box">
+          <el-input
+            v-model="addContactDialogSearchKeyword"
+            placeholder="搜索联系人"
+            clearable
+            style="width: 200px; height: 30px; margin-bottom: 10px"
+          >
+            <template #prefix>
+              <el-icon>
+                <Search />
+              </el-icon>
+            </template>
+          </el-input>
+        </div>
+
+        <el-table
+          ref="addContactTableRef"
+          :data="filteredAllContacts"
+          style="width: 100%"
+          max-height="400"
+          @selection-change="handleDialogSelectionChange"
+        >
+          <el-table-column type="selection" width="50" />
+          <el-table-column label="名称" width="200">
+            <template #default="scope">
+              <div style="display: flex; align-items: center">
+                <img
+                  :src="scope.row.avatar"
+                  style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px"
+                />
+                <span>{{ scope.row.name }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="remark" label="备注" width="150" show-overflow-tooltip />
+          <el-table-column label="当前标签" show-overflow-tooltip>
+            <template #default="scope">
+              <span v-if="hasLabels(scope.row.label)">{{ formatLabels(scope.row.label) }}</span>
+              <span v-else class="no-label-text">无标签</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelAddContactToLabel">取消</el-button>
+          <el-button type="primary" @click="confirmAddContactToLabel">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -286,6 +346,8 @@ const userStore = useUserStore()
 
 const activeButton = ref('all')
 const searchKeyword = ref('')
+
+const addContactDialogSearchKeyword = ref('') // 弹窗中的搜索关键词
 
 // 表格数据
 const tableData = ref([])
@@ -321,6 +383,157 @@ const selectedRows = ref([])
 // 标签下拉菜单相关
 const showLabelDropdown = ref(false)
 const selectedLabels = ref([])
+
+// 添加弹窗相关的响应式变量
+const showAddContactDialogVisible = ref(false)
+const selectedContactsToAdd = ref([])
+const allContacts = ref([])
+
+const fetchAllContacts = async () => {
+  try {
+    const response = await getContact()
+    if (response && response.contacts) {
+      allContacts.value = response.contacts.map((contact) => ({
+        id: contact.id,
+        name: contact.username || contact.chatId,
+        avatar:
+          contact.avatar ||
+          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+        remark: contact.remark || '',
+        label: contact.labels || '',
+        permission: '仅聊天',
+        chatId: contact.chatId
+      }))
+    }
+  } catch (error) {
+    console.error('获取联系人失败:', error)
+  }
+}
+
+// 显示添加联系人对话框
+const showAddContactDialog = async () => {
+  // 获取当前标签ID
+  const currentLabelId = parseInt(activeButton.value.split('-')[1])
+  const currentLabel = labelList.value.find((label) => label.id === currentLabelId)
+
+  if (currentLabel && currentLabel.name !== '无标签') {
+    // 获取所有联系人
+    await fetchAllContacts()
+    // 重置选中状态
+    selectedContactsToAdd.value = []
+    // 显示弹窗
+    showAddContactDialogVisible.value = true
+  }
+}
+
+const filteredAllContacts = computed(() => {
+  if (!addContactDialogSearchKeyword.value) {
+    return allContacts.value
+  }
+
+  const keyword = addContactDialogSearchKeyword.value.toLowerCase()
+  return allContacts.value.filter(
+    (item) =>
+      (item.name && item.name.toLowerCase().includes(keyword)) ||
+      (item.remark && item.remark.toLowerCase().includes(keyword)) ||
+      (item.label && item.label.toLowerCase().includes(keyword))
+  )
+})
+
+const handleDialogSelectionChange = (val) => {
+  selectedContactsToAdd.value = val
+  console.log('选择的联系人:', val) // 调试信息
+}
+
+// 确认添加联系人到标签
+const confirmAddContactToLabel = async () => {
+  console.log('准备添加联系人数量:', selectedContactsToAdd.value.length) // 调试信息
+  if (selectedContactsToAdd.value.length === 0) {
+    ElMessage({
+      message: '请至少选择一个联系人',
+      type: 'warning',
+      duration: 2000,
+      center: true
+    })
+    return
+  }
+
+  // 获取当前标签ID
+  const currentLabelId = parseInt(activeButton.value.split('-')[1])
+  const currentLabel = labelList.value.find(label => label.id === currentLabelId)
+
+  if (!currentLabel) {
+    ElMessage({
+      message: '当前标签不存在',
+      type: 'error',
+      duration: 2000,
+      center: true
+    })
+    return
+  }
+
+  // 为选中的联系人添加当前标签
+  for (const contact of selectedContactsToAdd.value) {
+    try {
+      // 获取联系人当前的标签
+      let currentLabels = []
+      if (contact.label) {
+        if (Array.isArray(contact.label)) {
+          currentLabels = [...contact.label]
+        } else if (typeof contact.label === 'string') {
+          currentLabels = contact.label.split(',').map(l => l.trim()).filter(l => l)
+        }
+      }
+
+      // 添加新标签（如果不存在）
+      if (!currentLabels.includes(currentLabel.name)) {
+        currentLabels.push(currentLabel.name)
+      }
+
+      // 调用API更新联系人标签
+      const response = await setFriendLabel({
+        friendId: contact.id,
+        labels: currentLabels
+      })
+
+      if (response.success) {
+        console.log(`为联系人 ${contact.name} 添加标签 ${currentLabel.name} 成功`)
+
+        // 更新主表格中的联系人标签
+        const tableContact = tableData.value.find(c => c.id === contact.id)
+        if (tableContact) {
+          tableContact.label = currentLabels.join(',')
+        }
+      } else {
+        console.error(`为联系人 ${contact.name} 添加标签 ${currentLabel.name} 失败:`, response.error)
+      }
+    } catch (error) {
+      console.error(`为联系人 ${contact.name} 添加标签时出错:`, error)
+    }
+  }
+
+  // 关闭弹窗
+  showAddContactDialogVisible.value = false
+  selectedContactsToAdd.value = []
+
+  // 重新获取标签和联系人数据以更新视图
+  await fetchLabels()
+  await fetchContacts()
+
+  // 显示成功消息
+  ElMessage({
+    message: `已成功为 ${selectedContactsToAdd.value.length} 位联系人添加标签`,
+    type: 'success',
+    duration: 2000,
+    center: true
+  })
+}
+
+// 取消添加联系人到标签
+const cancelAddContactToLabel = () => {
+  showAddContactDialogVisible.value = false
+  selectedContactsToAdd.value = []
+}
 
 // 组件挂载时获取联系人数据和群组数据
 onMounted(async () => {
@@ -755,14 +968,6 @@ const clearSelection = () => {
 const modifyPermission = () => {
   console.log('修改权限:', selectedRows.value)
   // 这里可以添加实际的业务逻辑
-}
-
-// 添加方法：显示添加联系人对话框
-const showAddContactDialog = () => {
-  // 这里可以添加打开添加联系人对话框的逻辑
-  console.log('显示添加联系人对话框')
-  // 实际项目中可能需要调用某个方法来打开对话框
-  // 例如：openAddContactDialog()
 }
 
 // 设置标签 - 显示下拉菜单
@@ -1222,5 +1427,21 @@ const deleteContacts = () => {
 .add-label-text {
   font-style: italic;
   font-size: 12px;
+}
+
+/* 添加联系人弹窗样式 */
+.dialog-content {
+  padding: 10px 0;
+}
+
+.no-label-text {
+  color: #c0c4cc;
+  font-size: 12px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 </style>
