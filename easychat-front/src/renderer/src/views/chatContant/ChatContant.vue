@@ -289,7 +289,7 @@ import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
 import { Message } from '@element-plus/icons-vue'
 import { ref, nextTick, watch, computed, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
-import { sendMessage } from '@/api/chat'
+import { sendMessage, markAsRead } from '@/api/chat'
 import { ElMessage, ElLoading } from 'element-plus'
 import { uploadImage, uploadFile } from '@/api/upload'
 import WindowControls from '@/components/WindowControls.vue'
@@ -474,6 +474,7 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
 }
 
 const addMessageListener = () => {
+  console.log('awwwwwwwww')
   if (!isMessageListenerAdded) {
     window.api.onNewMessage(async (data) => {
       console.log('getuserMessage:', data)
@@ -587,60 +588,100 @@ const addMessageListener = () => {
 }
 
 // 监听选中会话的变化并打印信息
-watch(
-  () => contactStore.selectedContact,
-  async (newSession) => {
-    if (newSession) {
-      // 检查是否是当前已选中的会话，避免重复加载
-      if (selectedSessionId.value === newSession.id) {
-        console.log('当前会话已选中，跳过重复加载')
-        return
-      }
+// watch(
+//   () => contactStore.selectedContact,
+//   async (newSession) => {
+//     if (newSession) {
+//       // 检查是否是当前已选中的会话，避免重复加载
+//       if (selectedSessionId.value === newSession.id) {
+//         console.log('selectedSessionId.value: ', selectedSessionId.value)
+//         console.log('newSession.id: ', newSession.id)
+//         console.log('当前会话已选中，跳过重复加载')
+//         return
+//       }
 
-      // 更新当前选中的会话ID
-      selectedSessionId.value = newSession.id
+//       // 更新当前选中的会话ID
+//       selectedSessionId.value = newSession.id
 
-      // 当选中会话变化时，获取该会话的消息
-      await loadMessages(newSession.id).then(() => {
-        // 在消息加载完成后，将滚动条重置到底部
-        nextTick(() => {
-          if (messagesContainer.value) {
-            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-          }
-        })
-      })
+//       // 当选中会话变化时，获取该会话的消息
+//       await loadMessages(newSession.id).then(() => {
+//         // 在消息加载完成后，将滚动条重置到底部
+//         nextTick(() => {
+//           if (messagesContainer.value) {
+//             messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+//           }
+//         })
+//       })
 
-      // 标记会话中的消息为已读
-      if (newSession.unreadCount > 0) {
-        try {
-          await markAsRead(newSession.id)
-          console.log('会话消息已标记为已读')
+//       // 标记会话中的消息为已读
+//       if (newSession.unreadCount > 0) {
+//         try {
+//           await markAsRead(newSession.id)
+//           console.log('会话消息已标记为已读')
 
-          // 更新本地会话的未读计数
-          contactStore.setSelectedContact({
-            ...newSession,
-            unreadCount: 0
-          })
-        } catch (error) {
-          console.error('标记消息为已读失败:', error)
-        }
-      }
-    }
-  },
-  { immediate: true }
-)
+//           // 更新本地会话的未读计数
+//           contactStore.setSelectedContact({
+//             ...newSession,
+//             unreadCount: 0
+//           })
+//         } catch (error) {
+//           console.error('标记消息为已读失败:', error)
+//         }
+//       }
+//     }
+//   },
+//   { immediate: false }
+// )
 
 watch(
   () => route.params.id,
   async (newSessionId, oldSessionId) => {
     if (newSessionId && newSessionId !== oldSessionId) {
+      console.log('路由参数变化:', newSessionId)
       // 当路由参数变化时，获取会话信息并设置到 store 中
       try {
         const sessionResponse = await getSessions()
         if (sessionResponse && sessionResponse.success) {
           const session = sessionResponse.data.find((s) => s.id === newSessionId)
           if (session) {
+            // 检查是否是当前已选中的会话，避免重复加载
+            if (selectedSessionId.value === session.id) {
+              console.log('路由参数变化，但会话已加载，跳过重复加载')
+              return
+            }
+
+            // 更新当前选中的会话ID
+            selectedSessionId.value = session.id
+            console.log('设置新的selectedSessionId:', session.id)
+
+            // 设置选中的联系人
             contactStore.setSelectedContact(session)
+
+            // 加载消息
+            await loadMessages(session.id).then(() => {
+              // 在消息加载完成后，将滚动条重置到底部
+              nextTick(() => {
+                if (messagesContainer.value) {
+                  messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+                }
+              })
+            })
+
+            // 标记会话中的消息为已读
+            if (session.unreadCount > 0) {
+              try {
+                await markAsRead(session.id)
+                console.log('会话消息已标记为已读')
+
+                // 更新本地会话的未读计数
+                contactStore.setSelectedContact({
+                  ...session,
+                  unreadCount: 0
+                })
+              } catch (error) {
+                console.error('标记消息为已读失败:', error)
+              }
+            }
           } else {
             console.warn('未找到会话:', newSessionId)
           }
