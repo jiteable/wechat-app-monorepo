@@ -985,7 +985,7 @@ const sendMessageHandler = async () => {
   let shouldAddTimestamp = false
 
   // 查找最后一条普通消息的时间
-  for (let i = messages.value.length - 1; i >= 0; i--) {
+  for (let i = 0; i < messages.value.length; i++) {
     const lastMessage = messages.value[i]
     if (lastMessage.type !== 'timestamp' && lastMessage.type !== 'system') {
       const lastMessageTime = new Date(lastMessage.createdAt)
@@ -1036,9 +1036,39 @@ const sendMessageHandler = async () => {
       // 通过HTTP API发送消息到后端（用于持久化存储）
       const response1 = await sendMessage(timeData)
       console.log('消息发送成功:', response1)
+
+      // 保存时间戳消息到本地数据库
+      try {
+        if (window.api && typeof window.api.addUnifiedMessage === 'function') {
+          const timestampMessageSaveData = {
+            id: response1.data.messageId,
+            sessionId: selectedContact.id,
+            senderId: userStore.userId,
+            senderName: userStore.username || '我',
+            senderAvatar: userStore.avatar || '',
+            receiverId:
+              selectedContact.sessionType === 'private' ? selectedContact.contactId : null,
+            groupId: selectedContact.sessionType === 'group' ? selectedContact.group?.id : null,
+            content: currentTime.toISOString(),
+            messageType: 'timestamp',
+            status: 'SENT',
+            readStatus: true,
+            createdAt: response1.data.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+
+          const result = await window.api.addUnifiedMessage(timestampMessageSaveData)
+          if (result.success) {
+            console.log('时间戳消息已保存到本地数据库:', result.data)
+          } else {
+            console.error('保存时间戳消息到本地数据库失败:', result.error)
+          }
+        }
+      } catch (localError) {
+        console.error('调用addUnifiedMessage时发生错误:', localError)
+      }
     } catch (error) {
       console.error('发送消息失败:', error)
-      // 可以在这里添加错误处理，比如显示错误消息给用户
     }
     messages.value.unshift(timestampMessage)
   }
