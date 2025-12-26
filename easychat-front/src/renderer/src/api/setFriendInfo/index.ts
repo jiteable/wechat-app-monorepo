@@ -6,8 +6,8 @@ import {
   AddUserLabelResponse,
   RemoveUserLabelRequest,
   RemoveUserLabelResponse,
-  SetFriendLabelRequest,
-  SetFriendLabelResponse
+  SetFriendInfoRequest,
+  SetFriendInfoResponse
 } from './type'
 
 // 枚举API地址
@@ -15,7 +15,7 @@ enum API {
   GET_USER_LABELS_URL = '/setFriendInfo/userLabels',
   ADD_USER_LABEL_URL = '/setFriendInfo/addUserLabel',
   REMOVE_USER_LABEL_URL = '/setFriendInfo/removeUserLabel',
-  SET_FRIEND_LABEL_URL = '/setFriendInfo/setFriendLabel'
+  SET_FRIEND_INFO_URL = '/setFriendInfo/setFriendInfo'
 }
 
 /**
@@ -60,11 +60,11 @@ export const removeUserLabel = async (
  * @param data 包含好友ID和标签数组
  * @returns 设置结果
  */
-export const setFriendLabel = async (
-  data: SetFriendLabelRequest
-): Promise<SetFriendLabelResponse> => {
-  const response = await http.post<SetFriendLabelResponse>(
-    `${config.api}${API.SET_FRIEND_LABEL_URL}`,
+export const setFriendInfo = async (
+  data: SetFriendInfoRequest
+): Promise<SetFriendInfoResponse> => {
+  const response = await http.post<SetFriendInfoResponse>(
+    `${config.api}${API.SET_FRIEND_INFO_URL}`,
     data
   )
   return response.data

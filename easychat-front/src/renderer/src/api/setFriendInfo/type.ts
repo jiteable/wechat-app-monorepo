@@ -21,13 +21,16 @@ export interface RemoveUserLabelResponse {
   labels: string[]
 }
 
-export interface SetFriendLabelRequest {
+export interface SetFriendInfoRequest {
   friendId: string
-  labels: string[]
+  labels?: string[]
+  remark?: string
+  description?: string
+  phone?: string[]
 }
 
-export interface SetFriendLabelResponse {
+export interface SetFriendInfoResponse {
   success: boolean
   message: string
-  labels: string[]
+  labels?: string[]
 }

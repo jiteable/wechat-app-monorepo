@@ -55,7 +55,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getUserLabels, setFriendLabel } from '@/api/setFriendInfo'
+import { getUserLabels, setFriendInfo } from '@/api/setFriendInfo'
 import { userContactStore } from '@/store/userContactStore'
 
 const contactStore = userContactStore()
@@ -140,17 +140,22 @@ const confirm = () => {
     contactId: contactData.value?.id
   })
 
-  // 调用API设置好友标签
+  // 调用API设置好友信息
   if (contactData.value?.id) {
-    setFriendLabel({
+    // 构建要发送的请求数据
+    const requestData = {
       friendId: contactData.value.id,
-      labels: labelsArray
-    })
+      labels: labelsArray,
+      remark: remark.value || undefined, // 如果为空则不发送
+      description: description.value || undefined // 如果为空则不发送
+    }
+
+    setFriendInfo(requestData)
       .then((response) => {
         if (response.success) {
-          console.log('设置好友标签成功:', response.message)
+          console.log('设置好友信息成功:', response.message)
           // 可以在这里添加成功提示
-          ElMessage.success('标签设置成功')
+          ElMessage.success('好友信息设置成功')
 
           // 更新contactStore中的联系人标签信息
           console.log('Checking condition:', contactStore.selectedUser, contactData.value.id)
@@ -228,14 +233,19 @@ const confirm = () => {
               })
             )
           }
+
+          // 关闭窗口
+          if (window.api && typeof window.api.closeSetRemarkAndTagWindow === 'function') {
+            window.api.closeSetRemarkAndTagWindow()
+          }
         } else {
-          console.error('设置好友标签失败:', response.error)
+          console.error('设置好友信息失败:', response.error)
           // 可以在这里添加错误提示
-          ElMessage.error(response.error || '设置标签失败')
+          ElMessage.error(response.error || '设置信息失败')
         }
       })
       .catch((error) => {
-        console.error('设置好友标签请求失败:', error)
+        console.error('设置好友信息请求失败:', error)
         // 可以在这里添加错误提示
         ElMessage.error('网络错误，请重试')
       })

@@ -339,7 +339,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, onActivated, watch } f
 import { Minus, Close, Search, Lock, CollectionTag, Delete } from '@element-plus/icons-vue'
 import { getContact, getGroup } from '@/api/getRelationship'
 import { useUserStore } from '@/store/userStore'
-import { getUserLabels, addUserLabel, setFriendLabel } from '@/api/setFriendInfo'
+import { getUserLabels, addUserLabel, setFriendInfo } from '@/api/setFriendInfo'
 import { ElMessage } from 'element-plus' // 添加消息提示组件
 
 const userStore = useUserStore()
@@ -460,7 +460,7 @@ const confirmAddContactToLabel = async () => {
 
   // 获取当前标签ID
   const currentLabelId = parseInt(activeButton.value.split('-')[1])
-  const currentLabel = labelList.value.find(label => label.id === currentLabelId)
+  const currentLabel = labelList.value.find((label) => label.id === currentLabelId)
 
   if (!currentLabel) {
     ElMessage({
@@ -481,7 +481,10 @@ const confirmAddContactToLabel = async () => {
         if (Array.isArray(contact.label)) {
           currentLabels = [...contact.label]
         } else if (typeof contact.label === 'string') {
-          currentLabels = contact.label.split(',').map(l => l.trim()).filter(l => l)
+          currentLabels = contact.label
+            .split(',')
+            .map((l) => l.trim())
+            .filter((l) => l)
         }
       }
 
@@ -491,7 +494,7 @@ const confirmAddContactToLabel = async () => {
       }
 
       // 调用API更新联系人标签
-      const response = await setFriendLabel({
+      const response = await setFriendInfo({
         friendId: contact.id,
         labels: currentLabels
       })
@@ -500,12 +503,15 @@ const confirmAddContactToLabel = async () => {
         console.log(`为联系人 ${contact.name} 添加标签 ${currentLabel.name} 成功`)
 
         // 更新主表格中的联系人标签
-        const tableContact = tableData.value.find(c => c.id === contact.id)
+        const tableContact = tableData.value.find((c) => c.id === contact.id)
         if (tableContact) {
           tableContact.label = currentLabels.join(',')
         }
       } else {
-        console.error(`为联系人 ${contact.name} 添加标签 ${currentLabel.name} 失败:`, response.error)
+        console.error(
+          `为联系人 ${contact.name} 添加标签 ${currentLabel.name} 失败:`,
+          response.error
+        )
       }
     } catch (error) {
       console.error(`为联系人 ${contact.name} 添加标签时出错:`, error)
@@ -1020,7 +1026,7 @@ const confirmLabelChange = async () => {
   // 遍历选中的联系人，为每个联系人设置标签
   for (const contact of selectedRows.value) {
     try {
-      const response = await setFriendLabel({
+      const response = await setFriendInfo({
         friendId: contact.id,
         labels: selectedLabels.value
       })
