@@ -170,9 +170,10 @@ const confirm = () => {
 
 // 组件挂载后接收联系人数据
 onMounted(() => {
+  // 发送准备就绪信号给主进程
   if (window.electron && window.electron.ipcRenderer) {
+    window.electron.ipcRenderer.send('set-remark-and-tag-window-ready')
     window.electron.ipcRenderer.on('set-contact-data', (event, data) => {
-      console.log('接收到set-contact-data事件，数据:', data)
       contactData.value = data
       remark.value = data.remark || data.name || ''
       // 设置初始标签值，如果后端传来的标签是字符串则拆分，如果是数组则直接使用

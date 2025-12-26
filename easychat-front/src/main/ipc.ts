@@ -348,9 +348,7 @@ export function createSetRemarkAndTagWindow(icon: string, contactData?: any): vo
     // 如果窗口已存在且提供了联系人数据，通过IPC发送联系人数据
     if (contactData) {
       // 使用 setTimeout 确保数据在前端准备好后发送
-      setTimeout(() => {
-        setRemarkAndTagWindow.webContents.send('set-contact-data', contactData)
-      }, 100)
+      setRemarkAndTagWindow.webContents.send('set-contact-data', contactData)
     }
     return
   }
@@ -368,17 +366,35 @@ export function createSetRemarkAndTagWindow(icon: string, contactData?: any): vo
     }
   })
 
+  // 缓存联系人数据，直到前端确认准备好接收
+  let pendingContactData = contactData
+
   setRemarkAndTagWindow.on('ready-to-show', () => {
     setRemarkAndTagWindow!.show()
-    // 窗口准备好后发送联系人数据
-    if (contactData) {
+  })
+
+  // 监听前端准备就绪的信号
+  const handleWebContentsReady = () => {
+    if (pendingContactData) {
+      // 延迟发送，确保前端监听器已设置
       setTimeout(() => {
-        setRemarkAndTagWindow!.webContents.send('set-contact-data', contactData)
-      }, 100)
+        setRemarkAndTagWindow!.webContents.send('set-contact-data', pendingContactData)
+        pendingContactData = null // 清除缓存的数据
+      }, 50)
+    }
+  }
+
+  // 添加 IPC 通信来接收前端准备就绪的信号
+  const webContentsId = setRemarkAndTagWindow.webContents.id
+  ipcMain.on('set-remark-and-tag-window-ready', (event) => {
+    if (event.sender.id === webContentsId) {
+      handleWebContentsReady()
     }
   })
 
   setRemarkAndTagWindow.on('closed', () => {
+    // 移除事件监听器
+    ipcMain.removeListener('set-remark-and-tag-window-ready', () => {})
     setRemarkAndTagWindow = null
   })
 
@@ -391,7 +407,6 @@ export function createSetRemarkAndTagWindow(icon: string, contactData?: any): vo
     })
   }
 }
-
 export function setupIpcHandlers(icon: string): void {
   // 监听登录/注册表单切换事件并调整窗口大小
   ipcMain.on('login-form-toggle', (event, isLogin) => {
@@ -426,13 +441,13 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
-  // IPC handlers
-  ipcMain.on('check-token-and-switch-window', () => {
-    // 注意：这里应该使用正确的localStorage访问方式
-    // 在主进程中不能直接访问浏览器的localStorage
-    // 应该通过其他方式获取token，比如从文件或内存中
-    // 这里暂时保留原逻辑结构
-  })
+  // // IPC handlers
+  // ipcMain.on('check-token-and-switch-window', () => {
+  //   // 注意：这里应该使用正确的localStorage访问方式
+  //   // 在主进程中不能直接访问浏览器的localStorage
+  //   // 应该通过其他方式获取token，比如从文件或内存中
+  //   // 这里暂时保留原逻辑结构
+  // })
 
   ipcMain.on('user-logged-in', () => {
     // Close login window and show main window
