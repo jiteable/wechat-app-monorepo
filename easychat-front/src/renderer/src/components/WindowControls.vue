@@ -1,19 +1,22 @@
 <template>
   <div class="window-controls drag" @dblclick="handleDoubleClick">
     <div class="window-button no-drag">
-      <el-button link class="button" @click="toggleAlwaysOnTop">
+      <button class="button" type="button" @click="toggleAlwaysOnTop">
         <i class="iconfont icon-top" :style="{ color: isAlwaysOnTop ? '#87CEEB' : '' }"></i>
-      </el-button>
-      <el-button link class="button" @click="minimizeWindow">
+      </button>
+      <button class="button" type="button" @click="minimizeWindow">
         <i class="iconfont icon-min"></i>
-      </el-button>
-      <el-button link class="button" @click="toggleMaximize">
-        <i class="iconfont" :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
-          :style="{ color: isMaximized ? '#87CEEB' : '' }"></i>
-      </el-button>
-      <el-button link class="button" @click="closeWindow">
+      </button>
+      <button class="button" type="button" @click="toggleMaximize">
+        <i
+          class="iconfont"
+          :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
+          :style="{ color: isMaximized ? '#87CEEB' : '' }"
+        ></i>
+      </button>
+      <button class="button" type="button" @click="closeWindow">
         <i class="iconfont icon-close"></i>
-      </el-button>
+      </button>
     </div>
     <slot></slot>
   </div>
@@ -78,5 +81,27 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding-right: 10px;
+}
+
+.button {
+  width: 36px;
+  height: 30px;
+  margin-left: 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button:hover {
+  background-color: rgb(225, 225, 225);
+}
+
+.button i {
+  font-size: 13px;
 }
 </style>
