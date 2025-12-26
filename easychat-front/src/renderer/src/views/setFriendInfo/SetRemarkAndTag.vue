@@ -172,12 +172,29 @@ const confirm = () => {
 onMounted(() => {
   if (window.electron && window.electron.ipcRenderer) {
     window.electron.ipcRenderer.on('set-contact-data', (event, data) => {
+      console.log('接收到set-contact-data事件，数据:', data)
       contactData.value = data
       remark.value = data.remark || data.name || ''
-      // 如果后端传来的标签是逗号分隔的字符串，则拆分为数组
-      selectedLabels.value = data.labels ? data.labels : []
+      // 设置初始标签值，如果后端传来的标签是字符串则拆分，如果是数组则直接使用
+      if (data.labels) {
+        if (Array.isArray(data.labels)) {
+          selectedLabels.value = [...data.labels]
+        } else if (typeof data.labels === 'string') {
+          selectedLabels.value = data.labels
+            .split(',')
+            .map((label) => label.trim())
+            .filter((label) => label)
+        } else {
+          // 如果标签是其他格式（例如对象），尝试获取其值
+          selectedLabels.value = []
+        }
+      } else {
+        selectedLabels.value = []
+      }
       description.value = data.description || ''
     })
+  } else {
+    console.log('window.electron或window.electron.ipcRenderer不存在')
   }
 
   // 初始化时获取用户标签列表

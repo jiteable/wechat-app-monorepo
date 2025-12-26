@@ -339,6 +339,7 @@ const cancelRemarkEdit = () => {
 // 添加打开设置备注和标签窗口的方法
 const openSetRemarkAndTag = () => {
   if (window.api && typeof window.api.openSetRemarkAndTagWindow === 'function') {
+    
     // 创建一个可序列化的联系人数据对象
     const serializableContact = {
       id: currentContact.value.id,
@@ -351,11 +352,25 @@ const openSetRemarkAndTag = () => {
       signature: currentContact.value.signature,
       source: currentContact.value.source,
       memberCount: currentContact.value.memberCount,
-      members: currentContact.value.members,
+      members: currentContact.value.members
+        ? currentContact.value.members.map((member) => ({
+            id: member.id,
+            name: member.name,
+            avatar: member.avatar
+          }))
+        : null,
       announcement: currentContact.value.announcement,
-      sessionType: currentContact.value.sessionType
+      sessionType: currentContact.value.sessionType,
+      // 修复标签字段，确保它是可序列化的
+      labels: Array.isArray(currentContact.value.labels)
+        ? [...currentContact.value.labels]
+        : Array.isArray(currentContact.value.label)
+          ? [...currentContact.value.label]
+          : currentContact.value.labels || currentContact.value.label || []
     }
     window.api.openSetRemarkAndTagWindow(serializableContact)
+  } else {
+    console.log('window.api.openSetRemarkAndTagWindow 不存在或不是函数')
   }
 }
 

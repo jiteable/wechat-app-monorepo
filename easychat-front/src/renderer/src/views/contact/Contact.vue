@@ -138,6 +138,7 @@ onMounted(async () => {
 const fetchContacts = async () => {
   try {
     const response = await getContact()
+    console.log('fetchContacts', response.contacts)
     if (response && response.contacts) {
       // 将后端返回的数据转换为前端需要的格式
       contacts.value = response.contacts.map((contact) => ({
@@ -146,8 +147,15 @@ const fetchContacts = async () => {
         name: contact.username || contact.chatId,
         avatar:
           contact.avatar ||
-          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+        // 添加备注和标签字段
+        remark: contact.remark || null,
+        labels: contact.labels || null, // 标签字段
+        signature: contact.signature || null,
+        source: contact.source || null,
+        groupCount: contact.groupCount || 0
       }))
+      console.log('fetchCon', contacts.value)
     }
   } catch (error) {
     console.error('获取联系人失败:', error)
@@ -258,6 +266,7 @@ const isItemSelected = (itemId, type) => {
 const selectContact = (contact) => {
   selectedItemId.value = contact.id
   selectedItemType.value = 'contact'
+  console.log('contact', contact)
 
   contactStore.setSelectedUser(contact)
 

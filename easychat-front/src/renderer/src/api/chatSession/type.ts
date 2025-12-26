@@ -94,6 +94,7 @@ export interface ChatSession {
   group: Group | null
   contactId?: string // 添加联系人ID(限私聊)
   groupId?: string
+  labels: string[]
 }
 
 // 获取会话响应

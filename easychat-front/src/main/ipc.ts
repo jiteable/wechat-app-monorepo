@@ -347,7 +347,10 @@ export function createSetRemarkAndTagWindow(icon: string, contactData?: any): vo
 
     // 如果窗口已存在且提供了联系人数据，通过IPC发送联系人数据
     if (contactData) {
-      setRemarkAndTagWindow.webContents.send('set-contact-data', contactData)
+      // 使用 setTimeout 确保数据在前端准备好后发送
+      setTimeout(() => {
+        setRemarkAndTagWindow.webContents.send('set-contact-data', contactData)
+      }, 100)
     }
     return
   }
@@ -369,7 +372,9 @@ export function createSetRemarkAndTagWindow(icon: string, contactData?: any): vo
     setRemarkAndTagWindow!.show()
     // 窗口准备好后发送联系人数据
     if (contactData) {
-      setRemarkAndTagWindow!.webContents.send('set-contact-data', contactData)
+      setTimeout(() => {
+        setRemarkAndTagWindow!.webContents.send('set-contact-data', contactData)
+      }, 100)
     }
   })
 
@@ -445,6 +450,7 @@ export function setupIpcHandlers(icon: string): void {
 
   // 设置备注和标签窗口相关事件
   ipcMain.on('open-set-remark-and-tag-window', (event, contactData) => {
+    console.log('Received open-set-remark-and-tag-window event with data:', contactData) // 添加日志
     createSetRemarkAndTagWindow(icon, contactData)
   })
 
