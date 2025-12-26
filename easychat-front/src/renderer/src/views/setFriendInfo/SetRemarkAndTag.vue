@@ -54,7 +54,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { getUserLabels, setFriendLabel } from '@/api/setFriendInfo'
+import { userContactStore } from '@/store/userContactStore'
+
+const contactStore = userContactStore()
 
 const remark = ref('')
 const selectedLabels = ref([]) // 修改为数组以支持多选
@@ -110,11 +114,6 @@ const onBlur = () => {
   console.log('失焦')
 }
 
-// 选择标签后触发
-// const handleChange = (value) => {
-//   console.log('选中标签:', value)
-// }
-
 // 添加电话
 const addPhone = () => {
   console.log('添加电话')
@@ -152,14 +151,23 @@ const confirm = () => {
         if (response.success) {
           console.log('设置好友标签成功:', response.message)
           // 可以在这里添加成功提示
+          ElMessage.success('标签设置成功')
+
+          // 如果需要更新contactStore中的数据，可以这样做
+          if (contactStore.selectedUser) {
+            // 更新store中的联系人标签信息
+            contactStore.selectedUser.label = labelsArray
+          }
         } else {
           console.error('设置好友标签失败:', response.error)
           // 可以在这里添加错误提示
+          ElMessage.error(response.error || '设置标签失败')
         }
       })
       .catch((error) => {
         console.error('设置好友标签请求失败:', error)
         // 可以在这里添加错误提示
+        ElMessage.error('网络错误，请重试')
       })
   }
 
