@@ -127,7 +127,21 @@ const api = {
   getUsersByIds: (userIds: string[]): Promise<any> =>
     ipcRenderer.invoke('get-users-by-ids', userIds),
   getChatSessionById: (sessionId: string): Promise<any> =>
-    ipcRenderer.invoke('get-chat-session-by-id', sessionId)
+    ipcRenderer.invoke('get-chat-session-by-id', sessionId),
+
+  // 添加联系人更新相关
+  updateContactInMainWindow: (contactData: { contactId: string; updatedContact: any }): void =>
+    ipcRenderer.send('updateContactInMainWindow', contactData),
+
+  // 联系人更新相关
+  onContactUpdated: (callback: (data: any) => void): void => {
+    ipcRenderer.on('contactUpdated', (_event, data) => {
+      callback(data)
+    })
+  },
+  removeContactUpdatedListener: (): void => {
+    ipcRenderer.removeAllListeners('contactUpdated')
+  }
 }
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

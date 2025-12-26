@@ -130,7 +130,6 @@ const cancel = () => {
     window.api.closeSetRemarkAndTagWindow()
   }
 }
-
 // 提交
 const confirm = () => {
   const labelsArray = selectedLabels.value // 将选中的标签数组直接使用
@@ -153,10 +152,81 @@ const confirm = () => {
           // 可以在这里添加成功提示
           ElMessage.success('标签设置成功')
 
-          // 如果需要更新contactStore中的数据，可以这样做
-          if (contactStore.selectedUser) {
-            // 更新store中的联系人标签信息
+          // 更新contactStore中的联系人标签信息
+          console.log('Checking condition:', contactStore.selectedUser, contactData.value.id)
+          if (contactStore.selectedUser && contactStore.selectedUser.id === contactData.value.id) {
+            // 使用解构赋值确保响应性
             contactStore.selectedUser.label = labelsArray
+            // 同时更新可能的labels字段
+            if (Object.prototype.hasOwnProperty.call(contactStore.selectedUser, 'labels')) {
+              contactStore.selectedUser.labels = labelsArray
+            }
+
+            // 更新备注信息
+            if (remark.value) {
+              contactStore.selectedUser.remark = remark.value
+            }
+          } else {
+            console.log('Condition not met - selectedUser or IDs do not match')
+          }
+
+          // 无论如何都触发一个全局事件，通知其他组件更新联系人信息
+          // 创建更新后的联系人对象（仅包含基本数据类型，避免Proxy对象）
+          let updatedContact = {
+            id: contactData.value.id,
+            remark: remark.value,
+            labels: labelsArray,
+            description: description.value
+          }
+
+          // 如果 contactStore.selectedUser 存在，合并其数据（仅取基本属性）
+          if (contactStore.selectedUser) {
+            // 从响应式对象中提取基本数据
+            updatedContact = {
+              ...updatedContact,
+              name: contactStore.selectedUser.name,
+              avatar: contactStore.selectedUser.avatar,
+              signature: contactStore.selectedUser.signature,
+              source: contactStore.selectedUser.source,
+              groupCount: contactStore.selectedUser.groupCount,
+              chatId: contactStore.selectedUser.chatId
+            }
+          } else {
+            // 如果 contactStore.selectedUser 不存在，从接收到的原始数据合并
+            updatedContact = {
+              ...updatedContact,
+              name: contactData.value.name,
+              avatar: contactData.value.avatar,
+              signature: contactData.value.signature,
+              source: contactData.value.source,
+              groupCount: contactData.value.groupCount,
+              chatId: contactData.value.chatId
+            }
+          }
+
+          console.log('Updating contact:', updatedContact)
+
+          // 通过IPC发送更新事件到主进程，再转发到主窗口
+          // 先将数据转换为JSON字符串再发送，确保可序列化
+          if (window.api && typeof window.api.updateContactInMainWindow === 'function') {
+            try {
+              window.api.updateContactInMainWindow({
+                contactId: contactData.value.id,
+                updatedContact: JSON.parse(JSON.stringify(updatedContact)) // 确保只发送可序列化的数据
+              })
+            } catch (error) {
+              console.error('Error sending IPC message:', error)
+            }
+          } else {
+            // 如果没有IPC方法，则触发全局事件（用于同一窗口的情况）
+            window.dispatchEvent(
+              new CustomEvent('contactUpdated', {
+                detail: {
+                  contactId: contactData.value.id,
+                  updatedContact: updatedContact
+                }
+              })
+            )
           }
         } else {
           console.error('设置好友标签失败:', response.error)
@@ -169,10 +239,6 @@ const confirm = () => {
         // 可以在这里添加错误提示
         ElMessage.error('网络错误，请重试')
       })
-  }
-
-  if (window.api && typeof window.api.closeSetRemarkAndTagWindow === 'function') {
-    window.api.closeSetRemarkAndTagWindow()
   }
 }
 

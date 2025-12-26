@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import convertToPinyinInitials from '@/utils/changeChinese'
 import { getContact, getGroup } from '@/api/getRelationship'
@@ -132,6 +132,44 @@ const contacts = ref([])
 onMounted(async () => {
   await fetchContacts()
   await fetchGroups()
+})
+
+const handleContactUpdated = (event) => {
+  console.log('handleContactUpdated: ', event)
+  const { contactId, updatedContact } = event.detail || event // 适配DOM事件和IPC事件
+  // 更新 contacts 数组中的对应联系人
+  const index = contacts.value.findIndex((contact) => contact.id === contactId)
+  if (index !== -1) {
+    // 使用 Vue 的响应式更新方式
+    contacts.value[index] = { ...contacts.value[index], ...updatedContact }
+  }
+
+  // 如果当前选中的用户就是被更新的用户，也更新 selectedUser
+  if (contactStore.selectedUser && contactStore.selectedUser.id === contactId) {
+    contactStore.selectedUser = { ...contactStore.selectedUser, ...updatedContact }
+  }
+}
+
+// 组件挂载后添加事件监听器
+onMounted(() => {
+  // 监听联系人更新事件（DOM事件）
+  window.addEventListener('contactUpdated', handleContactUpdated)
+
+  // 监听从主进程发送的联系人更新事件（IPC事件）
+  if (window.api) {
+    window.api.onContactUpdated(handleContactUpdated)
+  }
+})
+
+// 组件卸载前移除事件监听器
+onUnmounted(() => {
+  // 移除联系人更新事件监听器
+  window.removeEventListener('contactUpdated', handleContactUpdated)
+
+  // 移除IPC事件监听器
+  if (window.api) {
+    window.api.removeContactUpdatedListener()
+  }
 })
 
 // 获取联系人数据

@@ -966,4 +966,18 @@ export function setupIpcHandlers(icon: string): void {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
+
+  // 添加联系人更新转发到主窗口的处理程序
+  ipcMain.on('updateContactInMainWindow', (event, { contactId, updatedContact }) => {
+    console.log('Received updateContactInMainWindow event with data:', {
+      contactId,
+      updatedContact
+    })
+    // 将联系人更新事件转发到主窗口
+    if (mainWindow) {
+      mainWindow.webContents.send('contactUpdated', { contactId, updatedContact })
+    } else {
+      console.warn('Main window not available to send contact update')
+    }
+  })
 }
