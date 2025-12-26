@@ -474,7 +474,6 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
 }
 
 const addMessageListener = () => {
-  console.log('awwwwwwwww')
   if (!isMessageListenerAdded) {
     window.api.onNewMessage(async (data) => {
       console.log('getuserMessage:', data)
@@ -988,7 +987,7 @@ const sendMessageHandler = async () => {
   // 查找最后一条普通消息的时间
   for (let i = messages.value.length - 1; i >= 0; i--) {
     const lastMessage = messages.value[i]
-    if (lastMessage.type === 'message') {
+    if (lastMessage.type !== 'timestamp' && lastMessage.type !== 'system') {
       const lastMessageTime = new Date(lastMessage.createdAt)
       const timeDiff = (currentTime - lastMessageTime) / (1000 * 60) // 转换为分钟
       if (timeDiff > 10) {
@@ -2174,6 +2173,7 @@ const formatDuration = (seconds) => {
   align-items: center;
   padding: 10px 15px;
   margin-top: 27px;
+  border-bottom: 1px solid rgb(213, 213, 213);
 }
 
 .user-info {
