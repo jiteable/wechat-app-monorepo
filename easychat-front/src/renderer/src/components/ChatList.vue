@@ -336,9 +336,46 @@ const handleContextCommand = (command) => {
 }
 
 // 置顶会话
-const handleTopSession = (session) => {
-  ElMessage.info(`将会话 "${session.name}" 置顶`)
-  // 实现置顶逻辑
+const handleTopSession = async (session) => {
+  try {
+    // 更新本地会话列表中的置顶状态
+    const sessionIndex = sessions.value.findIndex(s => s.id === session.id)
+    if (sessionIndex !== -1) {
+      // 更新会话的置顶状态
+      sessions.value[sessionIndex].isPinned = !sessions.value[sessionIndex].isPinned
+
+      // 根据新的置顶状态重新排序会话列表
+      const sortedSessions = [...sessions.value].sort((a, b) => {
+        // 首先按置顶状态排序：置顶的在前
+        if (a.isPinned && !b.isPinned) return -1
+        if (!a.isPinned && b.isPinned) return 1
+        // 如果置顶状态相同，则按更新时间排序（最新的在前）
+        return new Date(b.updatedAt) - new Date(a.updatedAt)
+      })
+
+      // 更新会话列表
+      sessions.value = sortedSessions
+
+      // 更新本地数据库中的isPinned值
+      if (window.api && typeof window.api.updateChatSessionUser === 'function') {
+        // 更新ChatSessionUser表中的isPinned字段
+        await window.api.updateChatSessionUser(contextMenuSession.value.id, {
+          isPinned: sessions.value[sessionIndex].isPinned
+        })
+      }
+
+      ElMessage.success(`${sessions.value[sessionIndex].isPinned ? '已置顶' : '已取消置顶'}会话 "${session.name}"`)
+    }
+  } catch (error) {
+    console.error('更新会话置顶状态失败:', error)
+    ElMessage.error('更新会话置顶状态失败')
+
+    // 如果更新失败，恢复原始状态
+    const sessionIndex = sessions.value.findIndex(s => s.id === session.id)
+    if (sessionIndex !== -1) {
+      sessions.value[sessionIndex].isPinned = !sessions.value[sessionIndex].isPinned
+    }
+  }
 }
 
 // 消息免打扰

@@ -93,8 +93,6 @@ class DatabaseManager {
         groupId TEXT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        isPinned BOOLEAN DEFAULT 0,
-        isMuted BOOLEAN DEFAULT 0,
         isDeleted BOOLEAN DEFAULT 0,
         deletedAt DATETIME
       )
@@ -262,19 +260,45 @@ class DatabaseManager {
         driver: sqlite3.Database
       })
 
-      // 通过ChatSessionUser表关联查询用户参与的所有会话，并包含remark信息和最新消息
+      // 获取ChatSession表数据和对应的ChatSessionUser表数据并合并返回
       const sessions = await db.all(
         `
-        SELECT DISTINCT 
-          cs.*, 
-          csu.customRemark as userRemark,
+        SELECT 
+          cs.id,
+          cs.sessionType,
+          cs.name,
+          cs.avatar,
+          cs.ownerId,
+          cs.groupId,
+          cs.createdAt,
+          cs.updatedAt,
+          cs.isDeleted,
+          cs.deletedAt,
+          csu.id as userSessionId,
+          csu.userId,
+          csu.contactId,
+          csu.joinTime,
+          csu.lastReadTime,
+          csu.isMuted,
+          csu.isPinned,
+          csu.customRemark,
+          csu.unreadCount,
+          csu.sessionType as userSessionType,
+          csu.identity,
+          csu.nickname,
+          csu.remark,
+          csu.showMemberNameCard,
+          csu.background,
+          csu.displayName,
+          csu.displayAvatar,
           um.content as lastMessageContent,
           um.messageType as lastMessageType,
           um.fileName as lastMessageFileName,
           um.senderName as lastMessageSenderName,
           um.senderId as lastMessageSenderId,
           um.isRecalled as lastMessageIsRecalled,
-          um.isDeleted as lastMessageIsDeleted
+          um.isDeleted as lastMessageIsDeleted,
+          um.createdAt as lastMessageCreatedAt
         FROM ChatSession cs
         INNER JOIN ChatSessionUser csu ON cs.id = csu.sessionId
         LEFT JOIN UnifiedMessage um ON cs.id = um.sessionId 
@@ -289,26 +313,76 @@ class DatabaseManager {
         [userId]
       )
 
-      console.log('sessionssa: ', sessions)
-
       await db.close()
 
-      // 处理布尔值
-      return sessions.map((session) => ({
-        ...session,
-        lastMessage:
-          session.lastMessageContent || session.lastMessageType
-            ? {
-                content: session.lastMessageContent,
-                messageType: session.lastMessageType,
-                fileName: session.lastMessageFileName,
-                senderName: session.lastMessageSenderName,
-                senderId: session.lastMessageSenderId,
-                isRecalled: !!session.lastMessageIsRecalled,
-                isDeleted: !!session.lastMessageIsDeleted
-              }
-            : null
-      }))
+      // 合并两个表的数据
+      return sessions.map((session) => {
+        const {
+          lastMessageContent,
+          lastMessageType,
+          lastMessageFileName,
+          lastMessageSenderName,
+          lastMessageSenderId,
+          lastMessageIsRecalled,
+          lastMessageIsDeleted,
+          lastMessageCreatedAt,
+          // 从ChatSessionUser中提取的字段
+          userSessionId,
+          userId,
+          contactId,
+          joinTime,
+          lastReadTime,
+          isMuted,
+          isPinned,
+          customRemark,
+          unreadCount,
+          userSessionType,
+          identity,
+          nickname,
+          remark,
+          showMemberNameCard,
+          background,
+          displayName,
+          displayAvatar,
+          ...chatSessionData
+        } = session
+
+        return {
+          ...chatSessionData,
+          // ChatSessionUser 表的字段（用户特定的会话设置）
+          userSessionId,
+          userId,
+          contactId,
+          joinTime,
+          lastReadTime,
+          isMuted: !!isMuted, // 转换为布尔值
+          isPinned: !!isPinned, // 转换为布尔值
+          customRemark,
+          unreadCount: unreadCount || 0,
+          userSessionType,
+          identity,
+          nickname,
+          remark,
+          showMemberNameCard: !!showMemberNameCard, // 转换为布尔值
+          background,
+          displayName,
+          displayAvatar,
+          // 最后消息信息
+          lastMessage:
+            lastMessageContent || lastMessageType
+              ? {
+                  content: lastMessageContent,
+                  messageType: lastMessageType,
+                  fileName: lastMessageFileName,
+                  senderName: lastMessageSenderName,
+                  senderId: lastMessageSenderId,
+                  isRecalled: !!lastMessageIsRecalled,
+                  isDeleted: !!lastMessageIsDeleted,
+                  createdAt: lastMessageCreatedAt
+                }
+              : null
+        }
+      })
     } catch (error) {
       console.error('根据用户ID查询ChatSession失败:', error)
       throw error

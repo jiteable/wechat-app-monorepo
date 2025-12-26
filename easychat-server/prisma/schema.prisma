@@ -274,8 +274,6 @@ model ChatSession {
   ownerId         String?                                // 会话创建者ID (主要用于群聊)
   createdAt       DateTime    @default(now())            // 会话创建时间
   updatedAt       DateTime    @updatedAt                 // 会话更新时间
-  isPinned        Boolean     @default(false)            // 是否置顶
-  isMuted         Boolean     @default(false)            // 是否免打扰
   isDeleted       Boolean     @default(false)            // 是否已删除
   deletedAt       DateTime?                              // 删除时间
   
