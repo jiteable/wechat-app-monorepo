@@ -81,7 +81,7 @@
               @mouseleave="hoveredContact = null"
             >
               <el-avatar shape="square" class="avatar-left" :size="30" :src="item.avatar" />
-              <span class="contact-name">{{ item.name }}</span>
+              <span class="contact-name">{{ item.remark || item.name }}</span>
             </button>
           </div>
         </div>

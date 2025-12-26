@@ -133,6 +133,10 @@ const api = {
   updateContactInMainWindow: (contactData: { contactId: string; updatedContact: any }): void =>
     ipcRenderer.send('updateContactInMainWindow', contactData),
 
+  // 添加更新联系人备注的API
+  updateContactRemark: (contactId: string, remark: string): Promise<any> =>
+    ipcRenderer.invoke('update-contact-remark', contactId, remark),
+
   // 联系人更新相关
   onContactUpdated: (callback: (data: any) => void): void => {
     ipcRenderer.on('contactUpdated', (_event, data) => {

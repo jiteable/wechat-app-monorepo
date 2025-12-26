@@ -980,4 +980,24 @@ export function setupIpcHandlers(icon: string): void {
       console.warn('Main window not available to send contact update')
     }
   })
+
+  ipcMain.handle('update-contact-remark', async (_, contactId, remark) => {
+    try {
+      // 首先尝试更新ChatSessionUser表中的remark字段
+      const db = await open({
+        filename: databaseManager.getDbPath(),
+        driver: sqlite3.Database
+      })
+
+      // 更新ChatSessionUser表中的remark
+      await db.run(`UPDATE ChatSessionUser SET remark = ? WHERE userId = ?`, [remark, contactId])
+
+      await db.close()
+
+      return { success: true }
+    } catch (error) {
+      console.error('更新联系人备注失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
 }

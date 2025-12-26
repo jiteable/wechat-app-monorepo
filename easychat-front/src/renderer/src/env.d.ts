@@ -95,5 +95,7 @@ interface Window {
     syncChatSessionUsers: (users: any[]) => Promise<any>
     getUsersByIds: (userIds: string[]) => Promise<any>
     getChatSessionById: (sessionId: string) => Promise<any>
+
+    updateContactRemark: (contactId: string, remark: string) => Promise<any>
   }
 }

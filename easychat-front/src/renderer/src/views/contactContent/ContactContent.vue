@@ -13,7 +13,7 @@
           :src="currentContact.image ? currentContact.image : currentContact.avatar"
         />
         <div class="chat-contant-info-name">
-          <div class="name">{{ currentContact.name }}</div>
+          <div class="name">{{ currentContact.remark || currentContact.name }}</div>
           <div class="info-names">
             <div v-if="!isGroup" class="info-name">昵称: {{ currentContact.name }}</div>
             <div v-if="!isGroup" class="info-name">
@@ -315,11 +315,75 @@ const saveRemark = async () => {
         if (result.success) {
           // 更新联系人信息
           currentContact.value.remark = editingRemark.value
-          // 更新store中的数据
-          contactStore.updateSelectedUserRemark(currentContact.value.id, editingRemark.value)
+          // 直接更新store中的selectedUser的remark值
+          contactStore.selectedUser = { ...contactStore.selectedUser, remark: editingRemark.value }
+
+          // 向服务器发送更新请求
+          try {
+            const { setFriendInfo } = await import('@/api/setFriendInfo')
+            const response = await setFriendInfo({
+              friendId: currentContact.value.id,
+              remark: editingRemark.value
+            })
+
+            if (response.success) {
+              console.log('服务器端备注更新成功')
+            } else {
+              console.error('服务器端备注更新失败:', response.error)
+            }
+          } catch (serverError) {
+            console.error('向服务器更新备注时出错:', serverError)
+          }
+
+          // 创建一个可序列化的联系人数据对象，用于发送到主进程
+          const serializableContact = {
+            id: currentContact.value.id,
+            name: currentContact.value.name,
+            chatId: currentContact.value.chatId,
+            avatar: currentContact.value.avatar,
+            image: currentContact.value.image,
+            remark: currentContact.value.remark,
+            groupCount: currentContact.value.groupCount,
+            signature: currentContact.value.signature,
+            source: currentContact.value.source,
+            memberCount: currentContact.value.memberCount,
+            members: currentContact.value.members
+              ? currentContact.value.members.map((member) => ({
+                  id: member.id,
+                  name: member.name,
+                  avatar: member.avatar
+                }))
+              : null,
+            announcement: currentContact.value.announcement,
+            sessionType: currentContact.value.sessionType,
+            labels: Array.isArray(currentContact.value.labels)
+              ? [...currentContact.value.labels]
+              : Array.isArray(currentContact.value.label)
+                ? [...currentContact.value.label]
+                : currentContact.value.labels || currentContact.value.label || []
+          }
+
+          // 发送事件通知其他组件更新联系人信息
+          if (window.api && typeof window.api.updateContactInMainWindow === 'function') {
+            await window.api.updateContactInMainWindow({
+              contactId: currentContact.value.id,
+              updatedContact: serializableContact
+            })
+          }
+
+          // 同时触发一个自定义事件，用于更新联系人列表
+          window.dispatchEvent(
+            new CustomEvent('contactUpdated', {
+              detail: {
+                contactId: currentContact.value.id,
+                updatedContact: serializableContact
+              }
+            })
+          )
+
           console.log('备注更新成功')
         } else {
-          console.error('更新备注失败:', result.error)
+          console.error('更新本地备注失败:', result.error)
         }
       }
     } catch (error) {
@@ -339,7 +403,6 @@ const cancelRemarkEdit = () => {
 // 添加打开设置备注和标签窗口的方法
 const openSetRemarkAndTag = () => {
   if (window.api && typeof window.api.openSetRemarkAndTagWindow === 'function') {
-    
     // 创建一个可序列化的联系人数据对象
     const serializableContact = {
       id: currentContact.value.id,

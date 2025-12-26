@@ -43,7 +43,6 @@ class DatabaseManager {
       await this.createTables(db)
 
       await db.close()
-      console.log('数据库及表结构已创建于:', this.dbPath)
     } catch (error) {
       console.error('创建数据库失败:', error)
     }
@@ -63,7 +62,6 @@ class DatabaseManager {
       await this.createTables(db)
 
       await db.close()
-      console.log('所有表已初始化完成')
     } catch (error) {
       console.error('初始化表结构失败:', error)
       throw error
@@ -239,14 +237,11 @@ class DatabaseManager {
         ]
       )
 
-      console.log('成功向ChatSession表中添加了一条数据')
-
       // 查询刚刚插入的数据
       const result = await db.get(`SELECT * FROM ChatSession WHERE id = ?`, [sessionData.id])
 
       await db.close()
 
-      console.log('新创建的数据:', result)
       return result
     } catch (error) {
       console.error('操作ChatSession表失败:', error)
@@ -272,7 +267,7 @@ class DatabaseManager {
         `
         SELECT DISTINCT 
           cs.*, 
-          csu.remark as userRemark,
+          csu.customRemark as userRemark,
           um.content as lastMessageContent,
           um.messageType as lastMessageType,
           um.fileName as lastMessageFileName,
@@ -829,8 +824,6 @@ class DatabaseManager {
         ]
       )
 
-      console.log('成功向UnifiedMessage表中添加了一条数据')
-
       // 查询刚刚插入的数据
       const insertedMessage = await db.get(`SELECT * FROM UnifiedMessage WHERE id = ?`, [
         messageData.id || result.lastID
@@ -960,8 +953,6 @@ class DatabaseManager {
 
       await db.close()
 
-      console.log('processedMessages', processedMessages)
-
       return {
         messages: processedMessages,
         pagination: {
@@ -1064,8 +1055,6 @@ class DatabaseManager {
         filename: this.dbPath,
         driver: sqlite3.Database
       })
-
-      console.log('aaaaaaaamessages: ', messages)
 
       for (const message of messages) {
         // 检查消息是否已存在

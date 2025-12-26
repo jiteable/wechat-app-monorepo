@@ -153,7 +153,7 @@
                         :src="scope.row.avatar"
                         style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px"
                       />
-                      <span>{{ scope.row.name }}</span>
+                      <span style="font-size: 13px; margin-left: -5px">{{ scope.row.name }}</span>
                     </div>
                   </template>
                 </el-table-column>
