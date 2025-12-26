@@ -148,7 +148,17 @@ const sessions = ref([])
 
 // 过滤后的会话（支持搜索）
 const filteredSessions = computed(() => {
-  if (!searchText.value) return sessions.value
+  if (!searchText.value) {
+    // 对会话进行排序：置顶会话在前，非置顶会话在后，各自按更新时间排序
+    const sortedSessions = [...sessions.value].sort((a, b) => {
+      // 首先按置顶状态排序：置顶的在前
+      if (a.isPinned && !b.isPinned) return -1
+      if (!a.isPinned && b.isPinned) return 1
+      // 如果置顶状态相同，则按更新时间排序（最新的在前）
+      return new Date(b.updatedAt) - new Date(a.updatedAt)
+    })
+    return sortedSessions
+  }
   return sessions.value.filter((session) =>
     session.name.toLowerCase().includes(searchText.value.toLowerCase())
   )
