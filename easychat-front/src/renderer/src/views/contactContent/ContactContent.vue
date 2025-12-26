@@ -381,6 +381,9 @@ const saveRemark = async () => {
             })
           )
 
+          // 同时也需要通知聊天列表更新，以确保会话列表中的备注也更新
+          window.dispatchEvent(new CustomEvent('sessionListUpdated'))
+
           console.log('备注更新成功')
         } else {
           console.error('更新本地备注失败:', result.error)

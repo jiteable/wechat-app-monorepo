@@ -249,6 +249,37 @@ router.post('/setFriendInfo', authenticateToken, async function (req, res, next)
       }
 
       updateData.remark = remark;
+
+      // 同时更新ChatSessionUser表中的customRemark字段
+      // 首先找到当前用户与该好友的私聊会话
+      const privateSession = await db.chatSession.findFirst({
+        where: {
+          sessionType: 'private',
+          ChatSessionUsers: {
+            some: {
+              userId: userId,
+            }
+          },
+          ChatSessionUsers: {
+            some: {
+              userId: friendId,
+            }
+          }
+        }
+      });
+
+      if (privateSession) {
+        // 更新当前用户在该会话中的自定义备注
+        await db.chatSessionUser.updateMany({
+          where: {
+            sessionId: privateSession.id,
+            userId: userId
+          },
+          data: {
+            customRemark: remark
+          }
+        });
+      }
     }
 
     // 处理描述
@@ -319,7 +350,6 @@ router.post('/setFriendInfo', authenticateToken, async function (req, res, next)
     });
   }
 })
-
 
 
 module.exports = router;

@@ -204,6 +204,7 @@ const confirmLoadChatHistory = async () => {
           const chatSessionUsersResponse = await getSessionUsers()
 
           if (chatSessionUsersResponse && chatSessionUsersResponse.success) {
+            console.log('chatSessionUsersResponse.data:', chatSessionUsersResponse.data)
             const syncChatSessionUsersResult = await window.api.syncChatSessionUsers(
               chatSessionUsersResponse.data
             )

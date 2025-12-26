@@ -464,6 +464,9 @@ onMounted(() => {
   // 添加群聊信息更新事件监听
   window.addEventListener('groupInfoUpdated', handleGroupInfoUpdated)
 
+  // 添加会话列表更新事件监听，用于备注更新等场景
+  window.addEventListener('sessionListUpdated', refreshSessions)
+
   // 监听路由变化
   updateSelectedSessionFromRoute()
   router.afterEach(updateSelectedSessionFromRoute)
@@ -479,6 +482,9 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   // 移除群聊信息更新事件监听
   window.removeEventListener('groupInfoUpdated', handleGroupInfoUpdated)
+
+  // 移除会话列表更新事件监听
+  window.removeEventListener('sessionListUpdated', refreshSessions)
 
   // 移除路由监听
   router.afterEach(() => {})

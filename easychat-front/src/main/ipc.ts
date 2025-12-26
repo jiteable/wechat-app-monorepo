@@ -990,7 +990,12 @@ export function setupIpcHandlers(icon: string): void {
       })
 
       // 更新ChatSessionUser表中的remark
-      await db.run(`UPDATE ChatSessionUser SET remark = ? WHERE userId = ?`, [remark, contactId])
+      const result = await db.run(
+        `UPDATE ChatSessionUser SET customRemark = ? WHERE contactId = ?`,
+        [remark, contactId]
+      )
+
+      console.log('UPDATE ChatSessionUse: ', result)
 
       await db.close()
 

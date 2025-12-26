@@ -307,7 +307,6 @@ model ChatSessionUser {
   groupId             String?                       // 群ID（群聊时使用）
   identity            String?                       // 在群中的身份（仅群聊）
   nickname            String?                       // 用户在群内的昵称（仅群聊）
-  remark              String?                       // 群备注（仅群聊）
   showMemberNameCard  Boolean  @default(true)       // 是否显示群成员名称（仅群聊）
   background          String?                       // 聊天背景（仅群聊）
   displayName         String?                       // 显示名称
