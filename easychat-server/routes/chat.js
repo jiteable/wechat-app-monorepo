@@ -299,7 +299,7 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
     // 创建消息记录
     const messageData = {
       sessionId,
-      senderId,
+      senderId: messageType === 'system' ? null : senderId,
       receiverId: receiverId || null,
       groupId: groupId || null,
       content: messageContent,

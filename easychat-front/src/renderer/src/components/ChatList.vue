@@ -339,12 +339,21 @@ const handleContextCommand = (command) => {
 
 // 置顶会话
 const handleTopSession = async (session) => {
+  // 保存原始状态以备回滚
+  const sessionIndex = sessions.value.findIndex((s) => s.id === session.id)
+  let originalIsPinned = null
+  let userSessionId = null
+
+  if (sessionIndex !== -1) {
+    originalIsPinned = sessions.value[sessionIndex].isPinned
+    userSessionId = sessions.value[sessionIndex].userSessionId
+  }
+
   try {
-    // 更新本地会话列表中的置顶状态
-    const sessionIndex = sessions.value.findIndex((s) => s.id === session.id)
     if (sessionIndex !== -1) {
       // 更新会话的置顶状态
-      sessions.value[sessionIndex].isPinned = !sessions.value[sessionIndex].isPinned
+      sessions.value[sessionIndex].isPinned = !originalIsPinned
+      const newIsPinned = sessions.value[sessionIndex].isPinned
 
       // 根据新的置顶状态重新排序会话列表
       const sortedSessions = [...sessions.value].sort((a, b) => {
@@ -358,30 +367,30 @@ const handleTopSession = async (session) => {
       // 更新会话列表
       sessions.value = sortedSessions
 
-      // 更新本地数据库中的isPinned值
-      if (window.api && typeof window.api.updateChatSessionUser === 'function') {
-        // 更新ChatSessionUser表中的isPinned字段
-        await window.api.updateChatSessionUser(contextMenuSession.value.id, {
-          isPinned: sessions.value[sessionIndex].isPinned
+      // 更新本地数据库中的isPinned值 - 使用之前保存的userSessionId
+      if (window.api && typeof window.api.updateChatSessionUser === 'function' && userSessionId) {
+        await window.api.updateChatSessionUser(userSessionId, {
+          isPinned: newIsPinned // 使用新的置顶状态
         })
+      } else if (!userSessionId) {
+        console.error('无法获取userSessionId，无法更新置顶状态')
+        // 如果没有userSessionId，恢复原始状态
+        sessions.value[sessionIndex].isPinned = originalIsPinned
       }
 
-      ElMessage.success(
-        `${sessions.value[sessionIndex].isPinned ? '已置顶' : '已取消置顶'}会话 "${session.name}"`
-      )
+      ElMessage.success(`${newIsPinned ? '已置顶' : '已取消置顶'}会话 "${session.name}"`)
     }
   } catch (error) {
     console.error('更新会话置顶状态失败:', error)
     ElMessage.error('更新会话置顶状态失败')
 
     // 如果更新失败，恢复原始状态
-    const sessionIndex = sessions.value.findIndex((s) => s.id === session.id)
-    if (sessionIndex !== -1) {
-      sessions.value[sessionIndex].isPinned = !sessions.value[sessionIndex].isPinned
+    if (sessionIndex !== -1 && originalIsPinned !== null) {
+      sessions.value[sessionIndex].isPinned = originalIsPinned
+      console.log('已恢复原始置顶状态:', originalIsPinned)
     }
   }
 }
-
 // 消息免打扰
 const handleMuteSession = (session) => {
   ElMessage.info(`设置会话 "${session.name}" 消息免打扰`)

@@ -626,7 +626,8 @@ class DatabaseManager {
         }
       }
 
-      values.push(id)
+      // 将updatedAt值添加到values数组的末尾
+      values.push(new Date().toISOString(), id)
 
       await db.run(
         `
@@ -634,7 +635,7 @@ class DatabaseManager {
         SET ${fields.join(', ')}, updatedAt = ?
         WHERE id = ?
         `,
-        [...values, new Date().toISOString(), id]
+        values
       )
 
       await db.close()
