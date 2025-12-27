@@ -215,6 +215,11 @@ const props = defineProps({
   isGroupOwnerOrAdmin: {
     type: Boolean,
     default: false
+  },
+  // 添加 isPinned 属性
+  isPinned: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -279,6 +284,14 @@ watch(
 )
 
 watch(
+  () => props.isPinned,
+  (newIsPinned) => {
+    pinChat.value = newIsPinned
+  },
+  { immediate: true }
+)
+
+watch(
   () => props.remark,
   (newRemark) => {
     groupEditForm.value.remark = newRemark || ''
@@ -300,6 +313,12 @@ const onClose = () => {
   emit('close')
 }
 
+watch(
+  pinChat,
+  (newVal) => {
+    emit('update:pinChat', newVal)
+  }
+)
 const handleAvatarError = () => {
   console.log('头像加载失败')
 }

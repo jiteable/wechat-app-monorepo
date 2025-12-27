@@ -265,6 +265,7 @@
         :displayed-users="displayedUsers"
         :should-show-add-button="shouldShowAddButton"
         :is-group-owner-or-admin="isGroupOwnerOrAdmin"
+        :is-pinned="contactStore.selectedContact?.isPinned"
         @update:visible="drawer = $event"
         @search-messages="searchMessages"
         @clear-chat-history="clearChatHistory"
@@ -275,6 +276,7 @@
         @update-nickname="handleUpdateNickname"
         @add-member="addMember"
         @send-system-message="handleSendSystemMessage"
+        @update:pin-chat="handlePinChatChange"
       />
     </div>
 
@@ -486,6 +488,42 @@ const handleGroupRenameMessage = (content) => {
       // 更新会话名称
       contactStore.selectedContact.name = newGroupName
     }
+  }
+}
+
+const handlePinChatChange = async (isPinned) => {
+  // 这里应该调用更新会话置顶状态的API
+  // 需要获取当前会话ID和更新状态
+  const currentSession = contactStore.selectedContact
+  if (!currentSession) return
+
+  try {
+    // 调用ChatList中类似的处理逻辑，更新会话的置顶状态
+    // 从ChatList组件中复制类似的逻辑
+    if (
+      window.api &&
+      typeof window.api.updateChatSessionUser === 'function' &&
+      currentSession.userSessionId
+    ) {
+      await window.api.updateChatSessionUser(currentSession.userSessionId, {
+        isPinned: isPinned
+      })
+    }
+
+    // 更新本地会话的置顶状态
+    const updatedSession = {
+      ...currentSession,
+      isPinned: isPinned
+    }
+
+    // 更新 contactStore 中的会话信息
+    contactStore.setSelectedContact(updatedSession)
+  } catch (error) {
+    console.error('更新会话置顶状态失败:', error)
+    ElMessage.error('更新会话置顶状态失败')
+
+    // 如果更新失败，恢复之前的置顶状态
+    // 这需要获取更新前的状态，可能需要在方法开始时保存
   }
 }
 
@@ -737,7 +775,7 @@ const sendSystemMessage = async (contents) => {
   } catch (error) {
     console.error('发送系统消息失败:', error)
     // 从消息列表中移除本地消息，因为发送失败
-    const index = messages.value.findIndex(msg => msg.id === localSystemMessage.id)
+    const index = messages.value.findIndex((msg) => msg.id === localSystemMessage.id)
     if (index !== -1) {
       messages.value.splice(index, 1)
     }
