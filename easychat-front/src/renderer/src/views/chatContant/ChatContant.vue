@@ -274,6 +274,7 @@
         @update-remark="handleUpdateRemark"
         @update-nickname="handleUpdateNickname"
         @add-member="addMember"
+        @send-system-message="handleSendSystemMessage"
       />
     </div>
 
@@ -473,6 +474,21 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
   }
 }
 
+const handleGroupRenameMessage = (content) => {
+  // 解析系统消息内容，提取新的群名称
+  const regex = /.*? 修改群聊名称为 (.*)/
+  const match = content.match(regex)
+  if (match && match[1]) {
+    const newGroupName = match[1]
+    // 更新本地存储的群名称
+    if (contactStore.selectedContact && contactStore.selectedContact.group) {
+      contactStore.selectedContact.group.name = newGroupName
+      // 更新会话名称
+      contactStore.selectedContact.name = newGroupName
+    }
+  }
+}
+
 const addMessageListener = () => {
   if (!isMessageListenerAdded) {
     window.api.onNewMessage(async (data) => {
@@ -514,6 +530,14 @@ const addMessageListener = () => {
             duration: data.data.duration,
             width: data.data.width,
             height: data.data.height
+          }
+        }
+
+        // 如果是系统消息，特殊处理
+        if (newMessage.type === 'system') {
+          // 检查是否是群名称修改消息
+          if (newMessage.content.includes('修改群聊名称为')) {
+            handleGroupRenameMessage(newMessage.content)
           }
         }
 
@@ -584,6 +608,159 @@ const addMessageListener = () => {
     })
     isMessageListenerAdded = true
   }
+}
+
+const handleSendSystemMessage = (data) => {
+  sendSystemMessage(data.content, data.sessionId)
+}
+
+// 添加发送系统消息的函数
+const sendSystemMessage = async (contents) => {
+  const content = `${userStore.username || '我'} ${contents}`
+
+  // 创建本地系统消息对象（用于立即显示）
+  const localSystemMessage = {
+    id: Date.now() + Math.random(), // 临时ID
+    type: 'system',
+    senderId: userStore.userId,
+    senderName: userStore.username || '我',
+    senderAvatar: userStore.avatar || '',
+    content: `${content}`
+  }
+
+  console.log('localSystemMessage: ', localSystemMessage)
+
+  // 立即显示系统消息（优化用户体验）
+  messages.value.unshift(localSystemMessage)
+
+  const sessionId = contactStore.selectedContact.id
+
+  try {
+    // 构造系统消息对象
+    const messageData = {
+      sessionId: sessionId,
+      senderId: userStore.userId,
+      messageType: 'system',
+      content: content
+    }
+
+    console.log('messageData: ', messageData)
+
+    // 确保 contactStore.selectedContact 存在并设置正确的接收方信息
+    if (contactStore.selectedContact) {
+      // 如果是私聊
+      if (contactStore.selectedContact.sessionType === 'private') {
+        messageData.receiverId = contactStore.selectedContact.contactId
+      }
+      // 如果是群聊
+      else if (contactStore.selectedContact.sessionType === 'group') {
+        messageData.groupId = contactStore.selectedContact.group?.id
+      }
+    } else {
+      console.warn('没有选中的联系人，尝试从会话ID获取会话类型信息')
+      // 如果没有选中的联系人，可能需要从其他途径获取会话类型信息
+      // 这里可以尝试通过 sessionId 获取会话信息
+      try {
+        const sessionInfo = await window.api.getChatSessionById(sessionId)
+        if (sessionInfo) {
+          if (sessionInfo.sessionType === 'private') {
+            messageData.receiverId = sessionInfo.contactId
+          } else if (sessionInfo.sessionType === 'group') {
+            messageData.groupId = sessionInfo.groupId
+          }
+        }
+      } catch (sessionError) {
+        console.error('获取会话信息失败:', sessionError)
+      }
+    }
+
+    // 通过WebSocket发送实时消息
+    if (window.api && typeof window.api.sendMessage === 'function') {
+      window.api.sendMessage({
+        type: 'send_message',
+        data: messageData
+      })
+    }
+
+    // 通过HTTP API发送消息到后端（用于持久化存储）
+    const response = await sendMessage(messageData)
+    console.log('系统消息发送成功:', response)
+
+    // 保存消息到本地数据库
+    try {
+      if (window.api && typeof window.api.addUnifiedMessage === 'function') {
+        const messageSaveData = {
+          id: response.data.messageId,
+          sessionId: sessionId,
+          senderId: userStore.userId,
+          senderName: userStore.username || '我',
+          senderAvatar: userStore.avatar || '',
+          receiverId:
+            contactStore.selectedContact && contactStore.selectedContact.sessionType === 'private'
+              ? contactStore.selectedContact.contactId
+              : null,
+          groupId:
+            contactStore.selectedContact && contactStore.selectedContact.sessionType === 'group'
+              ? contactStore.selectedContact.group?.id
+              : null,
+          content: content,
+          messageType: 'system',
+          status: 'SENT',
+          readStatus: true,
+          createdAt: response.data.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+
+        const result = await window.api.addUnifiedMessage(messageSaveData)
+        if (result.success) {
+          console.log('系统消息已保存到本地数据库:', result.data)
+        } else {
+          console.error('保存系统消息到本地数据库失败:', result.error)
+        }
+      }
+    } catch (error) {
+      console.error('调用addUnifiedMessage时发生错误:', error)
+    }
+
+    // 发送自定义事件更新ChatList中的lastMessage
+    const lastMessageData = {
+      sessionId: sessionId,
+      lastMessage: {
+        content: content,
+        messageType: 'system',
+        isRecalled: false,
+        isDeleted: false
+      },
+      timestamp: new Date().toISOString()
+    }
+    window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }))
+  } catch (error) {
+    console.error('发送系统消息失败:', error)
+    // 从消息列表中移除本地消息，因为发送失败
+    const index = messages.value.findIndex(msg => msg.id === localSystemMessage.id)
+    if (index !== -1) {
+      messages.value.splice(index, 1)
+    }
+
+    // 可以在这里添加错误处理，比如显示错误消息给用户
+    if (error.response) {
+      // 服务器响应了错误状态码
+      console.error('服务器错误:', error.response.status, error.response.data)
+    } else if (error.request) {
+      // 请求已发出但没有收到响应
+      console.error('网络错误:', error.request)
+    } else {
+      // 其他错误
+      console.error('请求错误:', error.message)
+    }
+  }
+
+  // 自动滚动到底部
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
 }
 
 // 监听选中会话的变化并打印信息

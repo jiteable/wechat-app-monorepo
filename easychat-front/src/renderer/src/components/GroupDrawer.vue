@@ -229,7 +229,8 @@ const emit = defineEmits([
   'updateAnnouncement',
   'updateRemark',
   'updateNickname',
-  'addMember'
+  'addMember',
+  'sendSystemMessage'  // 添加发送系统消息事件
 ])
 
 // Data
@@ -417,6 +418,12 @@ const saveGroupName = async () => {
 
         // 显示成功消息
         ElMessage.success('群名称修改成功')
+
+        // 发送系统消息通知群成员
+        const systemMessageContent = `修改群聊名称为 ${groupEditForm.value.name}`
+        emit('sendSystemMessage', {
+          content: systemMessageContent
+        })
       } else {
         ElMessage.error(response.message || '群名称修改失败')
       }
