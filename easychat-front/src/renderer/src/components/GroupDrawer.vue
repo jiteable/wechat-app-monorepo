@@ -54,15 +54,18 @@
             @mouseover="showEditIcon('announcement')"
             @mouseleave="hideEditIcon('announcement')"
           >
-            <input
+            <textarea
               v-if="editingField === 'announcement'"
               ref="announcementInput"
               v-model="groupEditForm.announcement"
-              class="edit-input"
+              class="edit-textarea"
+              maxlength="200"
               @blur="saveAnnouncement"
-              @keyup.enter="saveAnnouncement"
+              @keydown.enter="handleEnterKeyAnnouncement"
             />
-            <span v-else class="value">{{ group?.announcement || '暂无公告' }}</span>
+            <span v-else class="value" style="white-space: pre-line">{{
+              group?.announcement || '暂无公告'
+            }}</span>
             <el-icon
               v-if="
                 isGroupOwnerOrAdmin &&
@@ -230,6 +233,7 @@ const emit = defineEmits([
 ])
 
 // Data
+// Data
 const showMemberNames = ref(false)
 const muteNotifications = ref(false)
 const pinChat = ref(false)
@@ -249,6 +253,11 @@ const groupEditForm = ref({
   nickname: ''
 })
 
+// 添加变量来保存原始内容
+const originalAnnouncement = ref('')
+const originalGroupName = ref('')
+const originalRemark = ref('')
+
 const groupNameInput = ref(null)
 const announcementInput = ref(null)
 const remarkInput = ref(null)
@@ -260,7 +269,9 @@ watch(
   (newGroup) => {
     if (newGroup) {
       groupEditForm.value.name = newGroup.name || ''
+      originalGroupName.value = newGroup.name || '' // 保存原始群名称内容
       groupEditForm.value.announcement = newGroup.announcement || ''
+      originalAnnouncement.value = newGroup.announcement || '' // 保存原始群公告内容
     }
   },
   { immediate: true }
@@ -370,6 +381,7 @@ const hideEditIcon = (field) => {
 const startEditGroupName = () => {
   editingField.value = 'groupName'
   groupEditForm.value.name = props.group?.name || ''
+  originalGroupName.value = props.group?.name || '' // 保存编辑前的原始内容
   nextTick(() => {
     groupNameInput.value?.focus()
   })
@@ -378,6 +390,13 @@ const startEditGroupName = () => {
 // 保存群名称
 const saveGroupName = async () => {
   if (editingField.value === 'groupName') {
+    // 检查内容是否发生变化
+    if (groupEditForm.value.name === originalGroupName.value) {
+      // 内容没有变化，不执行保存操作
+      editingField.value = ''
+      return
+    }
+
     try {
       // 调用API更新群名称
       const response = await updateGroupInfo({
@@ -392,6 +411,9 @@ const saveGroupName = async () => {
 
         // 重置编辑状态
         editingField.value = ''
+
+        // 更新原始内容为新内容
+        originalGroupName.value = groupEditForm.value.name
 
         // 显示成功消息
         ElMessage.success('群名称修改成功')
@@ -408,6 +430,13 @@ const saveGroupName = async () => {
 // 保存群公告
 const saveAnnouncement = async () => {
   if (editingField.value === 'announcement') {
+    // 检查内容是否发生变化
+    if (groupEditForm.value.announcement === originalAnnouncement.value) {
+      // 内容没有变化，不执行保存操作
+      editingField.value = ''
+      return
+    }
+
     try {
       // 调用API更新群公告
       const response = await updateGroupInfo({
@@ -421,6 +450,9 @@ const saveAnnouncement = async () => {
 
         // 重置编辑状态
         editingField.value = ''
+
+        // 更新原始内容为新内容
+        originalAnnouncement.value = groupEditForm.value.announcement
 
         // 显示成功消息
         ElMessage.success('群公告修改成功')
@@ -438,15 +470,35 @@ const saveAnnouncement = async () => {
 const startEditAnnouncement = () => {
   editingField.value = 'announcement'
   groupEditForm.value.announcement = props.group?.announcement || ''
+  originalAnnouncement.value = props.group?.announcement || '' // 保存编辑前的原始内容
   nextTick(() => {
     announcementInput.value?.focus()
   })
+}
+
+// 处理群公告回车键事件
+const handleEnterKeyAnnouncement = (event) => {
+  if (event.shiftKey) {
+    // Shift + Enter 换行
+    event.preventDefault()
+    const textarea = event.target
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const text = groupEditForm.value.announcement
+    groupEditForm.value.announcement = text.substring(0, start) + '\n' + text.substring(end)
+    textarea.selectionStart = textarea.selectionEnd = start + 1
+  } else {
+    // Enter 保存
+    event.preventDefault() // 阻止默认行为（换行）
+    saveAnnouncement()
+  }
 }
 
 // 开始编辑备注
 const startEditRemark = () => {
   editingField.value = 'remark'
   groupEditForm.value.remark = props.remark || ''
+  originalRemark.value = props.remark || '' // 保存编辑前的原始内容
   nextTick(() => {
     remarkInput.value?.focus()
   })
@@ -455,6 +507,13 @@ const startEditRemark = () => {
 // 保存备注
 const saveRemark = async () => {
   if (editingField.value === 'remark') {
+    // 检查内容是否发生变化
+    if (groupEditForm.value.remark === originalRemark.value) {
+      // 内容没有变化，不执行保存操作
+      editingField.value = ''
+      return
+    }
+
     try {
       // 调用API更新会话备注
       const response = await updateSessionRemark({
@@ -468,6 +527,9 @@ const saveRemark = async () => {
 
         // 重置编辑状态
         editingField.value = ''
+
+        // 更新原始内容为新内容
+        originalRemark.value = groupEditForm.value.remark
 
         // 显示成功消息
         ElMessage.success('备注修改成功')
@@ -555,7 +617,21 @@ const saveNickname = async () => {
   width: 100%;
 }
 
-.edit-input:focus {
+.edit-textarea {
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+  padding: 5px;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.edit-input:focus,
+.edit-textarea:focus {
   border-color: #409eff;
 }
 
