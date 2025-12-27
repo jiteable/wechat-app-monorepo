@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import convertToPinyinInitials from '@/utils/changeChinese'
 import { getContact, getGroup } from '@/api/getRelationship'
@@ -138,7 +138,38 @@ const contacts = ref([])
 onMounted(async () => {
   await fetchContacts()
   await fetchGroups()
+
+  // 从 store 恢复选中状态
+  if (contactStore.selectedUser) {
+    const user = contactStore.selectedUser
+    if (user.sessionType === 'group') {
+      selectedItemId.value = user.id
+      selectedItemType.value = 'group'
+    } else {
+      selectedItemId.value = user.id
+      selectedItemType.value = 'contact'
+    }
+  }
 })
+
+// 监听 selectedUser 变化，同步选中状态
+watch(
+  () => contactStore.selectedUser,
+  (newUser) => {
+    if (newUser) {
+      if (newUser.sessionType === 'group') {
+        selectedItemId.value = newUser.id
+        selectedItemType.value = 'group'
+      } else {
+        selectedItemId.value = newUser.id
+        selectedItemType.value = 'contact'
+      }
+    } else {
+      selectedItemId.value = null
+      selectedItemType.value = null
+    }
+  }
+)
 
 const handleContactUpdated = (event) => {
   console.log('handleContactUpdated: ', event)
