@@ -23,7 +23,7 @@
           <!-- 信息区域和时间 -->
           <div class="content-wrapper">
             <div class="info">
-              <div class="title">{{ session.userRemark || session.name }}</div>
+              <div class="title">{{ session.customRemark || session.name }}</div>
               <div class="last-message">
                 {{ formatLastMessage(session.lastMessage, session.sessionType) }}
               </div>
