@@ -816,71 +816,88 @@ watch(
       console.log('路由参数变化:', newSessionId)
       // 当路由参数变化时，获取会话信息并设置到 store 中
       try {
-        const sessionResponse = await getSessions()
-        if (sessionResponse && sessionResponse.success) {
-          const session = sessionResponse.data.find((s) => s.id === newSessionId)
-          if (session) {
-            // 检查是否是当前已选中的会话，避免重复加载
-            if (selectedSessionId.value === session.id) {
-              console.log('路由参数变化，但会话已加载，跳过重复加载')
-              return
-            }
+        // 首先检查 contactStore 中是否已经有选中的联系人，且 ID 匹配
+        if (contactStore.selectedContact && contactStore.selectedContact.id === newSessionId) {
+          console.log('会话数据已在 store 中，直接使用本地数据')
+          // 直接使用已有的会话数据，避免重复请求服务器导致数据被覆盖
+          const session = contactStore.selectedContact
 
-            // 更新当前选中的会话ID
-            selectedSessionId.value = session.id
-            console.log('设置新的selectedSessionId:', session.id)
+          // 检查是否是当前已选中的会话，避免重复加载
+          if (selectedSessionId.value === session.id) {
+            console.log('路由参数变化，但会话已加载，跳过重复加载')
+            return
+          }
 
-            // 设置选中的联系人
-            contactStore.setSelectedContact(session)
+          // 更新当前选中的会话ID
+          selectedSessionId.value = session.id
+          console.log('设置新的selectedSessionId:', session.id)
 
-            // 触发全局事件，更新ChatList中的选中状态
-            window.dispatchEvent(
-              new CustomEvent('sessionSelected', {
-                detail: { sessionId: session.id }
-              })
-            )
-
-            // 加载消息
-            await loadMessages(session.id).then(() => {
-              // 在消息加载完成后，将滚动条重置到底部
-              nextTick(() => {
-                if (messagesContainer.value) {
-                  messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-                }
-              })
+          // 触发全局事件，更新ChatList中的选中状态
+          window.dispatchEvent(
+            new CustomEvent('sessionSelected', {
+              detail: { sessionId: session.id }
             })
+          )
 
-            // 标记会话中的消息为已读
-            if (session.unreadCount > 0) {
-              try {
-                await markAsRead(session.id)
-                console.log('会话消息已标记为已读')
-
-                // 更新本地会话的未读计数
-                contactStore.setSelectedContact({
-                  ...session,
-                  unreadCount: 0
-                })
-              } catch (error) {
-                console.error('标记消息为已读失败:', error)
+          // 加载消息
+          await loadMessages(session.id).then(() => {
+            // 在消息加载完成后，将滚动条重置到底部
+            nextTick(() => {
+              if (messagesContainer.value) {
+                messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
               }
+            })
+          })
+        } else {
+          // 如果 contactStore 中没有该会话数据，则从服务器获取
+          const sessionResponse = await getSessions()
+          if (sessionResponse && sessionResponse.success) {
+            const session = sessionResponse.data.find((s) => s.id === newSessionId)
+            if (session) {
+              // 检查是否是当前已选中的会话，避免重复加载
+              if (selectedSessionId.value === session.id) {
+                console.log('路由参数变化，但会话已加载，跳过重复加载')
+                return
+              }
+
+              // 更新当前选中的会话ID
+              selectedSessionId.value = session.id
+              console.log('设置新的selectedSessionId:', session.id)
+
+              // 设置选中的联系人
+              contactStore.setSelectedContact(session)
+
+              // 触发全局事件，更新ChatList中的选中状态
+              window.dispatchEvent(
+                new CustomEvent('sessionSelected', {
+                  detail: { sessionId: session.id }
+                })
+              )
+
+              // 加载消息
+              await loadMessages(session.id).then(() => {
+                // 在消息加载完成后，将滚动条重置到底部
+                nextTick(() => {
+                  if (messagesContainer.value) {
+                    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+                  }
+                })
+              })
             }
-          } else {
-            console.warn('未找到会话:', newSessionId)
           }
         }
       } catch (error) {
         console.error('获取会话信息失败:', error)
       }
     }
-  },
-  { immediate: true }
+  }
 )
 
 // 计算属性：根据会话类型显示不同的名称
 const getDisplayName = computed(() => {
   const session = contactStore.selectedContact
   console.log('session: ', session)
+  console.log('aaaaaaa')
   if (!session) {
     // 如果store中没有选中的联系人，尝试从路由参数获取
     const sessionId = route.params.id

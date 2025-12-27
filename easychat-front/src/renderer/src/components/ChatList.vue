@@ -253,6 +253,7 @@ const formatDate = (dateStr) => {
 
 // 点击会话跳转
 const handleClickSession = async (session) => {
+  console.log('sessionawwww: ', session)
   // 隐藏右键菜单
   contextMenuVisible.value = false
 
@@ -296,8 +297,6 @@ const handleClickSession = async (session) => {
     // 将当前会话保存到 Pinia 状态，以便ChatContant组件可以获取到正确的会话信息
     contactStore.setSelectedContact(session)
   }
-
-  console.log('session: ', session)
 
   router.push(`/chat/${session.id}`)
 }

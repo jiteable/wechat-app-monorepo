@@ -347,6 +347,7 @@ const clearChatHistory = () => {
 }
 
 const leaveGroup = () => {
+  console.log('prop: ', props)
   ElMessageBox.confirm('确定要退出群聊吗？', '退出群聊', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
