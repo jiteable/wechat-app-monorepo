@@ -97,6 +97,7 @@ import convertToPinyinInitials from '@/utils/changeChinese'
 import { getContact, getGroup } from '@/api/getRelationship'
 import { getGroupInfo } from '@/api/chatSession'
 import { userContactStore } from '@/store/userContactStore'
+import { useContactExpandStore } from '@/store/contactExpandStore'
 
 const searchText = ref('')
 const hoveredContact = ref(null)
@@ -104,6 +105,7 @@ const hoveredGroup = ref(null)
 const selectedItemId = ref(null)
 const selectedItemType = ref(null) // 'contact', 'group', 或 'newFriend'
 const contactStore = userContactStore()
+const contactExpandStore = useContactExpandStore()
 const router = useRouter()
 
 const openContactManagement = () => {
@@ -119,8 +121,12 @@ const showContactApply = () => {
   router.push('/contact/apply')
 }
 
-// 按钮状态管理，false表示ArrowRight，true表示ArrowDown
-const buttonStates = reactive([false, false, false])
+// 按钮状态管理，使用新的展开状态store
+const buttonStates = reactive([
+  false,
+  contactExpandStore.groupExpanded,
+  contactExpandStore.contactsExpanded
+])
 
 // 群聊数据
 const groups = ref([])
@@ -286,6 +292,15 @@ const sortedContactsWithHeaders = computed(() => {
 // 切换按钮状态
 const toggleButton = (index) => {
   buttonStates[index] = !buttonStates[index]
+
+  // 更新展开状态store中的状态
+  if (index === 1) {
+    // 群聊展开状态
+    contactExpandStore.setExpandStates({ groupExpanded: buttonStates[1] })
+  } else if (index === 2) {
+    // 联系人展开状态
+    contactExpandStore.setExpandStates({ contactsExpanded: buttonStates[2] })
+  }
 }
 
 // 通用选择函数
