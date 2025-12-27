@@ -44,7 +44,9 @@
       class="context-menu no-drag"
       :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
     >
-      <div class="context-menu-item" @click="handleContextCommand('top')">置顶</div>
+      <div class="context-menu-item" @click="handleContextCommand('top')">
+        {{ contextMenuSession?.isPinned ? '取消置顶' : '置顶' }}
+      </div>
       <div class="context-menu-item" @click="handleContextCommand('mute')">消息免打扰</div>
       <div class="context-menu-item danger" @click="handleContextCommand('delete')">删除</div>
     </div>
@@ -339,7 +341,7 @@ const handleContextCommand = (command) => {
 const handleTopSession = async (session) => {
   try {
     // 更新本地会话列表中的置顶状态
-    const sessionIndex = sessions.value.findIndex(s => s.id === session.id)
+    const sessionIndex = sessions.value.findIndex((s) => s.id === session.id)
     if (sessionIndex !== -1) {
       // 更新会话的置顶状态
       sessions.value[sessionIndex].isPinned = !sessions.value[sessionIndex].isPinned
@@ -364,14 +366,16 @@ const handleTopSession = async (session) => {
         })
       }
 
-      ElMessage.success(`${sessions.value[sessionIndex].isPinned ? '已置顶' : '已取消置顶'}会话 "${session.name}"`)
+      ElMessage.success(
+        `${sessions.value[sessionIndex].isPinned ? '已置顶' : '已取消置顶'}会话 "${session.name}"`
+      )
     }
   } catch (error) {
     console.error('更新会话置顶状态失败:', error)
     ElMessage.error('更新会话置顶状态失败')
 
     // 如果更新失败，恢复原始状态
-    const sessionIndex = sessions.value.findIndex(s => s.id === session.id)
+    const sessionIndex = sessions.value.findIndex((s) => s.id === session.id)
     if (sessionIndex !== -1) {
       sessions.value[sessionIndex].isPinned = !sessions.value[sessionIndex].isPinned
     }
