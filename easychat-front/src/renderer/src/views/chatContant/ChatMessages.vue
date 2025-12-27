@@ -67,25 +67,27 @@
         日期
       </button>
 
-      <el-popover
-        v-model="datePickerVisible"
-        placement="bottom"
-        width="200"
-        trigger="click"
-        popper-class="date-picker-popover"
-        :virtual-ref="dateButtonRef"
-        virtual-triggering
-      >
-        <el-date-picker
-          v-model="selectedDate"
-          type="date"
-          placeholder="选择日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          style="width: 100%"
-          @change="handleDateChange"
-        />
-      </el-popover>
+      <div>
+        <el-popover
+          v-model="datePickerVisible"
+          placement="bottom"
+          width="200"
+          trigger="click"
+          popper-class="date-picker-popover"
+          :virtual-ref="dateButtonRef"
+          virtual-triggering
+        >
+          <el-date-picker
+            v-model="selectedDate"
+            type="date"
+            placeholder="选择日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+            @change="handleDateChange"
+          />
+        </el-popover>
+      </div>
     </div>
 
     <!-- 聊天记录列表 -->
