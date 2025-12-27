@@ -10,11 +10,19 @@
             :src="squareUrl"
             @error="handleAvatarError"
           />
-          <el-button class="box no-drag first-box" @click="goToChat">
-            <i class="iconfont icon-chat2" :class="{ active: activeButton === 'chat' }"></i>
+          <el-button
+            class="box no-drag first-box"
+            :class="{ active: currentView === 'chat' }"
+            @click="goToChat"
+          >
+            <i class="iconfont icon-chat2" :class="{ active: currentView === 'chat' }"></i>
           </el-button>
-          <el-button class="box no-drag" @click="goToContact">
-            <i class="iconfont icon-user" :class="{ active: activeButton === 'contact' }"></i>
+          <el-button
+            class="box no-drag"
+            :class="{ active: currentView === 'contact' }"
+            @click="goToContact"
+          >
+            <i class="iconfont icon-user" :class="{ active: currentView === 'contact' }"></i>
           </el-button>
           <div class="drawer-toggle-wrapper">
             <el-popover
@@ -26,9 +34,7 @@
             >
               <div class="popover-menu no-drag">
                 <el-button class="menu-button" @click="handleChatFiles">聊天文件</el-button>
-                <el-button class="menu-button" @click="handleChatHistory"
-                  >加载历史聊天记录</el-button
-                >
+                <el-button class="menu-button" @click="handleChatHistory">聊天记录管理</el-button>
                 <el-button class="menu-button" @click="handleSettings">设置</el-button>
                 <!-- 添加退出登录按钮 -->
                 <el-button class="menu-button" @click="handleLogout">退出登录</el-button>
@@ -48,11 +54,13 @@
       <el-container>
         <el-splitter :key="splitterKey" class="no-drag">
           <el-splitter-panel class="drag" size="20%" :min="150">
-            <router-view name="left"></router-view>
+            <KeepAlive>
+              <component :is="currentLeftComponent" />
+            </KeepAlive>
           </el-splitter-panel>
           <el-splitter-panel :min="350">
             <slot>
-              <router-view name="right"></router-view>
+              <component :is="currentRightComponent" v-if="currentRightComponent" />
             </slot>
           </el-splitter-panel>
         </el-splitter>
@@ -74,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, shallowRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/userStore'
 import { userContactStore } from '@/store/userContactStore'
@@ -83,6 +91,11 @@ import { getSessions } from '@/api/chatSession'
 import { getAllMessages } from '@/api/chat' // 更新导入
 import { getUserInfo, getUserSettingInfo } from '@/api/user'
 import { ElMessage } from 'element-plus'
+import Chat from '@/views/chat/Chat.vue'
+import Contact from '@/views/contact/Contact.vue'
+import ChatContant from '@/views/chatContant/ChatContant.vue'
+import ContactContent from '@/views/contactContent/ContactContent.vue'
+import ContactApply from '@/views/contactContent/ContactApply.vue'
 
 const userStore = useUserStore()
 const userSetStore = useUserSetStore()
@@ -96,6 +109,31 @@ const popoverRef = ref(null)
 
 // 控制加载聊天记录对话框显示状态
 const chatHistoryDialogVisible = ref(false)
+
+// 动态组件
+const currentLeftComponent = shallowRef()
+const currentRightComponent = shallowRef()
+
+// 监听路由变化并动态设置组件
+const updateComponentForRoute = () => {
+  const path = route.path
+  if (path.startsWith('/contact')) {
+    if (path === '/contact/apply') {
+      currentLeftComponent.value = Contact
+      currentRightComponent.value = ContactApply
+    } else {
+      currentLeftComponent.value = Contact
+      currentRightComponent.value = ContactContent
+    }
+  } else if (path.startsWith('/chat')) {
+    currentLeftComponent.value = Chat
+    currentRightComponent.value = ChatContant
+  } else {
+    // 默认显示chat
+    currentLeftComponent.value = Chat
+    currentRightComponent.value = ChatContant
+  }
+}
 
 // 监听来自其他窗口的store更新事件
 const handleStoreUpdate = (event) => {
@@ -117,14 +155,13 @@ const handleStorageChange = (event) => {
   }
 }
 
-// 计算当前激活的按钮
-const activeButton = computed(() => {
+const currentView = computed(() => {
   if (route.path === '/' || route.path.startsWith('/chat')) {
     return 'chat'
   } else if (route.path.startsWith('/contact')) {
     return 'contact'
   }
-  return ''
+  return 'chat' // 默认为chat
 })
 
 // 导航到聊天页面
@@ -325,6 +362,12 @@ const initWebSocket = () => {
 }
 
 onMounted(async () => {
+  // 监听路由变化
+  updateComponentForRoute() // 初始化
+  router.afterEach(() => {
+    updateComponentForRoute() // 路由变化后更新组件
+  })
+
   // 获取用户信息并存储到userStore中
   const userInfo = await getUserInfo()
   const userSettings = await getUserSettingInfo()
@@ -346,15 +389,16 @@ onMounted(async () => {
   if (userSettings) {
     userSetStore.updateSettings(userSettings)
   }
-  onUnmounted(() => {
-    window.removeEventListener('userSetStoreUpdated', handleStoreUpdate)
-    window.removeEventListener('storage', handleStorageChange)
+})
 
-    // 移除新消息监听器
-    if (window.api && typeof window.api.removeNewMessageListener === 'function') {
-      window.api.removeNewMessageListener()
-    }
-  })
+onUnmounted(() => {
+  window.removeEventListener('userSetStoreUpdated', handleStoreUpdate)
+  window.removeEventListener('storage', handleStorageChange)
+
+  // 移除新消息监听器
+  if (window.api && typeof window.api.removeNewMessageListener === 'function') {
+    window.api.removeNewMessageListener()
+  }
 })
 
 const handleAvatarError = () => {

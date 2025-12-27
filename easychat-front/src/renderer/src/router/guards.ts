@@ -21,11 +21,11 @@ export const beforeEach = (to: any, from: any, next) => {
     return
   }
 
-  // 当从 /contact 路由离开时，清除选中的联系人
-  if (from.path.startsWith('/contact') && !to.path.startsWith('/contact')) {
-    const contactStore = userContactStore()
-    contactStore.clearSelectedContact()
-  }
+  // // 当从 /contact 路由离开时，清除选中的联系人
+  // if (from.path.startsWith('/contact') && !to.path.startsWith('/contact')) {
+  //   const contactStore = userContactStore()
+  //   contactStore.clearSelectedContact()
+  // }
 
   next()
 

@@ -1,10 +1,4 @@
 import Home from '@/views/Home.vue'
-import Chat from '@/views/chat/Chat.vue'
-import ChatContant from '@/views/chatContant/ChatContant.vue'
-import Contact from '@/views/contact/Contact.vue'
-import ContactContent from '@/views/contactContent/ContactContent.vue'
-import ContactApply from '@/views/contactContent/ContactApply.vue'
-import Contacts from '@/views/contacts/Contacts.vue'
 
 export const AppRoutes = [
   {
@@ -17,31 +11,19 @@ export const AppRoutes = [
       },
       {
         path: 'chat',
-        components: {
-          left: Chat,
-          right: ChatContant
-        }
+        component: Home
       },
       {
         path: 'chat/:id',
-        components: {
-          left: Chat,
-          right: ChatContant
-        }
+        component: Home
       },
       {
         path: 'contact',
-        components: {
-          left: Contact,
-          right: ContactContent
-        }
+        component: Home
       },
       {
         path: 'contact/apply',
-        components: {
-          left: Contact,
-          right: ContactApply
-        }
+        component: Home
       }
     ]
   },
@@ -67,7 +49,7 @@ export const AppRoutes = [
   },
   {
     path: '/contacts',
-    component: Contacts
+    component: () => import('../views/contacts/Contacts.vue')
   },
   {
     path: '/settings',

@@ -45,6 +45,10 @@ import { ref } from 'vue'
 import { Plus, User, Avatar } from '@element-plus/icons-vue'
 import ChatList from '@/components/ChatList.vue'
 
+defineOptions({
+  name: 'Chat'
+})
+
 const searchText = ref('')
 
 const handleCreateGroup = () => {
