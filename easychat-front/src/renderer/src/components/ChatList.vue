@@ -166,6 +166,36 @@ const filteredSessions = computed(() => {
   )
 })
 
+const handleSessionPinnedChanged = (event) => {
+  const { sessionId, isPinned } = event.detail
+
+  // 查找对应的会话并更新置顶状态
+  const sessionIndex = sessions.value.findIndex((session) => session.id === sessionId)
+  if (sessionIndex !== -1) {
+    // 更新会话的置顶状态
+    const updatedSession = {
+      ...sessions.value[sessionIndex],
+      isPinned: isPinned
+    }
+
+    // 更新会话列表中的该项
+    sessions.value.splice(sessionIndex, 1, updatedSession)
+
+    // 对会话列表按置顶状态和更新时间重新排序
+    const sortedSessions = [...sessions.value].sort((a, b) => {
+      // 首先按置顶状态排序：置顶的在前
+      if (a.isPinned && !b.isPinned) return -1
+      if (!a.isPinned && b.isPinned) return 1
+      // 如果置顶状态相同，则按更新时间排序（最新的在前）
+      return new Date(b.updatedAt) - new Date(a.updatedAt)
+    })
+
+    // 更新会话列表
+    sessions.value = sortedSessions
+
+    console.log('会话置顶状态已更新:', updatedSession)
+  }
+}
 // 格式化最后一条消息
 const formatLastMessage = (msg, sessionType) => {
   if (!msg) return ''
@@ -526,6 +556,9 @@ onMounted(() => {
   // 添加会话列表更新事件监听，用于备注更新等场景
   window.addEventListener('sessionListUpdated', refreshSessions)
 
+  // 添加会话置顶状态变化事件监听
+  window.addEventListener('sessionPinnedChanged', handleSessionPinnedChanged)
+
   // 监听路由变化
   updateSelectedSessionFromRoute()
   router.afterEach(updateSelectedSessionFromRoute)
@@ -544,6 +577,9 @@ onUnmounted(() => {
 
   // 移除会话列表更新事件监听
   window.removeEventListener('sessionListUpdated', refreshSessions)
+
+  // 移除会话置顶状态变化事件监听
+  window.removeEventListener('sessionPinnedChanged', handleSessionPinnedChanged)
 
   // 移除路由监听
   router.afterEach(() => {})

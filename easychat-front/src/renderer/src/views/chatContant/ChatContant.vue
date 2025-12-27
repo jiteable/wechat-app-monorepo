@@ -492,6 +492,7 @@ const handleGroupRenameMessage = (content) => {
 }
 
 const handlePinChatChange = async (isPinned) => {
+  console.log('isPinned: ', isPinned)
   // 这里应该调用更新会话置顶状态的API
   // 需要获取当前会话ID和更新状态
   const currentSession = contactStore.selectedContact
@@ -518,6 +519,33 @@ const handlePinChatChange = async (isPinned) => {
 
     // 更新 contactStore 中的会话信息
     contactStore.setSelectedContact(updatedSession)
+
+    // 更新 ChatList 中的会话列表
+    // 触发全局事件，通知 ChatList 更新会话的置顶状态
+    window.dispatchEvent(
+      new CustomEvent('sessionPinnedChanged', {
+        detail: {
+          sessionId: currentSession.id,
+          isPinned: isPinned
+        }
+      })
+    )
+
+    // 发送自定义事件更新ChatList中的lastMessage
+    const lastMessageData = {
+      sessionId: currentSession.id,
+      lastMessage: {
+        content: currentSession.lastMessage?.content,
+        messageType: currentSession.lastMessage?.messageType,
+        fileName: currentSession.lastMessage?.fileName,
+        senderName: currentSession.lastMessage?.senderName,
+        senderId: currentSession.lastMessage?.senderId,
+        isRecalled: currentSession.lastMessage?.isRecalled,
+        isDeleted: currentSession.lastMessage?.isDeleted
+      },
+      timestamp: currentSession.updatedAt
+    }
+    window.dispatchEvent(new CustomEvent('newMessageSent', { detail: lastMessageData }))
   } catch (error) {
     console.error('更新会话置顶状态失败:', error)
     ElMessage.error('更新会话置顶状态失败')
