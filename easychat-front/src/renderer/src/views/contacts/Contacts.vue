@@ -60,7 +60,7 @@
                   <el-button
                     v-if="!showNewLabelInput"
                     class="button label-item-button"
-                    @click="showNewLabelInput = true"
+                    @click="showNewLabelInputAndFocus"
                   >
                     <span class="button-text2">+ 新建标签</span>
                   </el-button>
@@ -208,7 +208,7 @@
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="备注" width="10" show-overflow-tooltip />
+                <el-table-column prop="remark" label="备注" width="100" show-overflow-tooltip />
                 <el-table-column prop="label" label="标签" width="100" show-overflow-tooltip />
                 <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
               </el-table>
@@ -335,7 +335,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, onActivated, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, onActivated, watch, nextTick } from 'vue'
 import { Minus, Close, Search, Lock, CollectionTag, Delete } from '@element-plus/icons-vue'
 import { getContact, getGroup } from '@/api/getRelationship'
 import { useUserStore } from '@/store/userStore'
@@ -373,6 +373,7 @@ const labelList = ref([])
 // 新建标签相关
 const showNewLabelInput = ref(false)
 const newLabelName = ref('未命名标签')
+const newLabelInputRef = ref() // 添加输入框引用
 
 // 群聊列表数据
 const chatGroupList = ref([])
@@ -760,6 +761,17 @@ const createNewLabel = async () => {
 const cancelNewLabel = () => {
   showNewLabelInput.value = false
   newLabelName.value = '未命名标签'
+}
+
+// 显示新建标签输入框并自动聚焦
+const showNewLabelInputAndFocus = () => {
+  showNewLabelInput.value = true
+  // 在下一个 DOM 更新后聚焦输入框
+  nextTick(() => {
+    if (newLabelInputRef.value) {
+      newLabelInputRef.value.focus()
+    }
+  })
 }
 
 // 获取联系人数据
