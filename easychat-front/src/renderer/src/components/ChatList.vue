@@ -12,7 +12,7 @@
           <!-- 头像 -->
           <div>
             <!-- 未读消息红点 -->
-            <div v-if="session.unreadCount > 0" class="unread-badge">
+            <div v-if="session.unreadCount > 0 && !session.isMuted" class="unread-badge">
               {{ session.unreadCount > 99 ? '~' : session.unreadCount }}
             </div>
             <div class="avatar-wrapper">
