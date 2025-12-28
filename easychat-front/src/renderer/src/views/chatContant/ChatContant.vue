@@ -38,6 +38,7 @@
                   :class="
                     message.senderId === userStore.userId ? 'sent-message' : 'received-message'
                   "
+                  @contextmenu.prevent="showMessageContextMenu($event, message)"
                 >
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div class="box">
@@ -68,6 +69,7 @@
                   :class="
                     message.senderId === userStore.userId ? 'sent-message' : 'received-message'
                   "
+                  @contextmenu.prevent="showMessageContextMenu($event, message)"
                 >
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div class="box">
@@ -104,6 +106,7 @@
                   :class="
                     message.senderId === userStore.userId ? 'sent-message' : 'received-message'
                   "
+                  @contextmenu.prevent="showMessageContextMenu($event, message)"
                 >
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div class="box">
@@ -139,6 +142,7 @@
                   :class="
                     message.senderId === userStore.userId ? 'sent-message' : 'received-message'
                   "
+                  @contextmenu.prevent="showMessageContextMenu($event, message)"
                 >
                   <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
                   <div class="box">
@@ -283,6 +287,19 @@
 
     <!-- 添加聊天输入区域 -->
     <PreviewImage :image-url="previewImageUrl" :visible="isPreviewVisible" @close="closePreview" />
+
+    <!-- 右键菜单 -->
+    <div
+      v-show="contextMenuVisible"
+      class="context-menu"
+      :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+    >
+      <div class="context-menu-item" @click="copyMessage">复制</div>
+      <div class="context-menu-item" @click="forwardMessage">转发</div>
+      <div class="context-menu-item" @click="multiSelectMessage">多选</div>
+      <div class="context-menu-item" @click="quoteMessage">引用</div>
+      <div class="context-menu-item danger" @click="deleteMessage">删除</div>
+    </div>
   </div>
 </template>
 
@@ -317,6 +334,12 @@ const selectedSessionId = ref(null)
 // 图片预览相关
 const isPreviewVisible = ref(false)
 const previewImageUrl = ref('')
+
+// 右键菜单相关
+const contextMenuVisible = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const contextMenuMessage = ref(null)
 
 // 在组件外定义消息监听器，确保不会因为组件重新渲染而丢失
 let isMessageListenerAdded = false
@@ -356,6 +379,144 @@ const updateInputEmptyState = () => {
 
   // 检查是否只有空白字符
   isInputEmpty.value = (!textContent || textContent.trim().length === 0) && !hasImages
+}
+
+const showMessageContextMenu = (event, message) => {
+  // 只对非时间戳和非系统消息显示右键菜单
+  if (message.type !== 'timestamp' && message.type !== 'system') {
+    event.preventDefault()
+
+    // 记录当前消息
+    contextMenuMessage.value = message
+
+    // 设置菜单位置
+    contextMenuX.value = event.clientX
+    contextMenuY.value = event.clientY
+
+    // 显示菜单
+    contextMenuVisible.value = true
+
+    // 监听页面点击事件以关闭菜单
+    document.addEventListener('click', closeContextMenu)
+  }
+}
+
+// 关闭右键菜单
+const closeContextMenu = () => {
+  contextMenuVisible.value = false
+  document.removeEventListener('click', closeContextMenu)
+}
+
+// 复制消息
+const copyMessage = () => {
+  if (!contextMenuMessage.value) return
+
+  let content = ''
+  if (contextMenuMessage.value.type === 'text') {
+    content = contextMenuMessage.value.content
+  } else if (contextMenuMessage.value.type === 'image') {
+    content = `[图片] ${contextMenuMessage.value.fileName || ''}`
+  } else if (contextMenuMessage.value.type === 'file') {
+    content = `[文件] ${contextMenuMessage.value.content}`
+  } else if (contextMenuMessage.value.type === 'video') {
+    content = `[视频] ${contextMenuMessage.value.content}`
+  } else {
+    content = contextMenuMessage.value.content
+  }
+
+  navigator.clipboard
+    .writeText(content)
+    .then(() => {
+      ElMessage.success('已复制到剪贴板')
+    })
+    .catch((err) => {
+      console.error('复制失败:', err)
+      ElMessage.error('复制失败')
+    })
+
+  closeContextMenu()
+}
+
+// 转发消息
+const forwardMessage = () => {
+  console.log('转发消息:', contextMenuMessage.value)
+  ElMessage.info('转发功能待实现')
+  closeContextMenu()
+}
+
+// 多选消息
+const multiSelectMessage = () => {
+  console.log('多选消息:', contextMenuMessage.value)
+  ElMessage.info('多选功能待实现')
+  closeContextMenu()
+}
+
+// 引用消息
+const quoteMessage = () => {
+  if (!contextMenuMessage.value) return
+
+  // 获取当前输入框内容
+  const currentContent = messageInputRef.value ? messageInputRef.value.innerText : ''
+
+  // 创建引用文本
+  const senderName = contextMenuMessage.value.senderName || '未知用户'
+  const quoteText = `[引用] ${senderName}: ${contextMenuMessage.value.content}`
+
+  // 将引用文本添加到输入框
+  if (messageInputRef.value) {
+    // 如果输入框为空，直接设置内容；否则在前面添加换行
+    if (currentContent.trim() === '') {
+      messageInputRef.value.innerText = quoteText
+    } else {
+      messageInputRef.value.innerText = quoteText + '\n' + currentContent
+    }
+
+    // 将焦点设置到输入框
+    messageInputRef.value.focus()
+
+    // 将光标移到输入框末尾
+    const range = document.createRange()
+    range.selectNodeContents(messageInputRef.value)
+    range.collapse(false)
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(range)
+  }
+
+  ElMessage.info('已引用该消息')
+  closeContextMenu()
+}
+
+// 删除消息
+const deleteMessage = () => {
+  console.log('删除消息:', contextMenuMessage.value)
+  ElMessageBox.confirm('确定要删除这条消息吗？', '删除消息', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(async () => {
+      try {
+        // 从本地消息列表中移除
+        const index = messages.value.findIndex((msg) => msg.id === contextMenuMessage.value.id)
+        if (index !== -1) {
+          messages.value.splice(index, 1)
+        }
+
+        // 如果需要从服务器删除，可以调用API
+        // await deleteMessageFromServer(contextMenuMessage.value.id)
+
+        ElMessage.success('消息已删除')
+      } catch (error) {
+        console.error('删除消息失败:', error)
+        ElMessage.error('删除消息失败')
+      }
+    })
+    .catch(() => {
+      // 用户取消操作
+    })
+
+  closeContextMenu()
 }
 
 // 初始化 MutationObserver
@@ -1568,6 +1729,9 @@ onUnmounted(() => {
     isMessageListenerAdded = false
   }
   window.removeEventListener('contactStoreUpdated', handleContactStoreUpdate)
+
+  // 移除右键菜单的事件监听
+  document.removeEventListener('click', closeContextMenu)
 })
 
 const handleContactStoreUpdate = async (event) => {
@@ -1647,7 +1811,7 @@ const sessionUsers = computed(() => {
     // 如果是 ChatSessionUser 类型，检查其关联的用户信息
     else if (session.ChatSessionUsers && Array.isArray(session.ChatSessionUsers)) {
       // 尝试从 ChatSessionUsers 中提取成员信息
-      return session.ChatSessionUsers.map(user => ({
+      return session.ChatSessionUsers.map((user) => ({
         id: user.userId,
         name: user.nickname || user.user?.username || '未知用户',
         avatar: user.user?.avatar || user.avatar || ''
@@ -3180,5 +3344,52 @@ const formatDuration = (seconds) => {
   align-items: center;
   justify-content: center;
   z-index: 1;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* 右键菜单样式 */
+.context-menu {
+  position: fixed;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  min-width: 120px;
+  padding: 5px 0;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #606266;
+}
+
+.context-menu-item:hover {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+.context-menu-item.danger {
+  color: #f56c6c;
+}
+
+.context-menu-item.danger:hover {
+  background-color: #fef0f0;
+  color: #f56c6c;
 }
 </style>
