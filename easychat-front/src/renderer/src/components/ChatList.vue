@@ -47,7 +47,9 @@
       <div class="context-menu-item" @click="handleContextCommand('top')">
         {{ contextMenuSession?.isPinned ? '取消置顶' : '置顶' }}
       </div>
-      <div class="context-menu-item" @click="handleContextCommand('mute')">消息免打扰</div>
+      <div class="context-menu-item" @click="handleContextCommand('mute')">
+        {{ contextMenuSession?.isMuted ? '允许消息通知' : '消息免打扰' }}
+      </div>
       <div class="context-menu-item danger" @click="handleContextCommand('delete')">删除</div>
     </div>
   </div>
