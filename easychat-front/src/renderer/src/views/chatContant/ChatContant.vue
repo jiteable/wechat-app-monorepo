@@ -899,6 +899,20 @@ watch(
           selectedSessionId.value = session.id
           console.log('设置新的selectedSessionId:', session.id)
 
+          // 检查是否需要获取完整的群组信息
+          if (session.sessionType === 'group' && (!session.group || !session.group.members)) {
+            console.log('群聊信息不完整，尝试获取完整信息')
+            // 从服务器获取完整的会话信息
+            const sessionResponse = await getSessions()
+            if (sessionResponse && sessionResponse.success) {
+              const completeSession = sessionResponse.data.find((s) => s.id === newSessionId)
+              if (completeSession) {
+                // 更新 store 中的会话信息
+                contactStore.setSelectedContact(completeSession)
+              }
+            }
+          }
+
           // 触发全局事件，更新ChatList中的选中状态
           window.dispatchEvent(
             new CustomEvent('sessionSelected', {
@@ -959,7 +973,6 @@ watch(
     }
   }
 )
-
 // 计算属性：根据会话类型显示不同的名称
 const getDisplayName = computed(() => {
   const session = contactStore.selectedContact
@@ -1617,8 +1630,38 @@ const toggleChat = () => {
 }
 
 const sessionUsers = computed(() => {
+  console.log('contactStore.selectedContactssssssss: ', contactStore.selectedContact)
   const session = contactStore.selectedContact
-  return session && session.group && session.group.members ? session.group.members : []
+  if (!session) return []
+
+  // 检查 session 是否为群聊
+  if (session.sessionType === 'group') {
+    // 优先检查 session.group.members
+    if (session.group && session.group.members) {
+      return session.group.members
+    }
+    // 如果没有 group 信息，尝试从其他可能的属性获取
+    else if (session.members) {
+      return session.members
+    }
+    // 如果是 ChatSessionUser 类型，检查其关联的用户信息
+    else if (session.ChatSessionUsers && Array.isArray(session.ChatSessionUsers)) {
+      // 尝试从 ChatSessionUsers 中提取成员信息
+      return session.ChatSessionUsers.map(user => ({
+        id: user.userId,
+        name: user.nickname || user.user?.username || '未知用户',
+        avatar: user.user?.avatar || user.avatar || ''
+      }))
+    }
+    // 检查是否直接在顶层对象中包含成员信息
+    else {
+      console.log('session object:', session)
+      // 如果没有找到成员信息，返回空数组
+      return []
+    }
+  }
+  // 如果不是群聊，返回空数组
+  return []
 })
 
 const displayedUsers = computed(() => {
@@ -1657,16 +1700,28 @@ const searchMessages = () => {
 // 计算是否为群主或管理员
 const isGroupOwnerOrAdmin = computed(() => {
   const session = contactStore.selectedContact
-  if (!session || !session.group) return false
+  if (!session) return false
 
   const userId = userStore.userId
-  const group = session.group
 
-  // 检查是否为群主
-  if (group.ownerId === userId) return true
-
-  // 检查是否为管理员
-  if (group.adminIds && group.adminIds.includes(userId)) return true
+  // 如果是群聊
+  if (session.sessionType === 'group') {
+    // 如果有完整的 group 信息
+    if (session.group) {
+      const group = session.group
+      // 检查是否为群主
+      if (group.ownerId === userId) return true
+      // 检查是否为管理员
+      if (group.adminIds && group.adminIds.includes(userId)) return true
+    }
+    // 否则直接检查 session 对象的顶层属性
+    else {
+      // 检查是否为群主
+      if (session.ownerId === userId) return true
+      // 检查身份是否为 owner 或 admin
+      if (session.identity === 'owner' || session.identity === 'admin') return true
+    }
+  }
 
   return false
 })

@@ -303,21 +303,39 @@ const handleClickSession = async (session) => {
   // 设置当前选中的会话ID
   selectedSessionId.value = session.id
 
-  // 如果有未读消息，标记为已读
-  if (session.unreadCount > 0) {
+  // 如果是群聊且没有group信息，尝试获取完整的群聊信息
+  let sessionWithGroupInfo = session
+  if (session.sessionType === 'group' && !session.group) {
     try {
-      await markAsRead(session.id)
+      // 这里需要调用API获取完整的群组信息
+      // 从后端获取完整的群组信息
+      const fullSessionResponse = await getSessions()
+      if (fullSessionResponse && fullSessionResponse.success) {
+        const fullSession = fullSessionResponse.data.find(s => s.id === session.id)
+        if (fullSession && fullSession.group) {
+          sessionWithGroupInfo = fullSession
+        }
+      }
+    } catch (error) {
+      console.error('获取完整群组信息失败:', error)
+    }
+  }
+
+  // 如果有未读消息，标记为已读
+  if (sessionWithGroupInfo.unreadCount > 0) {
+    try {
+      await markAsRead(sessionWithGroupInfo.id)
       console.log('会话消息已标记为已读')
 
       // 更新本地会话的未读计数
       const updatedSessions = sessions.value.map((s) =>
-        s.id === session.id ? { ...s, unreadCount: 0 } : s
+        s.id === sessionWithGroupInfo.id ? { ...s, unreadCount: 0 } : s
       )
       sessions.value = updatedSessions
 
       // 更新store中的会话信息，以便ChatContant组件可以获取到正确的会话信息
       contactStore.setSelectedContact({
-        ...session,
+        ...sessionWithGroupInfo,
         unreadCount: 0
       })
     } catch (error) {
@@ -325,10 +343,10 @@ const handleClickSession = async (session) => {
     }
   } else {
     // 将当前会话保存到 Pinia 状态，以便ChatContant组件可以获取到正确的会话信息
-    contactStore.setSelectedContact(session)
+    contactStore.setSelectedContact(sessionWithGroupInfo)
   }
 
-  router.push(`/chat/${session.id}`)
+  router.push(`/chat/${sessionWithGroupInfo.id}`)
 }
 
 // 显示右键菜单

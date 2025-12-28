@@ -184,7 +184,7 @@ enum MessageStatus {
 model UnifiedMessage {
   id           String      @id @default(cuid())           // 消息唯一标识符
   sessionId    String                                     // 会话ID
-  senderId     String                                     // 发送者ID
+  senderId     String?                                     // 发送者ID
   receiverId   String?                                    // 接收者ID (私聊时使用)
   groupId      String?                                    // 群组ID (群聊时使用)
   content      String                                     // 消息内容
@@ -203,7 +203,7 @@ model UnifiedMessage {
   
   // 关系
   session      ChatSession @relation("SessionMessages", fields: [sessionId], references: [id])
-  sender       User        @relation("SentMessages", fields: [senderId], references: [id])
+  sender       User?        @relation("SentMessages", fields: [senderId], references: [id])
   receiver     User?       @relation("ReceivedMessages", fields: [receiverId], references: [id])
   group        Group?      @relation("GroupMessages", fields: [groupId], references: [id])
   file         File?

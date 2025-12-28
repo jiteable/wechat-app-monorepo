@@ -869,6 +869,8 @@ class DatabaseManager {
         }
       }
 
+      const messageToInsertId = messageData.id || generateUUID()
+
       // 插入消息记录
       const result = await db.run(
         `INSERT INTO UnifiedMessage 
@@ -876,7 +878,7 @@ class DatabaseManager {
           isRecalled, isDeleted, status, readStatus, createdAt, updatedAt, recalledAt, deletedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          messageData.id || generateUUID(),
+          messageToInsertId,
           messageData.sessionId,
           messageData.senderId,
           messageData.receiverId || null,
@@ -899,9 +901,9 @@ class DatabaseManager {
         ]
       )
 
-      // 查询刚刚插入的数据
+      // 查询刚刚插入的数据 - 使用我们生成的ID进行查询
       const insertedMessage = await db.get(`SELECT * FROM UnifiedMessage WHERE id = ?`, [
-        messageData.id || result.lastID
+        messageToInsertId
       ])
 
       await db.close()

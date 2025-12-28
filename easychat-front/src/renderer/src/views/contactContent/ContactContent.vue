@@ -121,7 +121,10 @@
 
     <!-- 未选择联系人时的提示 -->
     <div v-else class="no-contact-selected">
-      <div class="placeholder-text">请选择一个联系人</div>
+      <div class="placeholder-content">
+        <span class="icon iconfont icon-chat placeholder-icon"></span>
+        <div class="placeholder-text">请选择一个联系人</div>
+      </div>
     </div>
   </div>
 </template>
@@ -653,6 +656,17 @@ onDeactivated(() => {
   align-items: center;
   height: 100%;
   color: #999;
+}
+
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
 }
 
 .placeholder-text {
