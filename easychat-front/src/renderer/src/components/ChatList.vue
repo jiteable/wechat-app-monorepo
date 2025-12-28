@@ -407,6 +407,16 @@ const handleTopSession = async (session) => {
         sessions.value[sessionIndex].isPinned = originalIsPinned
       }
 
+      // 发送全局事件，通知GroupDrawer更新置顶开关状态
+      window.dispatchEvent(
+        new CustomEvent('sessionPinnedChanged', {
+          detail: {
+            sessionId: session.id,
+            isPinned: newIsPinned
+          }
+        })
+      )
+
       ElMessage.success(`${newIsPinned ? '已置顶' : '已取消置顶'}会话 "${session.name}"`)
     }
   } catch (error) {

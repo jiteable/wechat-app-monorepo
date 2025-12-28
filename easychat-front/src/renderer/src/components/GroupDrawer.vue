@@ -173,7 +173,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { EditPen } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -220,6 +220,10 @@ const props = defineProps({
   isPinned: {
     type: Boolean,
     default: false
+  },
+  sessionId: {
+    type: String,
+    default: ''
   }
 })
 
@@ -235,7 +239,7 @@ const emit = defineEmits([
   'updateRemark',
   'updateNickname',
   'addMember',
-  'sendSystemMessage'  // 添加发送系统消息事件
+  'sendSystemMessage' // 添加发送系统消息事件
 ])
 
 // Data
@@ -307,18 +311,35 @@ watch(
   { immediate: true }
 )
 
+onMounted(() => {
+  window.addEventListener('sessionPinnedChanged', handleSessionPinnedChanged)
+})
+
+// 在组件卸载时移除事件监听器
+onUnmounted(() => {
+  window.removeEventListener('sessionPinnedChanged', handleSessionPinnedChanged)
+})
+
 // Methods
 const onClose = () => {
   emit('update:visible', false)
   emit('close')
 }
 
-watch(
-  pinChat,
-  (newVal) => {
-    emit('update:pinChat', newVal)
+watch(pinChat, (newVal) => {
+  console.log('new: ', newVal)
+  emit('update:pinChat', newVal)
+})
+
+const handleSessionPinnedChanged = (event) => {
+  const { sessionId, isPinned } = event.detail
+
+  // 检查是否是当前会话
+  if (props.sessionId && props.sessionId === sessionId) {
+    // 更新 pinChat 状态
+    pinChat.value = isPinned
   }
-)
+}
 const handleAvatarError = () => {
   console.log('头像加载失败')
 }

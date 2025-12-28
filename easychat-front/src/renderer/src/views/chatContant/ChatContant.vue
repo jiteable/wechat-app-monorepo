@@ -266,6 +266,7 @@
         :should-show-add-button="shouldShowAddButton"
         :is-group-owner-or-admin="isGroupOwnerOrAdmin"
         :is-pinned="contactStore.selectedContact?.isPinned"
+        :session-id="contactStore.selectedContact?.id"
         @update:visible="drawer = $event"
         @search-messages="searchMessages"
         @clear-chat-history="clearChatHistory"
