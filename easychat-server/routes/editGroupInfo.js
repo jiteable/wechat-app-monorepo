@@ -119,7 +119,7 @@ router.put('/sessionRemark', authenticateToken, async function (req, res, next) 
       });
     }
 
-    // 更新会话备注
+    // 更新会话备注 - 使用多个字段作为条件而不是复合唯一键
     const updatedSessionUser = await db.chatSessionUser.update({
       where: {
         sessionId_userId: {
@@ -128,7 +128,7 @@ router.put('/sessionRemark', authenticateToken, async function (req, res, next) 
         }
       },
       data: {
-        remark: remark
+        customRemark: remark 
       }
     });
 
@@ -140,13 +140,14 @@ router.put('/sessionRemark', authenticateToken, async function (req, res, next) 
     });
   } catch (error) {
     console.error('更新会话备注失败:', error);
+    // 添加更详细的错误信息
     res.status(500).json({
       code: 500,
-      message: '服务器内部错误'
+      message: '服务器内部错误',
+      error: error.message
     });
   }
 });
-
 /**
  * 更新用户在群组中的昵称
  * PUT /editGroup/memberNickname

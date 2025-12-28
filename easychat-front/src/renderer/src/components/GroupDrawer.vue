@@ -561,11 +561,10 @@ const saveRemark = async () => {
       editingField.value = ''
       return
     }
-
     try {
       // 调用API更新会话备注
       const response = await updateSessionRemark({
-        sessionId: props.group?.sessionId, // 需要确认是否有sessionId属性传入
+        sessionId: props.sessionId, // 需要确认是否有sessionId属性传入
         remark: groupEditForm.value.remark
       })
 
