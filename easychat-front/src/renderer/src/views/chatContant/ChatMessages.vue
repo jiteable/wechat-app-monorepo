@@ -250,7 +250,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
-import { ElDatePicker, ElPopover, ElMessage } from 'element-plus'
+import { ElDatePicker, ElPopover, ElMessage, ElLoading } from 'element-plus'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
@@ -731,40 +731,93 @@ const handleFileDownload = async (fileMessage) => {
       }
     }
 
+    // 显示正在处理提示
+    const loading = ElLoading.service({
+      text: '正在检查文件...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
     try {
-      // 通过IPC发送下载文件请求到主进程
-      if (window.api && typeof window.api.downloadFile === 'function') {
-        const result = await window.api.downloadFile(fileUrl, fileName, storageLocation)
+      // 通过IPC发送检查文件请求到主进程
+      if (window.api && typeof window.api.checkAndOpenFile === 'function') {
+        // 从消息中提取日期信息（假设消息对象中有createdAt字段）
+        let messageDate = null
+        if (fileMessage.createdAt) {
+          const date = new Date(fileMessage.createdAt)
+          messageDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`
+        }
 
-        if (result.success) {
-          ElMessage.success(`文件已保存到: ${result.filePath}`)
+        const result = await window.api.checkAndOpenFile(fileName, storageLocation, messageDate)
+
+        loading.close()
+
+        if (result.exists) {
+          // 文件已存在，直接打开文件或文件夹
+          ElMessage.success(result.message)
         } else {
-          ElMessage.error(`文件下载失败: ${result.error}`)
-
-          // 如果是网络错误，提供备选方案
-          if (
-            result.error.includes('网络请求失败') ||
-            result.error.includes('CONNECTION_REFUSED')
-          ) {
-            ElMessage.info('正在尝试浏览器下载...')
-            // 尝试使用浏览器默认下载
-            attemptBrowserDownload(fileUrl, fileName)
-          }
+          // 文件不存在，执行下载流程
+          await downloadNewFile(fileUrl, fileName, storageLocation, fileMessage)
         }
       } else {
-        // 如果没有downloadFile方法，则使用浏览器默认下载
+        loading.close()
+        // 如果没有checkAndOpenFile方法，则使用原来的下载方式
         ElMessage.info('正在使用浏览器下载...')
         attemptBrowserDownload(fileUrl, fileName)
       }
     } catch (ipcError) {
+      loading.close()
       console.error('IPC通信错误:', ipcError)
-      ElMessage.error('下载服务暂时不可用，正在尝试浏览器下载...')
+      ElMessage.error('文件检查服务暂时不可用，正在尝试浏览器下载...')
       // IPC通信失败时使用浏览器默认下载
       attemptBrowserDownload(fileUrl, fileName)
     }
   } catch (error) {
-    console.error('文件下载出错:', error)
-    ElMessage.error('文件下载出错: ' + (error.message || '未知错误'))
+    console.error('文件处理出错:', error)
+    ElMessage.error('文件处理出错: ' + (error.message || '未知错误'))
+  }
+}
+
+const downloadNewFile = async (fileUrl, fileName, storageLocation, fileMessage) => {
+  // 显示正在下载提示
+  const loading = ElLoading.service({
+    text: '正在下载文件...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  try {
+    // 通过IPC发送下载文件请求到主进程
+    if (window.api && typeof window.api.downloadFile === 'function') {
+      const result = await window.api.downloadFile(fileUrl, fileName, storageLocation)
+
+      loading.close()
+
+      if (result.success) {
+        ElMessage.success(`文件已保存到: ${result.filePath}`)
+      } else {
+        ElMessage.error(`文件下载失败: ${result.error}`)
+
+        // 如果是网络错误，提供备选方案
+        if (
+          result.error.includes('网络请求失败') ||
+          result.error.includes('CONNECTION_REFUSED')
+        ) {
+          ElMessage.info('正在尝试浏览器下载...')
+          // 尝试使用浏览器默认下载
+          attemptBrowserDownload(fileUrl, fileName)
+        }
+      }
+    } else {
+      loading.close()
+      // 如果没有downloadFile方法，则使用浏览器默认下载
+      ElMessage.info('正在使用浏览器下载...')
+      attemptBrowserDownload(fileUrl, fileName)
+    }
+  } catch (ipcError) {
+    loading.close()
+    console.error('IPC通信错误:', ipcError)
+    ElMessage.error('下载服务暂时不可用，正在尝试浏览器下载...')
+    // IPC通信失败时使用浏览器默认下载
+    attemptBrowserDownload(fileUrl, fileName)
   }
 }
 

@@ -63,6 +63,7 @@ interface Window {
 
     // 文件下载相关
     downloadFile: (url: string, fileName: string, savePath: string) => Promise<any>
+    checkAndOpenFile: (fileName: string, basePath: string, dateStr?: string) => Promise<any>
 
     //本地数据库相关
     addChatSession: (sessionData: any) => Promise<any>

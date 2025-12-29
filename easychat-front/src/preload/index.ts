@@ -150,7 +150,9 @@ const api = {
   showSaveDialog: (options: any): Promise<any> => ipcRenderer.invoke('show-save-dialog', options),
 
   downloadFileToPath: (url: string, fileName: string, savePath: string): Promise<any> =>
-    ipcRenderer.invoke('download-file-to-path', url, fileName, savePath)
+    ipcRenderer.invoke('download-file-to-path', url, fileName, savePath),
+  checkAndOpenFile: (fileName: string, basePath: string, dateStr?: string): Promise<any> =>
+    ipcRenderer.invoke('check-and-open-file', fileName, basePath, dateStr)
 }
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

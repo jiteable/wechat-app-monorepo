@@ -3,7 +3,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { initWs, sendMessage } from './wsClient'
-import { downloadFile } from './fileDownloader'
+import { downloadFile, checkAndOpenFile } from './fileDownloader'
 import { databaseManager } from './db/db'
 import sqlite3 from 'sqlite3'
 import { open } from 'sqlite'
@@ -1029,6 +1029,17 @@ export function setupIpcHandlers(icon: string): void {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       return { success: false, error: errorMessage }
+    }
+  })
+
+  // 添加checkAndOpenFile的IPC处理程序
+  ipcMain.handle('check-and-open-file', async (_, fileName, basePath, dateStr) => {
+    try {
+      const result = await checkAndOpenFile(fileName, basePath, dateStr)
+      return { exists: result.exists, message: result.message }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      return { exists: false, message: `检查文件时出错: ${errorMessage}` }
     }
   })
 }
