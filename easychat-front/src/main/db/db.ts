@@ -458,8 +458,8 @@ class DatabaseManager {
       await db.run(
         `
       INSERT OR REPLACE INTO ChatSession 
-      (id, sessionType, name, avatar, ownerId, groupId, createdAt, updatedAt, isPinned, isMuted, isDeleted, deletedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, sessionType, name, avatar, ownerId, groupId, createdAt, updatedAt, isDeleted, deletedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
         [
           sessionData.id,
@@ -470,8 +470,6 @@ class DatabaseManager {
           sessionData.groupId,
           sessionData.createdAt || new Date().toISOString(),
           sessionData.updatedAt || new Date().toISOString(),
-          sessionData.isPinned ? 1 : 0,
-          sessionData.isMuted ? 1 : 0,
           sessionData.isDeleted ? 1 : 0,
           sessionData.deletedAt
         ]
