@@ -712,8 +712,8 @@ const loadMessages = async (sessionId, page = 1, prepend = false) => {
         if (msg.messageType === 'file') {
           return {
             ...baseMessage,
-            fileExtension: msg.file_extension, // 从文件对象或直接从消息获取扩展名
-            size: formatFileSize(msg.file_size) // 格式化文件大小
+            fileExtension: msg.fileExtension || msg.file_extension, // 从消息对象或文件对象获取扩展名
+            size: msg.fileSize ? formatFileSize(msg.fileSize) : '未知大小' // 使用正确的属性名
           }
         }
 
@@ -2142,6 +2142,12 @@ const handleFileUpload = (event) => {
 const uploadFiles = async (file) => {
   console.log('准备上传文件:', file)
 
+  // 检查文件大小
+  if (file.size === 0) {
+    ElMessage.error('不能上传大小为0的文件')
+    return
+  }
+
   // 显示上传状态
   const loading = ElLoading.service({
     text: '正在上传文件...',
@@ -2379,7 +2385,7 @@ const uploadFiles = async (file) => {
           senderName: userStore.username || '我',
           senderAvatar: userStore.avatar || '',
           content: response.originalName, // 文件名
-          size: formatFileSize(response.fileSize), // 文件大小
+          size: response.fileSize ? formatFileSize(response.fileSize) : '未知大小', // 使用正确的属性名
           mimeType: response.mimeType, // MIME类型
           fileExtension: response.fileExtension, // 文件扩展名
           createdAt: new Date().toISOString()
