@@ -145,7 +145,12 @@ const api = {
   },
   removeContactUpdatedListener: (): void => {
     ipcRenderer.removeAllListeners('contactUpdated')
-  }
+  },
+  // 添加文件保存对话框功能
+  showSaveDialog: (options: any): Promise<any> => ipcRenderer.invoke('show-save-dialog', options),
+
+  downloadFileToPath: (url: string, fileName: string, savePath: string): Promise<any> =>
+    ipcRenderer.invoke('download-file-to-path', url, fileName, savePath)
 }
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

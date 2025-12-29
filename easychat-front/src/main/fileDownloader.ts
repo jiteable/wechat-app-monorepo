@@ -10,6 +10,13 @@ import { shell } from 'electron'
  * @param savePath 保存路径基础目录
  * @returns 保存的完整文件路径
  */
+/**
+ * 下载文件到指定路径
+ * @param url 文件URL
+ * @param fileName 文件名
+ * @param savePath 保存路径基础目录或完整文件路径
+ * @returns 保存的完整文件路径
+ */
 export async function downloadFile(
   url: string,
   fileName: string,
@@ -24,25 +31,44 @@ export async function downloadFile(
       return
     }
 
-    // 构建带日期的完整保存路径: 基础路径/files/年月/
-    const currentDate = new Date().toISOString().slice(0, 7) // 格式: YYYY-MM
-    const finalSavePath = path.join(savePath, 'files', currentDate)
+    let finalPath: string
 
-    // 确保保存目录存在
-    if (!fs.existsSync(finalSavePath)) {
-      try {
-        fs.mkdirSync(finalSavePath, { recursive: true })
-      } catch (err) {
-        reject(new Error(`无法创建目录: ${(err as Error).message}`))
-        return
+    // 检查savePath是否已经是一个完整的文件路径（包含文件名）
+    const pathExt = path.extname(savePath)
+    if (pathExt) {
+      // savePath已经是完整文件路径，直接使用
+      finalPath = savePath
+      // 确保目录存在
+      const dirPath = path.dirname(finalPath)
+      if (!fs.existsSync(dirPath)) {
+        try {
+          fs.mkdirSync(dirPath, { recursive: true })
+        } catch (err) {
+          reject(new Error(`无法创建目录: ${(err as Error).message}`))
+          return
+        }
       }
+    } else {
+      // savePath是基础目录，使用原来逻辑创建日期子文件夹
+      const currentDate = new Date().toISOString().slice(0, 7) // 格式: YYYY-MM
+      const finalSavePath = path.join(savePath, 'files', currentDate)
+
+      // 确保保存目录存在
+      if (!fs.existsSync(finalSavePath)) {
+        try {
+          fs.mkdirSync(finalSavePath, { recursive: true })
+        } catch (err) {
+          reject(new Error(`无法创建目录: ${(err as Error).message}`))
+          return
+        }
+      }
+
+      // 构建完整的文件路径
+      const fullPath = path.join(finalSavePath, fileName)
+
+      // 处理文件名冲突
+      finalPath = getUniqueFilePath(fullPath)
     }
-
-    // 构建完整的文件路径
-    const fullPath = path.join(finalSavePath, fileName)
-
-    // 处理文件名冲突
-    const finalPath = getUniqueFilePath(fullPath)
 
     // 发起网络请求
     const request = net.request({

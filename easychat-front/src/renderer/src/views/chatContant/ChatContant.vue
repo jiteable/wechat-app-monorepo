@@ -539,10 +539,100 @@ const downloadMessage = () => {
     return
   }
 
-  // 使用现有的下载功能
-  handleFileDownload(contextMenuMessage.value)
+  // 调用选择下载路径并下载的函数
+  selectDownloadPathAndDownload(contextMenuMessage.value)
 
   closeContextMenu()
+}
+
+// 选择下载路径并下载文件
+const selectDownloadPathAndDownload = async (fileMessage) => {
+  try {
+    // 使用 IPC 调用主进程来打开文件选择对话框
+    const result = await window.api.showSaveDialog({
+      title: '选择保存位置',
+      defaultPath: fileMessage.content || fileMessage.fileName || 'download',
+      filters: [
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    })
+
+    if (result.canceled) {
+      // 用户取消了选择
+      console.log('用户取消了下载')
+      return
+    }
+
+    const selectedPath = result.filePath
+    if (!selectedPath) {
+      console.error('未选择有效的保存路径')
+      ElMessage.error('未选择有效的保存路径')
+      return
+    }
+
+    // 获取文件名
+    let fileName = fileMessage.content || fileMessage.fileName
+    if (!fileName) {
+      // 尝试从URL中提取文件名
+      try {
+        const urlObj = new URL(fileMessage.mediaUrl || fileMessage.imageUrl)
+        fileName = urlObj.pathname.split('/').pop() || 'downloaded_file'
+      } catch (urlError) {
+        fileName = 'downloaded_file'
+      }
+    }
+
+    // 显示正在下载提示
+    const loading = ElLoading.service({
+      text: '正在下载文件...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    // 获取文件URL
+    let fileUrl = fileMessage.mediaUrl
+    if (!fileUrl && fileMessage.imageUrl) {
+      fileUrl = fileMessage.imageUrl
+    }
+
+    if (!fileUrl && fileMessage.url) {
+      fileUrl = fileMessage.url
+    }
+
+    if (!fileUrl) {
+      loading.close()
+      ElMessage.error('文件链接无效')
+      console.error('无法找到有效的文件链接:', fileMessage)
+      return
+    }
+
+    // 确保URL是完整的
+    if (fileUrl.startsWith('//')) {
+      fileUrl = 'http:' + fileUrl
+    } else if (fileUrl.startsWith('/')) {
+      fileUrl = window.location.origin + fileUrl
+    }
+
+    // 通过IPC发送下载文件请求到主进程，指定下载路径
+    if (window.api && typeof window.api.downloadFileToPath === 'function') {
+      const downloadResult = await window.api.downloadFileToPath(fileUrl, fileName, selectedPath)
+
+      loading.close()
+
+      if (downloadResult.success) {
+        ElMessage.success(`文件已保存到: ${selectedPath}`)
+      } else {
+        ElMessage.error(`文件下载失败: ${downloadResult.error}`)
+      }
+    } else {
+      // 如果没有downloadFileToPath方法，则使用原来的下载方式
+      loading.close()
+      ElMessage.info('正在使用默认下载路径...')
+      handleFileDownload(fileMessage)
+    }
+  } catch (error) {
+    console.error('下载过程中出错:', error)
+    ElMessage.error('下载过程中出错: ' + (error.message || '未知错误'))
+  }
 }
 
 // 初始化 MutationObserver

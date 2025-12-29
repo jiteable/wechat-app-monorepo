@@ -1005,4 +1005,30 @@ export function setupIpcHandlers(icon: string): void {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
+
+  // 添加保存文件对话框的处理程序
+  ipcMain.handle('show-save-dialog', async (_, options) => {
+    const { dialog } = await import('electron')
+    const window = BrowserWindow.getFocusedWindow()
+
+    if (!window) {
+      // 如果没有聚焦的窗口，直接调用 showSaveDialog 而不传递父窗口
+      const result = await dialog.showSaveDialog(options)
+      return result
+    }
+
+    const result = await dialog.showSaveDialog(window, options)
+    return result
+  })
+
+  // 添加下载文件到指定路径的处理程序
+  ipcMain.handle('download-file-to-path', async (_, url, fileName, savePath) => {
+    try {
+      const result = await downloadFile(url, fileName, savePath)
+      return { success: true, filePath: result }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      return { success: false, error: errorMessage }
+    }
+  })
 }

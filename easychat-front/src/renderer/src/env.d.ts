@@ -97,5 +97,7 @@ interface Window {
     getChatSessionById: (sessionId: string) => Promise<any>
 
     updateContactRemark: (contactId: string, remark: string) => Promise<any>
+    showSaveDialog: (options: any) => Promise<any>
+    downloadFileToPath: (url: string, fileName: string, savePath: string) => Promise<any>
   }
 }

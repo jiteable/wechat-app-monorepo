@@ -28,7 +28,6 @@
             </div>
             <div class="contact-info">
               <div class="contact-name">{{ contact.name }}</div>
-              <div v-if="contact.labels" class="contact-label">{{ contact.labels }}</div>
             </div>
             <div class="contact-checkbox">
               <div class="checkbox" :class="{ checked: contact.selected }">
