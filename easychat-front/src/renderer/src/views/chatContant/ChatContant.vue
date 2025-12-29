@@ -298,6 +298,16 @@
       <div class="context-menu-item" @click="forwardMessage">转发</div>
       <div class="context-menu-item" @click="multiSelectMessage">多选</div>
       <div class="context-menu-item" @click="quoteMessage">引用</div>
+      <div
+        v-if="
+          contextMenuMessage &&
+          (contextMenuMessage.type === 'file' || contextMenuMessage.type === 'video')
+        "
+        class="context-menu-item"
+        @click="downloadMessage"
+      >
+        下载
+      </div>
       <div class="context-menu-item danger" @click="deleteMessage">删除</div>
     </div>
   </div>
@@ -515,6 +525,22 @@ const deleteMessage = () => {
     .catch(() => {
       // 用户取消操作
     })
+
+  closeContextMenu()
+}
+
+//下载消息功能
+const downloadMessage = () => {
+  if (!contextMenuMessage.value) return
+
+  // 检查是否为文件或视频类型
+  if (contextMenuMessage.value.type !== 'file' && contextMenuMessage.value.type !== 'video') {
+    ElMessage.warning('该类型消息不支持下载')
+    return
+  }
+
+  // 使用现有的下载功能
+  handleFileDownload(contextMenuMessage.value)
 
   closeContextMenu()
 }
@@ -750,14 +776,15 @@ const addMessageListener = () => {
         // 处理视频消息
         if ((data.data.messageType || data.data.type) === 'video') {
           newMessage.mediaUrl = data.data.mediaUrl
-          newMessage.thumbnailUrl = data.data.thumbnailUrl
+          newMessage.thumbnailUrl = data.data.thumbnailUrl || data.data.file_thumbnailUrl // 使用正确的缩略图字段
           newMessage.fileName = data.data.fileName
           newMessage.size = data.data.fileSize ? formatFileSize(data.data.fileSize) : '未知大小'
           newMessage.fileExtension = data.data.fileExtension
           newMessage.videoInfo = data.data.videoInfo || {
             duration: data.data.duration,
             width: data.data.width,
-            height: data.data.height
+            height: data.data.height,
+            thumbnailUrl: data.data.thumbnailUrl // 包含视频缩略图信息
           }
         }
 
@@ -2158,9 +2185,9 @@ const uploadFiles = async (file) => {
           try {
             if (window.api && typeof window.api.addUnifiedMessage === 'function') {
               const messageSaveData = {
-                id: sendResponse.data.messageId,
-                sessionId: selectedContact.id,
-                senderId: userStore.userId,
+                id: sendResponse.data.data.messageId,
+                sessionId: sendResponse.data.data.sessionId,
+                senderId: sendResponse.data.data.senderId,
                 senderName: userStore.username || '我',
                 senderAvatar: userStore.avatar || '',
                 receiverId:

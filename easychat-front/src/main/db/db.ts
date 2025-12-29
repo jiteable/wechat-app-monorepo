@@ -825,20 +825,22 @@ class DatabaseManager {
         messageData.fileSize
       ) {
         // 创建文件记录
+        const fileId = messageData.fileId || generateUUID()
         fileRecord = await db.run(
           `INSERT INTO File 
-           (id, name, url, thumbnailUrl, size, mimeType, fileExtension, fileType, uploaderId, createdAt, expireAt, sessionId)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, name, url, thumbnailUrl, size, mimeType, fileExtension, fileType, uploaderId, unifiedMessageId, createdAt, expireAt, sessionId)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            messageData.fileId || generateUUID(),
+            fileId,
             messageData.fileName,
             messageData.mediaUrl,
-            messageData.thumbnailUrl || null,
+            messageData.thumbnailUrl || (messageData.videoInfo?.thumbnailUrl) || null, // 保存缩略图URL，优先使用videoInfo中的thumbnailUrl
             messageData.fileSize,
             messageData.mimeType || '',
             messageData.fileExtension || getFileExtension(messageData.fileName),
             messageData.fileType || getFileType(messageData.fileName),
             messageData.senderId,
+            messageData.id || generateUUID(), // 这里需要先生成消息ID
             messageData.createdAt || new Date().toISOString(),
             messageData.expireAt || null,
             messageData.sessionId
@@ -853,14 +855,14 @@ class DatabaseManager {
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               generateUUID(),
-              fileRecord.lastID, // 使用刚创建的文件ID
+              fileId, // 使用刚创建的文件ID
               messageData.videoInfo.duration || null,
               messageData.videoInfo.width || null,
               messageData.videoInfo.height || null,
               messageData.videoInfo.bitrate || null,
               messageData.videoInfo.codec || null,
               messageData.videoInfo.fps || null,
-              messageData.videoInfo.thumbnailUrl || null,
+              messageData.videoInfo.thumbnailUrl || messageData.thumbnailUrl || null, // 保存视频缩略图URL
               messageData.videoInfo.previewUrl || null,
               new Date().toISOString(),
               new Date().toISOString()
@@ -975,7 +977,8 @@ class DatabaseManager {
                 v.height as video_height,
                 v.bitrate as video_bitrate,
                 v.codec as video_codec,
-                v.fps as video_fps
+                v.fps as video_fps,
+                v.thumbnailUrl as video_thumbnailUrl
          FROM UnifiedMessage m
          LEFT JOIN File f ON m.id = f.unifiedMessageId
          LEFT JOIN Video v ON f.id = v.fileId
@@ -991,7 +994,7 @@ class DatabaseManager {
         if (message.file_thumbnailUrl || message.file_extension || message.mime_type) {
           const processedMessage = {
             ...message,
-            thumbnailUrl: message.file_thumbnailUrl,
+            thumbnailUrl: message.file_thumbnailUrl || message.video_thumbnailUrl, // 优先使用视频缩略图
             fileExtension: message.file_extension,
             mimeType: message.mime_type,
             fileName: message.file_name,
@@ -1008,7 +1011,8 @@ class DatabaseManager {
               height: message.video_height,
               bitrate: message.video_bitrate,
               codec: message.video_codec,
-              fps: message.video_fps
+              fps: message.video_fps,
+              thumbnailUrl: message.video_thumbnailUrl // 包含视频缩略图
             }
           }
 
