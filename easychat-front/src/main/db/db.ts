@@ -845,6 +845,8 @@ class DatabaseManager {
           ]
         )
 
+        console.log("fileRecord: ", fileRecord)
+
         // 如果是视频消息，还需要创建视频记录
         if (messageData.messageType === 'video' && messageData.videoInfo) {
           await db.run(
@@ -902,9 +904,18 @@ class DatabaseManager {
       )
 
       // 查询刚刚插入的数据 - 使用我们生成的ID进行查询
-      const insertedMessage = await db.get(`SELECT * FROM UnifiedMessage WHERE id = ?`, [
-        messageToInsertId
-      ])
+      const insertedMessage = await db.get(
+        `SELECT m.*, 
+                f.thumbnailUrl as file_thumbnailUrl,
+                f.fileExtension as file_extension,
+                f.mimeType as mime_type,
+                f.name as file_name,
+                f.size as file_size
+         FROM UnifiedMessage m
+         LEFT JOIN File f ON m.id = f.unifiedMessageId
+         WHERE m.id = ?`,
+        [messageToInsertId]
+      )
 
       await db.close()
 

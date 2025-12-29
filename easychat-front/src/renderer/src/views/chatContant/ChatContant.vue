@@ -2432,7 +2432,7 @@ const uploadFiles = async (file) => {
           try {
             if (window.api && typeof window.api.addUnifiedMessage === 'function') {
               const messageSaveData = {
-                id: sendResponse.data.messageId,
+                id: sendResponse.data.data.messageId,
                 sessionId: selectedContact.id,
                 senderId: userStore.userId,
                 senderName: userStore.username || '我',
@@ -2449,9 +2449,11 @@ const uploadFiles = async (file) => {
                 fileExtension: response.fileExtension,
                 status: 'SENT',
                 readStatus: true,
-                createdAt: sendResponse.data.createdAt || new Date().toISOString(),
+                createdAt: sendResponse.data.data.createdAt || new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               }
+
+              console.log('messageSaveData: ', messageSaveData)
 
               const result = await window.api.addUnifiedMessage(messageSaveData)
               if (result.success) {
