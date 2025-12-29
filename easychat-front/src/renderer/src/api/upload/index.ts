@@ -55,9 +55,9 @@ export const uploadFile = async (params: UploadFileParams): Promise<UploadFileRe
     formData.append('fileType', fileType)
   }
 
-  // 根据文件大小计算超时时间，每MB增加1秒，最少10秒，最多5分钟
+  // 根据文件大小计算超时时间，每MB增加5秒，最少30秒，最多10分钟
   const fileSizeMB = file.size / (1024 * 1024)
-  const timeout = Math.min(Math.max(10000, fileSizeMB * 1000), 300000)
+  const timeout = Math.min(Math.max(30000, fileSizeMB * 5000), 600000)
 
   const response = await http.post<UploadFileResponse & UploadFileError>(
     `${config.api}${API.UPLOAD_FILE_URL}`,
@@ -82,9 +82,9 @@ export const uploadImage = async (file: File): Promise<UploadImageResponse> => {
   const formData = new FormData()
   formData.append('image', file)
 
-  // 根据文件大小计算超时时间，每MB增加1秒，最少10秒，最多5分钟
+  // 根据文件大小计算超时时间，每MB增加5秒，最少30秒，最多10分钟
   const fileSizeMB = file.size / (1024 * 1024)
-  const timeout = Math.min(Math.max(10000, fileSizeMB * 1000), 300000)
+  const timeout = Math.min(Math.max(30000, fileSizeMB * 5000), 600000)
 
   const response = await http.post<UploadImageResponse & UploadImageError>(
     `${config.api}${API.UPLOAD_IMAGE_URL}`,

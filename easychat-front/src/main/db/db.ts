@@ -832,7 +832,7 @@ class DatabaseManager {
             fileId,
             messageData.fileName,
             messageData.mediaUrl,
-            messageData.thumbnailUrl || (messageData.videoInfo?.thumbnailUrl) || null, // 保存缩略图URL，优先使用videoInfo中的thumbnailUrl
+            messageData.thumbnailUrl || messageData.videoInfo?.thumbnailUrl || null, // 保存缩略图URL，优先使用videoInfo中的thumbnailUrl
             messageData.fileSize,
             messageData.mimeType || '',
             messageData.fileExtension || getFileExtension(messageData.fileName),
@@ -1157,8 +1157,8 @@ class DatabaseManager {
               message.mediaUrl || null,
               message.fileName || null,
               message.fileSize || null,
-              message.sender.username || null,
-              message.sender.avatar || null,
+              message.sender && message.sender.username ? message.sender.username : null,
+              message.sender && message.sender.avatar ? message.sender.avatar : null,
               message.isRecalled ? 1 : 0,
               message.isDeleted ? 1 : 0,
               message.status || 'SENT',

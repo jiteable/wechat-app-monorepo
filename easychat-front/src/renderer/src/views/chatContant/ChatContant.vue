@@ -2144,7 +2144,7 @@ const uploadFiles = async (file) => {
 
   // 显示上传状态
   const loading = ElLoading.service({
-    text: '正在下载文件...',
+    text: '正在上传文件...',
     background: 'rgba(0, 0, 0, 0.7)',
     fullscreen: true, // 确保这是全屏模式
     customClass: 'file-download-loading' // 添加自定义类名便于调试

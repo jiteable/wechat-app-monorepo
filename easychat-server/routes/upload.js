@@ -82,7 +82,9 @@ router.post('/avatar', authenticateToken, avatarUpload.single('avatar'), async f
     // 使用 OSS 客户端上传文件
     if (ossClient) {
       // 上传到 OSS
-      const result = await ossClient.put(fileName, req.file.buffer);
+      const result = await ossClient.put(fileName, req.file.buffer, {
+        timeout: 120000 // 为头像上传设置2分钟超时
+      });
 
       // 替换URL前缀为指定的域名
       const customUrl = `https://file-dev.document-ai.top/${fileName}`;
@@ -132,7 +134,9 @@ router.post('/file', authenticateToken, fileUpload.single('file'), async functio
 
     // 使用 OSS 客户端上传文件
     if (ossClient) {
-      const result = await ossClient.put(filename, req.file.buffer);
+      const result = await ossClient.put(filename, req.file.buffer, {
+        timeout: 120000 // 为文件上传设置2分钟超时
+      });
 
       // 替换URL前缀为指定的域名
       const customUrl = `https://file-dev.document-ai.top/${filename}`;
@@ -182,7 +186,9 @@ router.post('/image', authenticateToken, avatarUpload.single('image'), async fun
     // 使用 OSS 客户端上传文件
     if (ossClient) {
       // 上传到 OSS
-      const result = await ossClient.put(fileName, req.file.buffer);
+      const result = await ossClient.put(fileName, req.file.buffer, {
+        timeout: 120000 // 为图片上传设置2分钟超时
+      });
 
       // 替换URL前缀为指定的域名
       const customUrl = `https://file-dev.document-ai.top/${fileName}`;
@@ -237,7 +243,9 @@ router.post('/video', authenticateToken, videoUpload.single('video'), async func
     // 上传原始视频文件到 OSS
     if (ossClient) {
       // 直接从 buffer 上传，不使用临时文件
-      const result = await ossClient.put(uniqueFileName, req.file.buffer, {});
+      const result = await ossClient.put(uniqueFileName, req.file.buffer, {
+        timeout: 120000 // 为视频上传设置2分钟超时
+      });
 
       // 视频文件的公共URL
       const videoUrl = `https://file-dev.document-ai.top/${uniqueFileName}`;
