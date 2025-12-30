@@ -321,7 +321,7 @@ import { useUserSetStore } from '@/store/userSetStore'
 import { Message } from '@element-plus/icons-vue'
 import { ref, nextTick, watch, computed, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { sendMessage, markAsRead } from '@/api/chat'
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElMessage, ElLoading, ElMessageBox } from 'element-plus'
 import { uploadImage, uploadFile } from '@/api/upload'
 import WindowControls from '@/components/WindowControls.vue'
 import PreviewImage from '@/components/previewImage.vue'
@@ -515,13 +515,18 @@ const deleteMessage = () => {
           messages.value.splice(index, 1)
         }
 
-        // 如果需要从服务器删除，可以调用API
-        // await deleteMessageFromServer(contextMenuMessage.value.id)
+        // 从数据库中删除消息
+        await window.api.deleteUnifiedMessage(contextMenuMessage.value.id)
 
         ElMessage.success('消息已删除')
       } catch (error) {
         console.error('删除消息失败:', error)
         ElMessage.error('删除消息失败')
+
+        // 如果删除失败，将消息重新添加到列表中
+        if (index !== -1) {
+          messages.value.splice(index, 0, contextMenuMessage.value)
+        }
       }
     })
     .catch(() => {
@@ -1056,6 +1061,13 @@ const sendSystemMessage = async (contents) => {
         const result = await window.api.addUnifiedMessage(messageSaveData)
         if (result.success) {
           console.log('系统消息已保存到本地数据库:', result.data)
+
+          const localMessageIndex = messages.value.findIndex(
+            (msg) => msg.id === localSystemMessage.id
+          )
+          if (localMessageIndex !== -1) {
+            messages.value[localMessageIndex].id = response.data.messageId
+          }
         } else {
           console.error('保存系统消息到本地数据库失败:', result.error)
         }
@@ -1725,6 +1737,14 @@ const sendMessageHandler = async () => {
             const result = await window.api.addUnifiedMessage(messageSaveData)
             if (result.success) {
               console.log('图片消息已保存到本地数据库:', result.data)
+
+              // 更新本地消息的ID为服务器返回的真实ID
+              const localMessageIndex = messages.value.findIndex(
+                (msg) => msg.id === localImageMessage.id
+              )
+              if (localMessageIndex !== -1) {
+                messages.value[localMessageIndex].id = response.data.messageId
+              }
             } else {
               console.error('保存图片消息到本地数据库失败:', result.error)
             }
@@ -1820,6 +1840,12 @@ const sendMessageHandler = async () => {
             const result = await window.api.addUnifiedMessage(messageSaveData)
             if (result.success) {
               console.log('文本消息已保存到本地数据库:', result.data)
+              const localMessageIndex = messages.value.findIndex(
+                (msg) => msg.id === localMessage.id
+              )
+              if (localMessageIndex !== -1) {
+                messages.value[localMessageIndex].id = response.data.messageId
+              }
             } else {
               console.error('保存文本消息到本地数据库失败:', result.error)
             }
@@ -2482,6 +2508,14 @@ const uploadFiles = async (file) => {
               const result = await window.api.addUnifiedMessage(messageSaveData)
               if (result.success) {
                 console.log('文件消息已保存到本地数据库:', result.data)
+
+                // 更新本地消息的ID为服务器返回的真实ID
+                const localMessageIndex = messages.value.findIndex(
+                  (msg) => msg.id === localFileMessage.id
+                )
+                if (localMessageIndex !== -1) {
+                  messages.value[localMessageIndex].id = sendResponse.data.messageId
+                }
               } else {
                 console.error('保存文件消息到本地数据库失败:', result.error)
               }
