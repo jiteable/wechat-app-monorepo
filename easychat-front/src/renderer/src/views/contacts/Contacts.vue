@@ -1462,4 +1462,34 @@ const deleteContacts = () => {
   justify-content: flex-end;
   gap: 10px;
 }
+
+:deep(.el-table) {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* 对表格行应用不可选择样式 */
+:deep(.table-row) {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* 对表格单元格中的文本也应用此样式 */
+:deep(.el-table .el-table__row span) {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+:deep(.el-table .el-table__row div) {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 </style>

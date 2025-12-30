@@ -2657,7 +2657,7 @@ const handleFileDownload = async (fileMessage) => {
     try {
       // 通过IPC发送检查文件请求到主进程
       if (window.api && typeof window.api.checkAndOpenFile === 'function') {
-        // 从消息中提取日期信息（假设消息对象中有createdAt字段）
+        // 从消息中提取日期信息
         let messageDate = null
         if (fileMessage.createdAt) {
           const date = new Date(fileMessage.createdAt)
