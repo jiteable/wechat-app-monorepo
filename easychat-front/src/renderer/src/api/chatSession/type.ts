@@ -11,7 +11,6 @@ export interface ChatSessionUser {
   sessionType: string
   identity: string | null
   nickname: string | null
-  remark: string | null
   showMemberNameCard: boolean
   background: string | null
   displayName: string | null

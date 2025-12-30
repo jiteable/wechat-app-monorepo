@@ -109,6 +109,8 @@ const api = {
     ipcRenderer.invoke('increment-unread-count', sessionId, userId),
   resetUnreadCount: (sessionId: string, userId: string): Promise<any> =>
     ipcRenderer.invoke('reset-unread-count', sessionId, userId),
+  updateChatSessionRemark: (sessionId: string, remark: string, userId: string): Promise<any> =>
+    ipcRenderer.invoke('update-chat-session-remark', sessionId, remark, userId),
 
   // 删除相关函数
   deleteChatSessionUser: (id: string): Promise<any> =>

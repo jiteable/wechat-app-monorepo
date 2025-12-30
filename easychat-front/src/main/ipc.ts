@@ -844,6 +844,28 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
+  ipcMain.handle(
+    'update-chat-session-remark',
+    async (event, sessionId: string, remark: string, userId: string) => {
+      try {
+        const userSession = await databaseManager.getChatSessionUser(sessionId, userId)
+
+        if (userSession && userSession.id) {
+          await databaseManager.updateChatSessionUser(userSession.id, {
+            customRemark: remark
+          })
+
+          return { success: true, message: '备注更新成功' }
+        } else {
+          return { success: false, message: '未找到对应的会话用户记录' }
+        }
+      } catch (error) {
+        console.error('更新会话备注失败:', error)
+        return { success: false, error: error.message }
+      }
+    }
+  )
+
   ipcMain.handle('get-chat-session-user', async (_, sessionId, userId) => {
     try {
       const result = await databaseManager.getChatSessionUser(sessionId, userId)

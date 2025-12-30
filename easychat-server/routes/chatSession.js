@@ -81,8 +81,8 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         displayName = currentUserSessionInfo?.displayName || currentUserSessionInfo?.customRemark || otherUsers[0].user.username || otherUsers[0].user.email;
         displayAvatar = currentUserSessionInfo?.displayAvatar || otherUsers[0].user.avatar;
       } else if (session.sessionType === 'group' && session.group) {
-        // 群聊会话
-        displayName = session.name || session.group.name;
+        // 群聊会话 - 现在使用用户自定义备注（如果存在）
+        displayName = currentUserSessionInfo?.customRemark || session.name || session.group.name;
         displayAvatar = session.avatar || session.group.image;
       } else {
         // 默认情况
@@ -142,7 +142,10 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         group: groupWithMembers || session.group || null,
         contactId: contactId, // 添加联系人ID(限私聊)
         // 添加groupId字段
-        groupId: currentUserSessionInfo?.groupId || null
+        groupId: currentUserSessionInfo?.groupId || null,
+        // 添加备注字段
+        customRemark: currentUserSessionInfo?.customRemark || null,
+        remark: currentUserSessionInfo?.customRemark || null // 为了兼容性，也保留remark字段
       };
 
       return res.json({
@@ -265,7 +268,10 @@ router.get('/getSession', authenticateToken, async (req, res) => {
           group: groupWithMembers || session.group || null,
           contactId: contactId, // 添加联系人ID(限私聊)
           // 添加groupId字段
-          groupId: currentUserSessionInfo?.groupId || null
+          groupId: currentUserSessionInfo?.groupId || null,
+          // 添加备注字段
+          customRemark: currentUserSessionInfo?.customRemark || null,
+          remark: currentUserSessionInfo?.customRemark || null // 为了兼容性，也保留remark字段
         };
       }));
 

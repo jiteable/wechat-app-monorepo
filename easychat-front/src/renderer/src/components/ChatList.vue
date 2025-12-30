@@ -131,9 +131,6 @@ const fetchSessions = async () => {
         try {
           await window.api.syncChatSessions(response.data)
           console.log('会话数据已同步到本地数据库')
-
-          // 同步 ChatSessionUser 数据
-          // 这里需要获取当前用户的会话关系数据并同步
         } catch (syncError) {
           console.error('同步会话到本地数据库失败:', syncError)
         }
@@ -247,6 +244,26 @@ const handleGroupInfoUpdated = (event) => {
   }
 }
 
+// 添加对会话备注更新事件的处理
+const handleSessionRemarkUpdated = (event) => {
+  const { sessionId, newRemark } = event.detail
+
+  // 查找对应的会话并更新备注
+  const sessionIndex = sessions.value.findIndex((session) => session.id === sessionId)
+  if (sessionIndex !== -1) {
+    sessions.value[sessionIndex].customRemark = newRemark
+    // 如果该会话在本地数据库中也存在，同步更新
+    if (window.api && typeof window.api.updateChatSessionRemark === 'function') {
+      // 获取当前用户ID
+      const userStore = useUserStore()
+      const userId = userStore.userId
+      window.api
+        .updateChatSessionRemark(sessionId, newRemark, userId)
+        .catch((err) => console.error('更新本地会话备注失败:', err))
+    }
+  }
+}
+
 // 格式化时间
 const formatDate = (dateStr) => {
   const date = new Date(dateStr)
@@ -313,7 +330,7 @@ const handleClickSession = async (session) => {
       // 从后端获取完整的群组信息
       const fullSessionResponse = await getSessions()
       if (fullSessionResponse && fullSessionResponse.success) {
-        const fullSession = fullSessionResponse.data.find(s => s.id === session.id)
+        const fullSession = fullSessionResponse.data.find((s) => s.id === session.id)
         if (fullSession && fullSession.group) {
           sessionWithGroupInfo = fullSession
         }
@@ -589,6 +606,9 @@ onMounted(() => {
   // 添加会话置顶状态变化事件监听
   window.addEventListener('sessionPinnedChanged', handleSessionPinnedChanged)
 
+  // 添加会话备注更新事件监听
+  window.addEventListener('sessionRemarkUpdated', handleSessionRemarkUpdated)
+
   // 监听路由变化
   updateSelectedSessionFromRoute()
   router.afterEach(updateSelectedSessionFromRoute)
@@ -610,6 +630,9 @@ onUnmounted(() => {
 
   // 移除会话置顶状态变化事件监听
   window.removeEventListener('sessionPinnedChanged', handleSessionPinnedChanged)
+
+  // 移除会话备注更新事件监听
+  window.removeEventListener('sessionRemarkUpdated', handleSessionRemarkUpdated)
 
   // 移除路由监听
   router.afterEach(() => {})

@@ -844,9 +844,6 @@ class DatabaseManager {
             messageData.sessionId
           ]
         )
-
-        console.log("fileRecord: ", fileRecord)
-
         // 如果是视频消息，还需要创建视频记录
         if (messageData.messageType === 'video' && messageData.videoInfo) {
           await db.run(

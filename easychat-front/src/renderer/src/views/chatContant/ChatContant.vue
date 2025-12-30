@@ -552,9 +552,7 @@ const selectDownloadPathAndDownload = async (fileMessage) => {
     const result = await window.api.showSaveDialog({
       title: '选择保存位置',
       defaultPath: fileMessage.content || fileMessage.fileName || 'download',
-      filters: [
-        { name: 'All Files', extensions: ['*'] }
-      ]
+      filters: [{ name: 'All Files', extensions: ['*'] }]
     })
 
     if (result.canceled) {
@@ -1271,7 +1269,12 @@ const getDisplayName = computed(() => {
 
   // 如果是群聊，显示群名称和成员数
   if (session.sessionType === 'group' && session.group) {
-    const groupName = session.group.name || session.name || '群聊'
+    const groupName =
+      contactStore.selectedContact.customRemark ||
+      contactStore.selectedContact.remark ||
+      session.group.name ||
+      session.name ||
+      '群聊'
     const memberCount = session.group.members ? session.group.members.length : 0
     return `${groupName}(${memberCount})`
   }
@@ -1351,9 +1354,31 @@ const handleUpdateAnnouncement = (newAnnouncement) => {
 
 const handleUpdateRemark = (newRemark) => {
   console.log('新备注:', newRemark)
+  console.log('contactStore.selectedContact: ', contactStore.selectedContact)
   // 更新联系人存储中的备注
   if (contactStore.selectedContact) {
+    // 同时更新remark和customRemark字段以确保兼容性
     contactStore.selectedContact.remark = newRemark
+    contactStore.selectedContact.customRemark = newRemark
+
+    const userId = userStore.userId
+
+    // 更新本地数据库中的备注信息
+    if (window.api && typeof window.api.updateChatSessionRemark === 'function') {
+      window.api
+        .updateChatSessionRemark(contactStore.selectedContact.id, newRemark, userId)
+        .catch((err) => console.error('更新本地数据库中的会话备注失败:', err))
+    }
+
+    // 触发全局事件，通知ChatList组件更新会话列表中的备注
+    window.dispatchEvent(
+      new CustomEvent('sessionRemarkUpdated', {
+        detail: {
+          sessionId: contactStore.selectedContact.id,
+          newRemark: newRemark
+        }
+      })
+    )
   }
 }
 

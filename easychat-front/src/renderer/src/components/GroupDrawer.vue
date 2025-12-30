@@ -181,6 +181,7 @@ import {
   updateSessionRemark,
   updateUserNicknameInGroup
 } from '@/api/editGroupInfo'
+import { useUserStore } from '@/store/userStore'
 
 // Props
 const props = defineProps({
@@ -465,6 +466,18 @@ const saveGroupName = async () => {
         emit('sendSystemMessage', {
           content: systemMessageContent
         })
+
+        // 更新本地数据库中的群名称
+        if (window.api && typeof window.api.updateChatSession === 'function') {
+          try {
+            await window.api.updateChatSession(props.sessionId, {
+              name: groupEditForm.value.name
+            })
+            console.log('本地数据库中的群名称已更新')
+          } catch (dbError) {
+            console.error('更新本地数据库中的群名称失败:', dbError)
+          }
+        }
       } else {
         ElMessage.error(response.message || '群名称修改失败')
       }
@@ -586,6 +599,23 @@ const saveRemark = async () => {
 
         // 显示成功消息
         ElMessage.success('备注修改成功')
+
+        const userStore = useUserStore()
+        const userId = userStore.userId
+
+        // 更新本地数据库中的备注信息
+        if (window.api && typeof window.api.updateChatSessionRemark === 'function') {
+          try {
+            await window.api.updateChatSessionRemark(
+              props.sessionId,
+              groupEditForm.value.remark,
+              userId
+            )
+            console.log('本地数据库中的会话备注已更新')
+          } catch (dbError) {
+            console.error('更新本地数据库中的会话备注失败:', dbError)
+          }
+        }
       } else {
         ElMessage.error(response.message || '备注修改失败')
       }
