@@ -255,6 +255,7 @@ import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
 import { formatDate } from '@/utils/formatDate'
+import { formatFileSize } from '@/utils/formatFileSize'
 
 interface Message {
   id: string | number
@@ -610,17 +611,6 @@ const minimizeWindow = () => {
 // 关闭窗口
 const closeWindow = () => {
   window.api.closeChatMessageWindow()
-}
-
-// 格式化文件大小
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 // 获取文件图标路径

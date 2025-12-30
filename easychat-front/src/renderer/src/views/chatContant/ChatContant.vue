@@ -330,6 +330,7 @@ import { uploadVideo } from '@/api/upload'
 import { getSessions } from '@/api/chatSession'
 import emojiData from '@/utils/emojiData'
 import { formatDate } from '@/utils/formatDate'
+import { formatFileSize } from '@/utils/formatFileSize'
 
 const route = useRoute()
 const contactStore = userContactStore()
@@ -681,6 +682,7 @@ onBeforeUnmount(() => {
     richInputObserver.value.disconnect()
   }
 })
+
 // 加载消息数据（带分页）
 const loadMessages = async (sessionId, page = 1, prepend = false) => {
   console.log('sessionId: ', sessionId)
@@ -770,14 +772,10 @@ const handleGroupRenameMessage = (content) => {
 
 const handlePinChatChange = async (isPinned) => {
   console.log('isPinned: ', isPinned)
-  // 这里应该调用更新会话置顶状态的API
-  // 需要获取当前会话ID和更新状态
   const currentSession = contactStore.selectedContact
   if (!currentSession) return
 
   try {
-    // 调用ChatList中类似的处理逻辑，更新会话的置顶状态
-    // 从ChatList组件中复制类似的逻辑
     if (
       window.api &&
       typeof window.api.updateChatSessionUser === 'function' &&
@@ -1250,11 +1248,11 @@ watch(
     }
   }
 )
+
 // 计算属性：根据会话类型显示不同的名称
 const getDisplayName = computed(() => {
   const session = contactStore.selectedContact
-  console.log('session: ', session)
-  console.log('aaaaaaa')
+  console.log('getDisplayNameSession: ', session)
   if (!session) {
     // 如果store中没有选中的联系人，尝试从路由参数获取
     const sessionId = route.params.id
@@ -1937,7 +1935,7 @@ const toggleChat = () => {
 }
 
 const sessionUsers = computed(() => {
-  console.log('contactStore.selectedContactssssssss: ', contactStore.selectedContact)
+  console.log('SessionUsers: ContactStore.selectedContacts: ', contactStore.selectedContact)
   const session = contactStore.selectedContact
   if (!session) return []
 
@@ -2601,17 +2599,6 @@ const previewImage = (imageUrl) => {
 const closePreview = () => {
   isPreviewVisible.value = false
   previewImageUrl.value = ''
-}
-
-// 添加格式化文件大小的函数
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 const handleFileDownload = async (fileMessage) => {
