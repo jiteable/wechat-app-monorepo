@@ -504,6 +504,12 @@ const saveAnnouncement = async () => {
 
         // 显示成功消息
         ElMessage.success('群公告修改成功')
+
+        // 发送系统消息通知群成员
+        const systemMessageContent = '修改了群公告，请注意查看'
+        emit('sendSystemMessage', {
+          content: systemMessageContent
+        })
       } else {
         ElMessage.error(response.message || '群公告修改失败')
       }
