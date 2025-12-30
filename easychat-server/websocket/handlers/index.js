@@ -1,5 +1,6 @@
 const handleAuthMessage = require('./auth');
 const handleChatMessage = require('./chat');
+const handleDeleteMessage = require('./deleteMessage');
 
 function handleMessage(ws, data, clients) {
   switch (data.type) {
@@ -14,8 +15,12 @@ function handleMessage(ws, data, clients) {
       }));
       break;
 
-    case 'chat_message':
+    case 'send_message':
       handleChatMessage(ws, data, clients);
+      break;
+
+    case 'delete_message':
+      handleDeleteMessage(ws, data, clients);
       break;
 
     default:

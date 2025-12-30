@@ -348,7 +348,6 @@ const initWebSocket = () => {
   console.log('wadwa')
   // 通过IPC向主进程发送初始化WebSocket的消息
   if (window.api && typeof window.api.initWebSocket === 'function') {
-    console.log('wadwaaaaaaaaa')
     window.api.initWebSocket(userStore.$state.userId)
   }
 

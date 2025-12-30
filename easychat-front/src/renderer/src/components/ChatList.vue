@@ -490,8 +490,47 @@ const handleClickOutside = (event) => {
 fetchSessions()
 
 // 添加WebSocket消息监听器
-const handleNewMessage = (data) => {
+const handleNewMessage = async (data) => {
   console.log('收到新消息:', data)
+
+  // 将消息保存到本地数据库
+  try {
+    if (window.api && typeof window.api.addUnifiedMessage === 'function') {
+      const messageData = {
+        id: data.data.id,
+        sessionId: data.data.sessionId,
+        senderId: data.data.sender?.id || data.data.senderId,
+        receiverId: data.data.receiverId,
+        groupId: data.data.groupId,
+        content: data.data.content,
+        messageType: data.data.messageType || data.data.type,
+        mediaUrl: data.data.mediaUrl || data.data.imageUrl,
+        fileName: data.data.fileName,
+        fileSize: data.data.fileSize,
+        fileExtension: data.data.fileExtension,
+        mimeType: data.data.mimeType,
+        senderName: data.data.sender?.username || data.data.senderName,
+        senderAvatar: data.data.sender?.avatar || data.data.senderAvatar,
+        isRecalled: false,
+        isDeleted: false,
+        status: 'RECEIVED',
+        readStatus: false,
+        createdAt: data.data.timestamp || data.data.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        thumbnailUrl: data.data.thumbnailUrl,
+        videoInfo: data.data.videoInfo
+      }
+
+      const result = await window.api.addUnifiedMessage(messageData)
+      if (result.success) {
+        console.log('新接收的消息已保存到本地数据库:', result.data)
+      } else {
+        console.error('保存接收到的消息到本地数据库失败:', result.error)
+      }
+    }
+  } catch (error) {
+    console.error('保存消息到本地数据库时发生错误:', error)
+  }
 
   // 查找对应的会话
   const sessionIndex = sessions.value.findIndex((session) => session.id === data.data.sessionId)
@@ -529,6 +568,28 @@ const handleNewMessage = (data) => {
   }
 }
 
+// 添加删除消息监听器
+const handleDeleteMessage = (data) => {
+  console.log('收到删除消息:', data)
+
+  // 从本地数据库中删除消息
+  if (data && data.messageId) {
+    if (window.api && typeof window.api.deleteUnifiedMessage === 'function') {
+      window.api
+        .deleteUnifiedMessage(data.messageId)
+        .then((result) => {
+          if (result.success) {
+            console.log('消息已从本地数据库删除:', data.messageId)
+          } else {
+            console.error('删除消息失败:', result.error)
+          }
+        })
+        .catch((error) => {
+          console.error('删除消息时发生错误:', error)
+        })
+    }
+  }
+}
 const handleLocalNewMessage = (event) => {
   const { sessionId, lastMessage, timestamp } = event.detail
 
@@ -558,6 +619,8 @@ onMounted(() => {
   window.addEventListener('sessionCreated', refreshSessions)
   // 添加WebSocket消息监听
   window.api.onNewMessage(handleNewMessage)
+  // 添加删除消息监听
+  window.api.onDeleteMessage(handleDeleteMessage)
   // 添加本地消息监听
   window.addEventListener('newMessageSent', handleLocalNewMessage)
   // 添加全局点击事件监听器
@@ -584,6 +647,7 @@ onUnmounted(() => {
   window.removeEventListener('sessionCreated', refreshSessions)
   // 如果API提供了移除WebSocket监听的方法，也需要在这里调用
   // window.api.offNewMessage(handleNewMessage)
+  window.api.removeDeleteMessageListener && window.api.removeDeleteMessageListener()
   window.removeEventListener('newMessageSent', handleLocalNewMessage)
   // 移除全局点击事件监听器
   document.removeEventListener('click', handleClickOutside)

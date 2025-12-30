@@ -7,6 +7,7 @@ interface WsConfig {
 
 interface MessageSender {
   handleNewMessage: (data: any) => void
+  handleDeleteMessage: (data: any) => void
 }
 
 let ws: WebSocket | null = null
@@ -135,7 +136,18 @@ const createWs = () => {
               sender.handleNewMessage(data)
             }
             break
-
+          case 'delete_message':
+            //处理要删除的消息
+            if (sender) {
+              sender.handleDeleteMessage(data)
+            }
+            break
+          case 'delete_message_confirmation':
+            // 处理删除消息确认
+            if (sender) {
+              console.log('收到删除消息确认:', data)
+            }
+            break
           case 'server_message':
             // 处理服务器定时发送的消息
             // console.log('收到服务器定时消息:', data)

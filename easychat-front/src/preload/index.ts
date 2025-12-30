@@ -62,8 +62,17 @@ const api = {
       callback(data)
     })
   },
+  onDeleteMessage: (callback: (data: any) => void): void => {
+    ipcRenderer.on('delete-message', (_event, data) => {
+      console.log('收到删除消息:', data)
+      callback(data)
+    })
+  },
   removeNewMessageListener: (): void => {
     ipcRenderer.removeAllListeners('new-message')
+  },
+  removeDeleteMessageListener: (): void => {
+    ipcRenderer.removeAllListeners('delete-message')
   },
 
   // 设置更新相关

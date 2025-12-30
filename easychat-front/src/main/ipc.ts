@@ -648,6 +648,23 @@ export function setupIpcHandlers(icon: string): void {
             console.log('Sending message to chat message window')
             chatMessageWindow.webContents.send('new-message', data)
           }
+        },
+        handleDeleteMessage: (data) => {
+          console.log('Received delete message (main process):', data)
+          // Forward the delete message to all open windows
+          if (mainWindow) {
+            console.log('Sending delete message to main window')
+            mainWindow.webContents.send('delete-message', data)
+          }
+          if (contactWindow) {
+            console.log('Sending delete message to contacts window')
+            contactWindow.webContents.send('delete-message', data)
+          }
+          // Add support for chat message window
+          if (chatMessageWindow) {
+            console.log('Sending delete message to chat message window')
+            chatMessageWindow.webContents.send('delete-message', data)
+          }
         }
       }
     )

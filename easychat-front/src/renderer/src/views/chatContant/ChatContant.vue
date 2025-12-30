@@ -502,36 +502,79 @@ const quoteMessage = () => {
 // 删除消息
 const deleteMessage = () => {
   console.log('删除消息:', contextMenuMessage.value)
-  ElMessageBox.confirm('确定要删除这条消息吗？', '删除消息', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
-    .then(async () => {
-      try {
-        // 从本地消息列表中移除
-        const index = messages.value.findIndex((msg) => msg.id === contextMenuMessage.value.id)
-        if (index !== -1) {
-          messages.value.splice(index, 1)
-        }
 
-        // 从数据库中删除消息
-        await window.api.deleteUnifiedMessage(contextMenuMessage.value.id)
+  // 计算消息创建时间与当前时间的时间差（以分钟为单位）
+  const messageCreateTime = new Date(contextMenuMessage.value.createdAt).getTime()
+  const currentTime = new Date().getTime()
+  const timeDiffInMinutes = (currentTime - messageCreateTime) / (1000 * 60)
 
-        ElMessage.success('消息已删除')
-      } catch (error) {
-        console.error('删除消息失败:', error)
-        ElMessage.error('删除消息失败')
-
-        // 如果删除失败，将消息重新添加到列表中
-        if (index !== -1) {
-          messages.value.splice(index, 0, contextMenuMessage.value)
-        }
-      }
+  // 如果时间差超过2分钟，只删除本地数据库中的消息
+  if (timeDiffInMinutes > 2) {
+    ElMessageBox.confirm('消息发送已超过2分钟，只能删除本地记录，是否继续？', '删除消息', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
     })
-    .catch(() => {
-      // 用户取消操作
+      .then(async () => {
+        try {
+          console.log('timeDiffInMinutes: ', timeDiffInMinutes)
+          // 从本地消息列表中移除
+          const index = messages.value.findIndex((msg) => msg.id === contextMenuMessage.value.id)
+          if (index !== -1) {
+            messages.value.splice(index, 1)
+          }
+
+          // 从数据库中删除消息
+          await window.api.deleteUnifiedMessage(contextMenuMessage.value.id)
+
+          ElMessage.success('本地消息已删除')
+        } catch (error) {
+          console.error('删除消息失败:', error)
+          ElMessage.error('删除消息失败')
+
+          // 如果删除失败，将消息重新添加到列表中
+          if (index !== -1) {
+            messages.value.splice(index, 0, contextMenuMessage.value)
+          }
+        }
+      })
+      .catch(() => {
+        // 用户取消操作
+      })
+  }
+  // 如果时间差不超过2分钟，执行完整删除流程（这里可以根据实际需求调整处理方式）
+  else {
+    ElMessageBox.confirm('确定要删除这条消息吗？', '删除消息', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
     })
+      .then(async () => {
+        try {
+          // 从本地消息列表中移除
+          const index = messages.value.findIndex((msg) => msg.id === contextMenuMessage.value.id)
+          if (index !== -1) {
+            messages.value.splice(index, 1)
+          }
+
+          // 从数据库中删除消息
+          await window.api.deleteUnifiedMessage(contextMenuMessage.value.id)
+
+          ElMessage.success('消息已删除')
+        } catch (error) {
+          console.error('删除消息失败:', error)
+          ElMessage.error('删除消息失败')
+
+          // 如果删除失败，将消息重新添加到列表中
+          if (index !== -1) {
+            messages.value.splice(index, 0, contextMenuMessage.value)
+          }
+        }
+      })
+      .catch(() => {
+        // 用户取消操作
+      })
+  }
 
   closeContextMenu()
 }
@@ -677,8 +720,22 @@ const debouncedUpdateInputEmptyState = debounce(updateInputEmptyState, 100)
 onMounted(() => {
   addMessageListener()
 
+  addDeleteMessageListener()
+
   // 添加对 contactStoreUpdated 事件的监听
   window.addEventListener('contactStoreUpdated', handleContactStoreUpdate)
+
+  document.addEventListener('click', closeContextMenu)
+
+  if (contactStore.selectedContact) {
+    loadMessages(contactStore.selectedContact.id).then(() => {
+      nextTick(() => {
+        if (messagesContainer.value) {
+          messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+        }
+      })
+    })
+  }
 })
 
 // 清理 MutationObserver
@@ -955,6 +1012,35 @@ const addMessageListener = () => {
     })
     isMessageListenerAdded = true
   }
+}
+
+// 添加删除消息监听器
+const addDeleteMessageListener = () => {
+  window.api.onDeleteMessage(async (data) => {
+    console.log('收到删除消息:', data)
+    // 从消息列表中移除被删除的消息
+    if (data && data.messageId) {
+      const index = messages.value.findIndex(msg => msg.id === data.messageId)
+      if (index !== -1) {
+        messages.value.splice(index, 1)
+        ElMessage.info('消息已被删除')
+      }
+
+      // 同时从本地数据库中删除消息
+      if (window.api && typeof window.api.deleteUnifiedMessage === 'function') {
+        try {
+          const result = await window.api.deleteUnifiedMessage(data.messageId)
+          if (result.success) {
+            console.log('消息已从本地数据库删除:', data.messageId)
+          } else {
+            console.error('删除本地数据库中的消息失败:', result.error)
+          }
+        } catch (error) {
+          console.error('删除本地数据库中的消息时发生错误:', error)
+        }
+      }
+    }
+  })
 }
 
 const handleSendSystemMessage = (data) => {
@@ -1895,6 +1981,12 @@ onUnmounted(() => {
     window.api.removeNewMessageListener()
     isMessageListenerAdded = false
   }
+
+  // 移除删除消息监听器
+  if (window.api && typeof window.api.removeDeleteMessageListener === 'function') {
+    window.api.removeDeleteMessageListener()
+  }
+
   window.removeEventListener('contactStoreUpdated', handleContactStoreUpdate)
 
   // 移除右键菜单的事件监听
