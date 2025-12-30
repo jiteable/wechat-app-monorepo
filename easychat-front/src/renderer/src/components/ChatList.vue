@@ -63,6 +63,7 @@ import { getSessions } from '@/api/chatSession'
 import { markAsRead } from '@/api/chat'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { formatDate } from '@/utils/formatDate'
 
 const contactStore = userContactStore()
 const router = useRouter()
@@ -261,42 +262,6 @@ const handleSessionRemarkUpdated = (event) => {
         .updateChatSessionRemark(sessionId, newRemark, userId)
         .catch((err) => console.error('更新本地会话备注失败:', err))
     }
-  }
-}
-
-// 格式化时间
-const formatDate = (dateStr) => {
-  const date = new Date(dateStr)
-  const now = new Date()
-
-  // 获取日期差（毫秒）
-  const diffInMs = now - date
-  const diffInHours = diffInMs / (1000 * 60 * 60)
-  const diffInDays = diffInHours / 24
-
-  // 获取具体时间（小时:分钟）
-  const timeString = date.toTimeString().slice(0, 5)
-
-  // 一天内显示具体时间
-  if (diffInHours < 24) {
-    return timeString
-  }
-  // 两天内显示昨天+具体时间
-  else if (diffInDays < 2) {
-    return `昨天 ${timeString}`
-  }
-  // 一周内显示对应的星期
-  else if (diffInDays < 7) {
-    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    return weekdays[date.getDay()]
-  }
-  // 去年及以前显示 年/月/日
-  else if (date.getFullYear() < now.getFullYear()) {
-    return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`
-  }
-  // 其他情况显示 月/日
-  else {
-    return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`
   }
 }
 

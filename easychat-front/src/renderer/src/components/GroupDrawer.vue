@@ -244,7 +244,6 @@ const emit = defineEmits([
 ])
 
 // Data
-// Data
 const showMemberNames = ref(false)
 const muteNotifications = ref(false)
 const pinChat = ref(false)
