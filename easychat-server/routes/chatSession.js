@@ -145,7 +145,8 @@ router.get('/getSession', authenticateToken, async (req, res) => {
         groupId: currentUserSessionInfo?.groupId || null,
         // 添加备注字段
         customRemark: currentUserSessionInfo?.customRemark || null,
-        remark: currentUserSessionInfo?.customRemark || null // 为了兼容性，也保留remark字段
+        remark: currentUserSessionInfo?.customRemark || null, // 为了兼容性，也保留remark字段
+        nickname: currentUserSessionInfo?.nickname || null
       };
 
       return res.json({
@@ -271,7 +272,8 @@ router.get('/getSession', authenticateToken, async (req, res) => {
           groupId: currentUserSessionInfo?.groupId || null,
           // 添加备注字段
           customRemark: currentUserSessionInfo?.customRemark || null,
-          remark: currentUserSessionInfo?.customRemark || null // 为了兼容性，也保留remark字段
+          remark: currentUserSessionInfo?.customRemark || null, // 为了兼容性，也保留remark字段
+          nickname: currentUserSessionInfo?.nickname || null
         };
       }));
 

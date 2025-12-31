@@ -273,6 +273,8 @@ const announcementInput = ref(null)
 const remarkInput = ref(null)
 const nicknameInput = ref(null)
 
+const userStore = useUserStore()
+
 // Watch props changes to update form data
 watch(
   () => props.group,
@@ -345,6 +347,14 @@ const handleAvatarError = () => {
 }
 
 const getUserDisplayName = (userSession) => {
+  // 特殊处理当前用户 - 使用在群组中的昵称
+  if (userSession.id === userStore.userId) {
+    // 优先使用props传入的nickname
+    if (props.nickname) {
+      return props.nickname
+    }
+  }
+
   // 根据会话用户信息获取显示名称
   // 针对 member 类型（群成员基本数据结构）
   if (userSession.name) {
@@ -610,8 +620,6 @@ const saveRemark = async () => {
 
         // 显示成功消息
         ElMessage.success('备注修改成功')
-
-        const userStore = useUserStore()
         const userId = userStore.userId
 
         // 更新本地数据库中的备注信息

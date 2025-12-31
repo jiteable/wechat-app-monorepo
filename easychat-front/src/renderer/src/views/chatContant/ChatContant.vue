@@ -1495,7 +1495,45 @@ const handleUpdateNickname = (newNickname) => {
         currentUser.name = newNickname
       }
     }
+
+    // 更新当前用户在会话中的昵称
+    const currentSessionUser = contactStore.selectedContact.ChatSessionUsers?.find(
+      user => user.userId === userStore.userId
+    )
+    if (currentSessionUser) {
+      currentSessionUser.nickname = newNickname
+    }
+
+    // 更新contactStore.selectedContact中的nickname字段
+    contactStore.selectedContact.nickname = newNickname
   }
+
+  // 更新全局用户状态中的昵称
+  userStore.updateSetting('username', newNickname)
+
+  // 触发全局事件，通知其他组件更新
+  window.dispatchEvent(
+    new CustomEvent('userNicknameUpdated', {
+      detail: {
+        sessionId: contactStore.selectedContact?.id,
+        newNickname: newNickname,
+        userId: userStore.userId
+      }
+    })
+  )
+
+  // 更新本地数据库中的昵称信息
+  if (window.api && typeof window.api.updateChatSessionUserBySessionAndUserId === 'function') {
+    const userId = userStore.userId
+    window.api
+      .updateChatSessionUserBySessionAndUserId(contactStore.selectedContact.id, userId, {
+        nickname: newNickname
+      })
+      .catch((err) => console.error('更新本地数据库中的群昵称失败:', err))
+  }
+
+  // 更新contactStore以确保数据同步
+  contactStore.setSelectedContact({ ...contactStore.selectedContact })
 }
 
 // 处理滚动事件，实现无限滚动加载
