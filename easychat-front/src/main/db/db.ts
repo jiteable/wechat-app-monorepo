@@ -814,6 +814,60 @@ class DatabaseManager {
         driver: sqlite3.Database
       })
 
+      // 检查消息ID是否已存在
+      const existingMessage = await db.get(`SELECT id FROM UnifiedMessage WHERE id = ?`, [messageData.id])
+      if (existingMessage) {
+        // 如果消息已存在，则更新它而不是插入
+        await db.run(
+          `UPDATE UnifiedMessage 
+           SET sessionId = ?, senderId = ?, receiverId = ?, groupId = ?, content = ?, 
+               messageType = ?, mediaUrl = ?, fileName = ?, fileSize = ?, 
+               isRecalled = ?, isDeleted = ?, status = ?, readStatus = ?, 
+               updatedAt = ?, recalledAt = ?, deletedAt = ?, senderName = ?, senderAvatar = ?
+           WHERE id = ?`,
+          [
+            messageData.sessionId,
+            messageData.senderId,
+            messageData.receiverId || null,
+            messageData.groupId || null,
+            messageData.content || '',
+            messageData.messageType,
+            messageData.mediaUrl || null,
+            messageData.fileName || null,
+            messageData.fileSize || null,
+            messageData.isRecalled ? 1 : 0,
+            messageData.isDeleted ? 1 : 0,
+            messageData.status || 'SENT',
+            messageData.readStatus ? 1 : 0,
+            messageData.updatedAt || new Date().toISOString(),
+            messageData.recalledAt || null,
+            messageData.deletedAt || null,
+            messageData.senderName || null,
+            messageData.senderAvatar || null,
+            messageData.id
+          ]
+        )
+
+        // 查询更新后的数据
+        const updatedMessage = await db.get(
+          `SELECT m.*, 
+                  f.thumbnailUrl as file_thumbnailUrl,
+                  f.fileExtension as file_extension,
+                  f.mimeType as mime_type,
+                  f.name as file_name,
+                  f.size as file_size
+           FROM UnifiedMessage m
+           LEFT JOIN File f ON m.id = f.unifiedMessageId
+           WHERE m.id = ?`,
+          [messageData.id]
+        )
+
+        await db.close()
+
+        console.log('消息已更新到本地数据库:', updatedMessage)
+        return updatedMessage
+      }
+
       // 根据消息类型处理不同字段
       let fileRecord: any = null
       if (
@@ -823,27 +877,27 @@ class DatabaseManager {
         messageData.fileSize
       ) {
         // 创建文件记录
-        const fileId = messageData.fileId || generateUUID()
         fileRecord = await db.run(
           `INSERT INTO File 
            (id, name, url, thumbnailUrl, size, mimeType, fileExtension, fileType, uploaderId, unifiedMessageId, createdAt, expireAt, sessionId)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            fileId,
+            messageData.fileId || generateUUID(),
             messageData.fileName,
             messageData.mediaUrl,
-            messageData.thumbnailUrl || messageData.videoInfo?.thumbnailUrl || null, // 保存缩略图URL，优先使用videoInfo中的thumbnailUrl
+            messageData.thumbnailUrl || null,
             messageData.fileSize,
             messageData.mimeType || '',
             messageData.fileExtension || getFileExtension(messageData.fileName),
             messageData.fileType || getFileType(messageData.fileName),
             messageData.senderId,
-            messageData.id || generateUUID(), // 这里需要先生成消息ID
+            messageData.id, // 关联到消息ID
             messageData.createdAt || new Date().toISOString(),
             messageData.expireAt || null,
             messageData.sessionId
           ]
         )
+
         // 如果是视频消息，还需要创建视频记录
         if (messageData.messageType === 'video' && messageData.videoInfo) {
           await db.run(
@@ -852,14 +906,14 @@ class DatabaseManager {
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               generateUUID(),
-              fileId, // 使用刚创建的文件ID
+              (fileRecord as any).lastID, // 使用刚创建的文件ID
               messageData.videoInfo.duration || null,
               messageData.videoInfo.width || null,
               messageData.videoInfo.height || null,
               messageData.videoInfo.bitrate || null,
               messageData.videoInfo.codec || null,
               messageData.videoInfo.fps || null,
-              messageData.videoInfo.thumbnailUrl || messageData.thumbnailUrl || null, // 保存视频缩略图URL
+              messageData.videoInfo.thumbnailUrl || null,
               messageData.videoInfo.previewUrl || null,
               new Date().toISOString(),
               new Date().toISOString()
@@ -868,8 +922,6 @@ class DatabaseManager {
         }
       }
 
-      const messageToInsertId = messageData.id || generateUUID()
-
       // 插入消息记录
       const result = await db.run(
         `INSERT INTO UnifiedMessage 
@@ -877,7 +929,7 @@ class DatabaseManager {
           isRecalled, isDeleted, status, readStatus, createdAt, updatedAt, recalledAt, deletedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          messageToInsertId,
+          messageData.id || generateUUID(),
           messageData.sessionId,
           messageData.senderId,
           messageData.receiverId || null,
@@ -901,6 +953,7 @@ class DatabaseManager {
       )
 
       // 查询刚刚插入的数据 - 使用我们生成的ID进行查询
+      const messageToInsertId = messageData.id || generateUUID()
       const insertedMessage = await db.get(
         `SELECT m.*, 
                 f.thumbnailUrl as file_thumbnailUrl,

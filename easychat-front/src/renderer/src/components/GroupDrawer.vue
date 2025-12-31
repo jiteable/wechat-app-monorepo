@@ -522,6 +522,18 @@ const saveAnnouncement = async () => {
         emit('sendSystemMessage', {
           content: systemMessageContent
         })
+
+        // 更新本地数据库中的群公告
+        if (window.api && typeof window.api.updateChatSession === 'function') {
+          try {
+            await window.api.updateChatSession(props.sessionId, {
+              announcement: groupEditForm.value.announcement
+            })
+            console.log('本地数据库中的群公告已更新')
+          } catch (dbError) {
+            console.error('更新本地数据库中的群公告失败:', dbError)
+          }
+        }
       } else {
         ElMessage.error(response.message || '群公告修改失败')
       }
@@ -603,16 +615,15 @@ const saveRemark = async () => {
         const userId = userStore.userId
 
         // 更新本地数据库中的备注信息
-        if (window.api && typeof window.api.updateChatSessionRemark === 'function') {
+        if (window.api && typeof window.api.updateChatSessionUser === 'function') {
           try {
-            await window.api.updateChatSessionRemark(
-              props.sessionId,
-              groupEditForm.value.remark,
-              userId
-            )
-            console.log('本地数据库中的会话备注已更新')
+            // 更新 ChatSessionUser 表中的 customRemark 字段
+            await window.api.updateChatSessionUserBySessionAndUserId(props.sessionId, userId, {
+              customRemark: groupEditForm.value.remark
+            })
+            console.log('本地数据库中的 ChatSessionUser 备注已更新')
           } catch (dbError) {
-            console.error('更新本地数据库中的会话备注失败:', dbError)
+            console.error('更新本地数据库中的 ChatSessionUser 备注失败:', dbError)
           }
         }
       } else {

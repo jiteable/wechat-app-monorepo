@@ -974,6 +974,10 @@ const addMessageListener = () => {
               videoInfo: data.data.videoInfo
             }
 
+            // 添加缺失的 senderName 和 senderAvatar 属性
+            messageData.senderName = data.data.sender?.username || '未知用户'
+            messageData.senderAvatar = data.data.sender?.avatar || ''
+
             const result = await window.api.addUnifiedMessage(messageData)
             console.log('消息保存到本地数据库result: ', result)
             if (result.success) {
