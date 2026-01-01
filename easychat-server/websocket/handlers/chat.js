@@ -51,8 +51,8 @@ async function handleChatMessage(ws, data, clients) {
         sessionId: messageData.sessionId,
         sender: messageData.sender || {
           id: messageData.senderId,
-          username: messageData.senderName,
-          avatar: messageData.senderAvatar
+          username: data.data?.senderName || messageData.sender?.username, // 优先使用传入的senderName
+          avatar: messageData.senderAvatar || messageData.sender?.avatar
         },
         content: messageData.content,
         messageType: messageData.messageType || messageData.type, // 支持不同的类型字段名

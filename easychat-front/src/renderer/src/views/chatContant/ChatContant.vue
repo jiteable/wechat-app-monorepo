@@ -1696,6 +1696,8 @@ const sendMessageHandler = async () => {
 
   const selectedContact = contactStore.selectedContact
 
+  console.log('contactStore.selectedContact.nickname: ', contactStore.selectedContact.nickname)
+
   // 检查是否需要添加时间戳
   const currentTime = new Date()
   let shouldAddTimestamp = false
@@ -1832,7 +1834,10 @@ const sendMessageHandler = async () => {
         if (window.api && typeof window.api.sendMessage === 'function') {
           window.api.sendMessage({
             type: 'send_message',
-            data: imageMessageData
+            data: {
+              ...imageMessageData,
+              senderName: contactStore.selectedContact.nickname || userStore.username || '我'
+            }
           })
         }
 
@@ -1937,7 +1942,10 @@ const sendMessageHandler = async () => {
         if (window.api && typeof window.api.sendMessage === 'function') {
           window.api.sendMessage({
             type: 'send_message',
-            data: messageData
+            data: {
+              ...messageData,
+              senderName: contactStore.selectedContact.nickname || userStore.username
+            }
           })
         }
 
@@ -2453,7 +2461,10 @@ const uploadFiles = async (file) => {
           if (window.api && typeof window.api.sendMessage === 'function') {
             window.api.sendMessage({
               type: 'send_message',
-              data: videoMessageData
+              data: {
+                ...fileMessageData,
+                senderName: contactStore.selectedContact.nickname || userStore.username || '我'
+              }
             })
           }
 
@@ -2604,7 +2615,10 @@ const uploadFiles = async (file) => {
           if (window.api && typeof window.api.sendMessage === 'function') {
             window.api.sendMessage({
               type: 'send_message',
-              data: fileMessageData
+              data: {
+                ...videoMessageData,
+                senderName: contactStore.selectedContact.nickname || userStore.username || '我'
+              }
             })
           }
 
