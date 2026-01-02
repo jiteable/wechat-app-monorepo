@@ -130,4 +130,74 @@ router.get('/getGroup', authenticateToken, async function (req, res, next) {
   }
 });
 
+/**
+ * 删除好友接口
+ * 需要用户登录状态，传入要删除的好友ID
+ */
+router.post('/deleteFriend', authenticateToken, async function (req, res, next) {
+  try {
+    const { friendId } = req.body; // 要删除的好友ID
+    const currentUserId = req.user.id; // 当前登录用户ID
+
+    // 检查好友关系是否存在
+    const existingFriendship = await db.userWithFriend.findFirst({
+      where: {
+        userId: currentUserId,
+        friendId: friendId
+      }
+    });
+
+    if (!existingFriendship) {
+      return res.status(400).json({
+        success: false,
+        message: '好友关系不存在'
+      });
+    }
+
+    // 删除双向好友关系
+    await db.userWithFriend.deleteMany({
+      OR: [
+        {
+          userId: currentUserId,
+          friendId: friendId
+        },
+        {
+          userId: friendId,
+          friendId: currentUserId
+        }
+      ]
+    });
+
+    // 删除与该好友的会话（如果存在）
+    await db.chatSession.deleteMany({
+      where: {
+        sessionType: 'private',
+        userSessionConnections: {
+          some: {
+            userId: currentUserId
+          }
+        },
+        userSessionConnections: {
+          some: {
+            userId: friendId
+          }
+        }
+      }
+    });
+
+    // 返回成功响应
+    res.json({
+      success: true,
+      message: '删除好友成功'
+    });
+
+  } catch (error) {
+    console.error('删除好友失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误'
+    });
+  }
+});
+
 module.exports = router;

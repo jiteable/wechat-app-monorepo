@@ -40,3 +40,22 @@ export async function getGroup(): Promise<GetGroupResponse | null> {
     return null
   }
 }
+
+// 删除好友
+export async function deleteFriend(data: { friendId: string }): Promise<any> {
+  try {
+    const token = localStorage.getItem('TOKEN')
+
+    if (!token) {
+      console.error('未找到访问令牌')
+      return { success: false, message: '未找到访问令牌' }
+    }
+
+    const response = await http.post(`${config.api}/add/deleteFriend`, data)
+
+    return response.data
+  } catch (error) {
+    console.error('删除好友失败:', error)
+    return { success: false, message: '删除好友失败' }
+  }
+}

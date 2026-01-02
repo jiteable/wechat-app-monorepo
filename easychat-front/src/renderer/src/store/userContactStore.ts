@@ -7,12 +7,14 @@ const STORE_UPDATE_EVENT = 'contactStoreUpdated'
 interface ContactState {
   selectedContact: ChatSession | null
   selectedUser: any | null // 专门用于联系人页面的用户选择
+  contacts: any[] // 添加联系人列表
 }
 
 export const userContactStore = defineStore('contact', {
   state: (): ContactState => ({
     selectedContact: null,
-    selectedUser: null
+    selectedUser: null,
+    contacts: [] // 初始化联系人列表
   }),
   actions: {
     setSelectedContact(contact: ChatSession) {
@@ -29,6 +31,19 @@ export const userContactStore = defineStore('contact', {
     },
     clearSelectedUser() {
       this.selectedUser = null
+      this.syncToOtherWindows()
+    },
+
+    // 添加设置联系人列表的方法
+    setContacts(contacts: any[]) {
+      this.contacts = contacts
+      this.syncToOtherWindows()
+    },
+
+    // 添加移除联系人的方法
+    removeContact(contactId: string) {
+      // 从联系人列表中过滤掉要删除的联系人
+      this.contacts = this.contacts.filter(contact => contact.id !== contactId)
       this.syncToOtherWindows()
     },
 
@@ -55,6 +70,7 @@ export const userContactStore = defineStore('contact', {
     syncFromOtherWindows(state: ContactState) {
       this.selectedContact = state.selectedContact
       this.selectedUser = state.selectedUser
+      this.contacts = state.contacts || []
     }
   }
 })

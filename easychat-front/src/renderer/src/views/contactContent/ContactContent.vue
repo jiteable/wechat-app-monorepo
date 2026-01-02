@@ -40,7 +40,13 @@
               <div v-if="!isGroup" class="popover-menu-item" @click="openSetRemarkAndTag">
                 设置备注和标签
               </div>
-              <div v-if="!isGroup" class="popover-menu-item">删除联系人</div>
+              <div
+                v-if="!isGroup"
+                class="popover-menu-item delete-contact-item"
+                @click="showDeleteConfirmation"
+              >
+                删除联系人
+              </div>
               <div v-else class="popover-menu-item">群设置</div>
             </div>
           </el-popover>
@@ -134,6 +140,8 @@ import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { useRouter } from 'vue-router'
 import { getSessions, createSession } from '@/api/chatSession'
+import { ElMessageBox, ElMessage } from 'element-plus' // 导入ElMessageBox和ElMessage
+import { deleteFriend } from '@/api/getRelationship' // 导入删除好友的API
 
 const popoverRef = ref(null)
 const contactStore = userContactStore()
@@ -441,6 +449,82 @@ const openSetRemarkAndTag = () => {
   }
 }
 
+// 添加删除联系人确认对话框
+const showDeleteConfirmation = async () => {
+  if (isGroup.value) return // 群组不能删除
+
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这个联系人吗？此操作将从您的好友列表中移除该联系人。',
+      '删除联系人',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    // 用户确认删除，执行删除操作
+    await deleteContact()
+  } catch (error) {
+    // 用户取消删除，不做任何操作
+    console.log('用户取消删除操作')
+  }
+}
+
+// 删除联系人
+const deleteContact = async () => {
+  try {
+    // 调用API删除联系人
+    const response = await deleteFriend({
+      friendId: currentContact.value.id
+    })
+
+    if (response.success) {
+      // 从本地联系人列表中移除
+      contactStore.removeContact(currentContact.value.id)
+
+      // 如果有本地数据库操作，也同步删除
+      if (window.api && typeof window.api.deleteContact === 'function') {
+        try {
+          const result = await window.api.deleteContact(currentContact.value.id)
+          if (result.success) {
+            console.log('成功从本地数据库删除联系人')
+          } else {
+            console.error('从本地数据库删除联系人失败:', result.error)
+          }
+        } catch (dbError) {
+          console.error('调用本地数据库删除联系人时出错:', dbError)
+        }
+      }
+
+      // 显示成功消息
+      ElMessage({
+        type: 'success',
+        message: '联系人删除成功'
+      })
+
+      // 返回到联系人列表
+      router.push('/contact')
+
+      // 触发联系人列表更新
+      window.dispatchEvent(new CustomEvent('contactListUpdated'))
+    } else {
+      console.error('删除联系人失败:', response.error)
+      ElMessage({
+        type: 'error',
+        message: response.error || '删除联系人失败'
+      })
+    }
+  } catch (error) {
+    console.error('删除联系人时出错:', error)
+    ElMessage({
+      type: 'error',
+      message: error.message || '删除联系人时发生错误'
+    })
+  }
+}
+
 // 组件失活时清除选中的联系人
 onDeactivated(() => {
   contactStore.clearSelectedContact()
@@ -524,6 +608,11 @@ onDeactivated(() => {
   cursor: pointer;
   font-size: 14px;
   color: #333;
+}
+
+.delete-contact-item {
+  color: red;
+  cursor: pointer;
 }
 
 .popover-menu-item:hover {
