@@ -285,10 +285,12 @@ export function createLoginWindow(icon: string): void {
   }
 }
 
-export function createMainWindow(icon: string): BrowserWindow {
+export function createMainWindow(icon: string, userId: string): BrowserWindow {
+
+  console.log('userId: ', userId)
   // 检查数据库是否存在，如果不存在则创建
-  if (!databaseManager.checkDatabaseExists()) {
-    databaseManager.createDatabase()
+  if (!databaseManager.checkDatabaseExists(userId)) {
+    databaseManager.createDatabase(userId)
   } else {
     // 即使数据库存在，也要确保所有表都已创建
     databaseManager.initializeTables()

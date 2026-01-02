@@ -12,9 +12,9 @@ class DatabaseManager {
   private dbPath: string
   private db: sqlite3.Database | null = null
 
-  constructor() {
+  constructor(userId?: string) {
     // 使用指定路径 D:\EasyChat\fileStorage
-    const dbDir = 'D:\\EasyChat\\fileStorage'
+    const dbDir = userId ? `D:\\EasyChat\\fileStorage\\${userId}` : 'D:\\EasyChat\\fileStorage'
     if (!existsSync(dbDir)) {
       mkdirSync(dbDir, { recursive: true })
     }
@@ -24,37 +24,71 @@ class DatabaseManager {
   /**
    * 检查数据库是否存在
    */
-  public checkDatabaseExists(): boolean {
+  public checkDatabaseExists(userId?: string): boolean {
+    if (userId) {
+      const dbDir = `D:\\EasyChat\\fileStorage\\${userId}`
+      const dbPath = join(dbDir, 'easychat.db')
+      return existsSync(dbPath)
+    }
     return existsSync(this.dbPath)
   }
 
   /**
    * 创建数据库及表结构
    */
-  public async createDatabase(): Promise<void> {
-    try {
-      // 打开数据库
-      const db = await open({
-        filename: this.dbPath,
-        driver: sqlite3.Database
-      })
+  public createDatabase(userId?: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        // 使用指定路径 D:\EasyChat\fileStorage
+        const dbDir = userId ? `D:\\EasyChat\\fileStorage\\${userId}` : 'D:\\EasyChat\\fileStorage'
+        if (!existsSync(dbDir)) {
+          mkdirSync(dbDir, { recursive: true })
+        }
+        const dbPath = join(dbDir, 'easychat.db')
 
-      // 创建所有表
-      await this.createTables(db)
+        // 打开数据库
+        const db = new sqlite3.Database(dbPath, (err) => {
+          if (err) {
+            console.error('打开数据库失败:', err)
+            reject(err)
+            return
+          }
 
-      await db.close()
-    } catch (error) {
-      console.error('创建数据库失败:', error)
-    }
+          // 创建所有表
+          this.createTables(db)
+            .then(() => {
+              db.close((closeErr) => {
+                if (closeErr) {
+                  console.error('关闭数据库失败:', closeErr)
+                  reject(closeErr)
+                } else {
+                  console.log(`数据库已创建: ${dbPath}`)
+                  resolve()
+                }
+              })
+            })
+            .catch((error) => {
+              console.error('创建表失败:', error)
+              reject(error)
+            })
+        })
+      } catch (error) {
+        console.error('创建数据库失败:', error)
+        reject(error)
+      }
+    })
   }
 
   /**
    * 检查并创建所有必需的表
    */
-  public async initializeTables(): Promise<void> {
+  public async initializeTables(userId?: string): Promise<void> {
     try {
+      const dbDir = userId ? `D:\\EasyChat\\fileStorage\\${userId}` : 'D:\\EasyChat\\fileStorage'
+      const dbPath = join(dbDir, 'easychat.db')
+
       const db = await open({
-        filename: this.dbPath,
+        filename: dbPath,
         driver: sqlite3.Database
       })
 
@@ -371,15 +405,15 @@ class DatabaseManager {
           lastMessage:
             lastMessageContent || lastMessageType
               ? {
-                  content: lastMessageContent,
-                  messageType: lastMessageType,
-                  fileName: lastMessageFileName,
-                  senderName: lastMessageSenderName,
-                  senderId: lastMessageSenderId,
-                  isRecalled: !!lastMessageIsRecalled,
-                  isDeleted: !!lastMessageIsDeleted,
-                  createdAt: lastMessageCreatedAt
-                }
+                content: lastMessageContent,
+                messageType: lastMessageType,
+                fileName: lastMessageFileName,
+                senderName: lastMessageSenderName,
+                senderId: lastMessageSenderId,
+                isRecalled: !!lastMessageIsRecalled,
+                isDeleted: !!lastMessageIsDeleted,
+                createdAt: lastMessageCreatedAt
+              }
               : null
         }
       })

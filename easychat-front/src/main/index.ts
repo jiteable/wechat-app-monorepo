@@ -18,6 +18,7 @@ const setWindow: BrowserWindow | null = null
 const createGroupWindow: BrowserWindow | null = null
 const chatMessageWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
+let userId = null
 
 process.env.NODE_OPTIONS = '--experimental-fetch'
 process.env.LANG = 'zh_CN.UTF-8'
@@ -55,15 +56,16 @@ app.whenReady().then(() => {
   let tokenCheckWindow: BrowserWindow | null = null
   let tokenExists = false
 
-  const tokenCheckHandler = (_event, hasToken) => {
+  const tokenCheckHandler = (_event, hasToken, id) => {
     tokenExists = hasToken
+    userId = id
 
     // 移除监听器
     ipcMain.removeListener('token-check-result', tokenCheckHandler)
 
     // 先创建目标窗口
     if (tokenExists) {
-      mainWindow = createMainWindow(icon)
+      mainWindow = createMainWindow(icon, userId)
       setWindows(
         mainWindow,
         loginWindow,
@@ -111,7 +113,7 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
       if (tokenExists) {
-        mainWindow = createMainWindow(icon)
+        mainWindow = createMainWindow(icon, userId)
         setWindows(
           mainWindow,
           loginWindow,

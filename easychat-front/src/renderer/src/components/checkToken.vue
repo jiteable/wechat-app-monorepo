@@ -4,6 +4,7 @@
 
 <script setup>
 import { onMounted } from 'vue'
+import { getUserInfo } from '@/api/user'
 
 // 解析JWT令牌
 function parseJwt(token) {
@@ -39,9 +40,10 @@ function isTokenExpired(token) {
   return parsedToken.exp < currentTime
 }
 
-onMounted(() => {
+onMounted(async () => {
   // 检查是否存在TOKEN以及是否过期
   const token = localStorage.getItem('TOKEN')
+  const userInfo = await getUserInfo()
 
   let tokenValid = false
   if (token) {
@@ -57,7 +59,7 @@ onMounted(() => {
 
   // 通过IPC将结果发送回主进程
   if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('token-check-result', tokenValid)
+    window.electron.ipcRenderer.send('token-check-result', tokenValid, userInfo.userId)
   }
 })
 </script>
