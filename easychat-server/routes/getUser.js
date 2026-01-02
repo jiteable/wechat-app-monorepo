@@ -48,7 +48,26 @@ router.get('/getContact', authenticateToken, async function (req, res, next) {
         remark: userFriend.remark,
         source: userFriend.source,
         labels: userFriend.labels, // 添加标签字段
+        groupCount: 0 // 初始化为0，后续会更新
       };
+    });
+
+    // 查询当前用户参与的所有群聊
+    const userGroups = await db.group.findMany({
+      where: {
+        memberIds: {
+          has: userId // 包含当前用户
+        }
+      }
+    });
+
+    // 计算每个好友的共同群聊数量
+    contacts.forEach(contact => {
+      const commonGroupsCount = userGroups.filter(group =>
+        group.memberIds.includes(contact.id) // 群聊也包含该好友
+      ).length;
+
+      contact.groupCount = commonGroupsCount;
     });
 
     res.json({ contacts });

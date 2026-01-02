@@ -41,7 +41,6 @@
                 设置备注和标签
               </div>
               <div v-if="!isGroup" class="popover-menu-item">删除联系人</div>
-              <div v-if="!isGroup" class="popover-menu-item">加入黑名单</div>
               <div v-else class="popover-menu-item">群设置</div>
             </div>
           </el-popover>
@@ -615,7 +614,7 @@ onDeactivated(() => {
 }
 
 .common-group-section .value {
-  font-size: 16px;
+  font-size: 14px;
   color: #333;
   flex: 1;
 }
