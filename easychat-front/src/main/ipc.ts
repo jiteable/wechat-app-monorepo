@@ -59,6 +59,7 @@ export function createContactWindow(icon: string): void {
     height: Math.round(575 / scaleFactor),
     frame: false,
     show: false,
+    resizable: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {

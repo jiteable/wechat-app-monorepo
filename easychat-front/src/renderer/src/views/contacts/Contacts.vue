@@ -15,27 +15,6 @@
               </el-button>
               <div class="filter-section">
                 <div class="filter-label">筛选</div>
-                <el-button class="button no-active" @click="toggleIcon('friend')">
-                  <span class="button-text1">朋友权限</span>
-                  <el-icon class="arrow-icon">
-                    <component :is="iconStates.friend ? 'ArrowDown' : 'ArrowRight'" />
-                  </el-icon>
-                </el-button>
-
-                <!-- 添加的朋友权限列表 -->
-                <div v-show="iconStates.friend" class="friend-authority-list">
-                  <el-button
-                    v-for="item in friendAuthorityList"
-                    :key="item.id"
-                    class="button authority-item-button"
-                    :class="{ active: activeButton === 'authority-' + item.id }"
-                    @click="selectAuthority(item)"
-                  >
-                    <span class="button-text2"
-                      >{{ item.name }}({{ getAuthorityCount(item.id) }})</span
-                    >
-                  </el-button>
-                </div>
 
                 <el-button class="button no-active" @click="toggleIcon('label')">
                   <span class="button-text1">标签</span>
@@ -146,7 +125,7 @@
                 @selection-change="handleSelectionChange"
               >
                 <el-table-column type="selection" width="40" />
-                <el-table-column label="名称" width="120" show-overflow-tooltip>
+                <el-table-column label="名称" width="140" show-overflow-tooltip>
                   <template #default="scope">
                     <div style="display: flex; align-items: center">
                       <img
@@ -157,8 +136,8 @@
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="备注" width="100" show-overflow-tooltip />
-                <el-table-column label="标签" width="100" show-overflow-tooltip>
+                <el-table-column prop="remark" label="备注" width="140" show-overflow-tooltip />
+                <el-table-column label="标签" width="140" show-overflow-tooltip>
                   <template #default="scope">
                     <div
                       class="label-cell"
@@ -172,7 +151,6 @@
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
               </el-table>
 
               <!-- 添加空状态提示 -->
@@ -197,7 +175,7 @@
                 @selection-change="handleSelectionChange"
               >
                 <el-table-column type="selection" width="40" />
-                <el-table-column label="名称" width="120" show-overflow-tooltip>
+                <el-table-column label="名称" width="140" show-overflow-tooltip>
                   <template #default="scope">
                     <div style="display: flex; align-items: center">
                       <img
@@ -208,9 +186,8 @@
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="备注" width="100" show-overflow-tooltip />
-                <el-table-column prop="label" label="标签" width="100" show-overflow-tooltip />
-                <el-table-column prop="permission" label="朋友权限" show-overflow-tooltip />
+                <el-table-column prop="remark" label="备注" width="120" show-overflow-tooltip />
+                <el-table-column prop="label" label="标签" width="120" show-overflow-tooltip />
               </el-table>
               <div v-else>右侧内容区域</div>
             </div>
@@ -355,17 +332,9 @@ const tableData = ref([])
 const selectedGroup = ref(null)
 
 const iconStates = reactive({
-  friend: false,
   label: false,
   group: false
 })
-
-// 朋友权限列表数据
-const friendAuthorityList = ref([
-  { id: 1, name: '仅聊天' },
-  { id: 2, name: '不让他(她)看' },
-  { id: 3, name: '不看他(她)' }
-])
 
 // 标签列表数据
 const labelList = ref([])
@@ -402,7 +371,6 @@ const fetchAllContacts = async () => {
           'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
         remark: contact.remark || '',
         label: contact.labels || '',
-        permission: '仅聊天',
         chatId: contact.chatId
       }))
     }
@@ -704,16 +672,6 @@ const getLabelCount = (labelId) => {
   }
 }
 
-// 计算指定权限的联系人数量
-const getAuthorityCount = (authorityId) => {
-  if (!tableData.value || tableData.value.length === 0) return 0
-
-  const authority = friendAuthorityList.value.find((item) => item.id === authorityId)
-  if (!authority) return 0
-
-  return tableData.value.filter((contact) => contact.permission === authority.name).length
-}
-
 // 创建NewLabel
 const createNewLabel = async () => {
   if (!newLabelName.value.trim()) {
@@ -788,7 +746,6 @@ const fetchContacts = async () => {
           'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
         remark: contact.remark || '',
         label: contact.labels || '',
-        permission: '仅聊天', // 默认权限
         chatId: contact.chatId, // 保留 chatId 字段
         signature: contact.signature, // 也可以添加其他字段
         source: contact.source
@@ -829,13 +786,7 @@ const filteredTableData = computed(() => {
     const [type, idStr] = activeButton.value.split('-')
     const id = parseInt(idStr)
 
-    if (type === 'authority') {
-      // 根据朋友权限筛选
-      const authority = friendAuthorityList.value.find((item) => item.id === id)
-      if (authority) {
-        data = data.filter((item) => item.permission === authority.name)
-      }
-    } else if (type === 'label') {
+    if (type === 'label') {
       // 根据标签筛选
       const label = labelList.value.find((item) => item.id === id)
       if (label) {
@@ -951,13 +902,6 @@ const toggleIcon = (buttonType) => {
   iconStates[buttonType] = !iconStates[buttonType]
 }
 
-// 选择权限处理函数
-const selectAuthority = (item) => {
-  console.log('选择了权限:', item.name)
-  activeButton.value = 'authority-' + item.id
-  // 这里可以添加实际的业务逻辑
-}
-
 const selectLabel = (item) => {
   console.log('选择了标签:', item.name)
   activeButton.value = 'label-' + item.id
@@ -980,12 +924,6 @@ const handleSelectionChange = (val) => {
 // 清空选中
 const clearSelection = () => {
   selectedRows.value = []
-}
-
-// 修改权限
-const modifyPermission = () => {
-  console.log('修改权限:', selectedRows.value)
-  // 这里可以添加实际的业务逻辑
 }
 
 // 设置标签 - 显示下拉菜单
@@ -1332,10 +1270,6 @@ const deleteContacts = () => {
 
 .action-btn:hover {
   background-color: #f5f5f5;
-}
-
-.modify-permission {
-  color: #0066cc;
 }
 
 .set-label {

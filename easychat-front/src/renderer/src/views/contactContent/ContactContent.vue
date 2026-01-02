@@ -40,7 +40,6 @@
               <div v-if="!isGroup" class="popover-menu-item" @click="openSetRemarkAndTag">
                 设置备注和标签
               </div>
-              <div v-if="!isGroup" class="popover-menu-item">设置朋友权限</div>
               <div v-if="!isGroup" class="popover-menu-item">删除联系人</div>
               <div v-if="!isGroup" class="popover-menu-item">加入黑名单</div>
               <div v-else class="popover-menu-item">群设置</div>
@@ -476,6 +475,11 @@ onDeactivated(() => {
 
 .chat-contant-info-name {
   margin-left: 10px;
+}
+
+.name {
+  font-size: 16px;
+  color: rgb(22, 22, 22);
 }
 
 .info-names {
