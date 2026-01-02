@@ -91,8 +91,7 @@ const api = {
   // 本地数据库相关
   addChatSession: (sessionData: any): Promise<any> =>
     ipcRenderer.invoke('add-chat-session', sessionData),
-  getAllChatSessions: (userId: string): Promise<any> =>
-    ipcRenderer.invoke('get-all-chat-sessions', userId),
+  getAllChatSessions: (): Promise<any> => ipcRenderer.invoke('get-all-chat-sessions'),
   clearChatSessions: (): Promise<any> => ipcRenderer.invoke('clear-chat-sessions'),
   syncChatSessions: (sessions: any[]): Promise<any> =>
     ipcRenderer.invoke('sync-chat-sessions', sessions),
@@ -109,18 +108,18 @@ const api = {
     ipcRenderer.invoke('upsert-chat-session-user', userData),
   updateChatSessionUser: (id: string, updateData: any): Promise<any> =>
     ipcRenderer.invoke('update-chat-session-user', id, updateData),
-  getChatSessionUser: (sessionId: string, userId: string): Promise<any> =>
-    ipcRenderer.invoke('get-chat-session-user', sessionId, userId),
+  getChatSessionUser: (sessionId: string): Promise<any> =>
+    ipcRenderer.invoke('get-chat-session-user', sessionId),
   getChatSessionUsersBySessionId: (sessionId: string): Promise<any> =>
     ipcRenderer.invoke('get-chat-session-users-by-session-id', sessionId),
-  updateUnreadCount: (sessionId: string, userId: string, unreadCount: number): Promise<any> =>
-    ipcRenderer.invoke('update-unread-count', sessionId, userId, unreadCount),
-  incrementUnreadCount: (sessionId: string, userId: string): Promise<any> =>
-    ipcRenderer.invoke('increment-unread-count', sessionId, userId),
-  resetUnreadCount: (sessionId: string, userId: string): Promise<any> =>
-    ipcRenderer.invoke('reset-unread-count', sessionId, userId),
-  updateChatSessionRemark: (sessionId: string, remark: string, userId: string): Promise<any> =>
-    ipcRenderer.invoke('update-chat-session-remark', sessionId, remark, userId),
+  updateUnreadCount: (sessionId: string, unreadCount: number): Promise<any> =>
+    ipcRenderer.invoke('update-unread-count', sessionId, unreadCount),
+  incrementUnreadCount: (sessionId: string): Promise<any> =>
+    ipcRenderer.invoke('increment-unread-count', sessionId),
+  resetUnreadCount: (sessionId: string): Promise<any> =>
+    ipcRenderer.invoke('reset-unread-count', sessionId),
+  updateChatSessionRemark: (sessionId: string, remark: string): Promise<any> =>
+    ipcRenderer.invoke('update-chat-session-remark', sessionId, remark),
 
   // 删除相关函数
   deleteChatSessionUser: (id: string): Promise<any> =>

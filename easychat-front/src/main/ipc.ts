@@ -286,8 +286,8 @@ export function createLoginWindow(icon: string): void {
 }
 
 export function createMainWindow(icon: string, userId: string): BrowserWindow {
-
   console.log('userId: ', userId)
+  databaseManager.setCurrentUser(userId)
   // 检查数据库是否存在，如果不存在则创建
   if (!databaseManager.checkDatabaseExists(userId)) {
     databaseManager.createDatabase(userId)
@@ -451,7 +451,7 @@ export function setupIpcHandlers(icon: string): void {
   //   // 这里暂时保留原逻辑结构
   // })
 
-  ipcMain.on('user-logged-in', () => {
+  ipcMain.on('user-logged-in', (event, userId) => {
     // Close login window and show main window
     if (loginWindow) {
       loginWindow.close()
@@ -461,7 +461,7 @@ export function setupIpcHandlers(icon: string): void {
     if (mainWindow) {
       mainWindow.show()
     } else {
-      mainWindow = createMainWindow(icon)
+      mainWindow = createMainWindow(icon, userId)
     }
   })
 
@@ -717,9 +717,9 @@ export function setupIpcHandlers(icon: string): void {
   })
 
   // 添加获取所有ChatSession的IPC处理程序
-  ipcMain.handle('get-all-chat-sessions', async (_, userId) => {
+  ipcMain.handle('get-all-chat-sessions', async () => {
     try {
-      const sessions = await databaseManager.getAllChatSessions(userId)
+      const sessions = await databaseManager.getAllChatSessions()
       return { success: true, data: sessions }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
@@ -863,31 +863,28 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
-  ipcMain.handle(
-    'update-chat-session-remark',
-    async (event, sessionId: string, remark: string, userId: string) => {
-      try {
-        const userSession = await databaseManager.getChatSessionUser(sessionId, userId)
-
-        if (userSession && userSession.id) {
-          await databaseManager.updateChatSessionUser(userSession.id, {
-            customRemark: remark
-          })
-
-          return { success: true, message: '备注更新成功' }
-        } else {
-          return { success: false, message: '未找到对应的会话用户记录' }
-        }
-      } catch (error) {
-        console.error('更新会话备注失败:', error)
-        return { success: false, error: error.message }
-      }
-    }
-  )
-
-  ipcMain.handle('get-chat-session-user', async (_, sessionId, userId) => {
+  ipcMain.handle('update-chat-session-remark', async (event, sessionId: string, remark: string) => {
     try {
-      const result = await databaseManager.getChatSessionUser(sessionId, userId)
+      const userSession = await databaseManager.getChatSessionUser(sessionId)
+
+      if (userSession && userSession.id) {
+        await databaseManager.updateChatSessionUser(userSession.id, {
+          customRemark: remark
+        })
+
+        return { success: true, message: '备注更新成功' }
+      } else {
+        return { success: false, message: '未找到对应的会话用户记录' }
+      }
+    } catch (error) {
+      console.error('更新会话备注失败:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('get-chat-session-user', async (_, sessionId) => {
+    try {
+      const result = await databaseManager.getChatSessionUser(sessionId)
       return { success: true, data: result }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
@@ -903,27 +900,27 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
-  ipcMain.handle('update-unread-count', async (_, sessionId, userId, unreadCount) => {
+  ipcMain.handle('update-unread-count', async (_, sessionId, unreadCount) => {
     try {
-      await databaseManager.updateUnreadCount(sessionId, userId, unreadCount)
+      await databaseManager.updateUnreadCount(sessionId, unreadCount)
       return { success: true }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
 
-  ipcMain.handle('increment-unread-count', async (_, sessionId, userId) => {
+  ipcMain.handle('increment-unread-count', async (_, sessionId) => {
     try {
-      await databaseManager.incrementUnreadCount(sessionId, userId)
+      await databaseManager.incrementUnreadCount(sessionId)
       return { success: true }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
 
-  ipcMain.handle('reset-unread-count', async (_, sessionId, userId) => {
+  ipcMain.handle('reset-unread-count', async (_, sessionId) => {
     try {
-      await databaseManager.resetUnreadCount(sessionId, userId)
+      await databaseManager.resetUnreadCount(sessionId)
       return { success: true }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }

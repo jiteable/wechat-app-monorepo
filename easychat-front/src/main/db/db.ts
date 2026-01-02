@@ -11,10 +11,11 @@ import { generateUUID, getFileExtension, getFileType } from './utils'
 class DatabaseManager {
   private dbPath: string
   private db: sqlite3.Database | null = null
+  private currentUserId: string | null = null
 
-  constructor(userId?: string) {
-    // 使用指定路径 D:\EasyChat\fileStorage
-    const dbDir = userId ? `D:\\EasyChat\\fileStorage\\${userId}` : 'D:\\EasyChat\\fileStorage'
+  constructor() {
+    // 默认路径
+    const dbDir = 'D:\\EasyChat\\fileStorage'
     if (!existsSync(dbDir)) {
       mkdirSync(dbDir, { recursive: true })
     }
@@ -22,25 +23,40 @@ class DatabaseManager {
   }
 
   /**
-   * 检查数据库是否存在
+   * 设置当前用户并初始化用户特定的数据库
    */
-  public checkDatabaseExists(userId?: string): boolean {
-    if (userId) {
-      const dbDir = `D:\\EasyChat\\fileStorage\\${userId}`
-      const dbPath = join(dbDir, 'easychat.db')
-      return existsSync(dbPath)
+  public setCurrentUser(userId: string): void {
+    const dbDir = `D:\\EasyChat\\fileStorage\\${userId}`
+    if (!existsSync(dbDir)) {
+      mkdirSync(dbDir, { recursive: true })
     }
-    return existsSync(this.dbPath)
+    this.dbPath = join(dbDir, 'easychat.db')
+    this.currentUserId = userId
   }
 
   /**
-   * 创建数据库及表结构
+   * 获取当前用户的数据库路径
    */
-  public createDatabase(userId?: string): Promise<void> {
+  public getCurrentUserDbPath(): string {
+    return this.dbPath
+  }
+
+  /**
+   * 检查指定用户的数据库是否存在
+   */
+  public checkDatabaseExists(userId: string): boolean {
+    const dbDir = `D:\\EasyChat\\fileStorage\\${userId}`
+    const dbPath = join(dbDir, 'easychat.db')
+    return existsSync(dbPath)
+  }
+
+  /**
+   * 为指定用户创建数据库及表结构
+   */
+  public createDatabase(userId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        // 使用指定路径 D:\EasyChat\fileStorage
-        const dbDir = userId ? `D:\\EasyChat\\fileStorage\\${userId}` : 'D:\\EasyChat\\fileStorage'
+        const dbDir = `D:\\EasyChat\\fileStorage\\${userId}`
         if (!existsSync(dbDir)) {
           mkdirSync(dbDir, { recursive: true })
         }
@@ -82,9 +98,9 @@ class DatabaseManager {
   /**
    * 检查并创建所有必需的表
    */
-  public async initializeTables(userId?: string): Promise<void> {
+  public async initializeTables(): Promise<void> {
     try {
-      const dbDir = userId ? `D:\\EasyChat\\fileStorage\\${userId}` : 'D:\\EasyChat\\fileStorage'
+      const dbDir = `D:\\EasyChat\\fileStorage\\${this.currentUserId}`
       const dbPath = join(dbDir, 'easychat.db')
 
       const db = await open({
@@ -284,7 +300,7 @@ class DatabaseManager {
   /**
    * 获取ChatSession表中的所有数据
    */
-  public async getAllChatSessions(userId: string): Promise<any[]> {
+  public async getAllChatSessions(): Promise<any[]> {
     try {
       // 确保表存在
       await this.initializeTables()
@@ -344,7 +360,7 @@ class DatabaseManager {
         WHERE csu.userId = ?
         ORDER BY cs.updatedAt DESC
       `,
-        [userId]
+        [this.currentUserId]
       )
 
       await db.close()
@@ -405,15 +421,15 @@ class DatabaseManager {
           lastMessage:
             lastMessageContent || lastMessageType
               ? {
-                content: lastMessageContent,
-                messageType: lastMessageType,
-                fileName: lastMessageFileName,
-                senderName: lastMessageSenderName,
-                senderId: lastMessageSenderId,
-                isRecalled: !!lastMessageIsRecalled,
-                isDeleted: !!lastMessageIsDeleted,
-                createdAt: lastMessageCreatedAt
-              }
+                  content: lastMessageContent,
+                  messageType: lastMessageType,
+                  fileName: lastMessageFileName,
+                  senderName: lastMessageSenderName,
+                  senderId: lastMessageSenderId,
+                  isRecalled: !!lastMessageIsRecalled,
+                  isDeleted: !!lastMessageIsDeleted,
+                  createdAt: lastMessageCreatedAt
+                }
               : null
         }
       })
@@ -680,7 +696,7 @@ class DatabaseManager {
   /**
    * 根据sessionId和userId获取ChatSessionUser记录
    */
-  public async getChatSessionUser(sessionId: string, userId: string): Promise<any> {
+  public async getChatSessionUser(sessionId: string): Promise<any> {
     try {
       const db = await open({
         filename: this.dbPath,
@@ -689,7 +705,7 @@ class DatabaseManager {
 
       const result = await db.get(
         `SELECT * FROM ChatSessionUser WHERE sessionId = ? AND userId = ?`,
-        [sessionId, userId]
+        [sessionId, this.currentUserId]
       )
 
       await db.close()
@@ -767,11 +783,7 @@ class DatabaseManager {
   /**
    * 更新用户的未读消息计数
    */
-  public async updateUnreadCount(
-    sessionId: string,
-    userId: string,
-    unreadCount: number
-  ): Promise<void> {
+  public async updateUnreadCount(sessionId: string, unreadCount: number): Promise<void> {
     try {
       const db = await open({
         filename: this.dbPath,
@@ -780,7 +792,7 @@ class DatabaseManager {
 
       await db.run(
         `UPDATE ChatSessionUser SET unreadCount = ?, updatedAt = ? WHERE sessionId = ? AND userId = ?`,
-        [unreadCount, new Date().toISOString(), sessionId, userId]
+        [unreadCount, new Date().toISOString(), sessionId, this.currentUserId]
       )
 
       await db.close()
@@ -793,7 +805,7 @@ class DatabaseManager {
   /**
    * 增加用户的未读消息计数
    */
-  public async incrementUnreadCount(sessionId: string, userId: string): Promise<void> {
+  public async incrementUnreadCount(sessionId: string): Promise<void> {
     try {
       const db = await open({
         filename: this.dbPath,
@@ -802,7 +814,7 @@ class DatabaseManager {
 
       await db.run(
         `UPDATE ChatSessionUser SET unreadCount = unreadCount + 1, updatedAt = ? WHERE sessionId = ? AND userId = ?`,
-        [new Date().toISOString(), sessionId, userId]
+        [new Date().toISOString(), sessionId, this.currentUserId]
       )
 
       await db.close()
@@ -815,7 +827,7 @@ class DatabaseManager {
   /**
    * 重置用户的未读消息计数
    */
-  public async resetUnreadCount(sessionId: string, userId: string): Promise<void> {
+  public async resetUnreadCount(sessionId: string): Promise<void> {
     try {
       const db = await open({
         filename: this.dbPath,
@@ -824,7 +836,7 @@ class DatabaseManager {
 
       await db.run(
         `UPDATE ChatSessionUser SET unreadCount = 0, lastReadTime = ?, updatedAt = ? WHERE sessionId = ? AND userId = ?`,
-        [new Date().toISOString(), new Date().toISOString(), sessionId, userId]
+        [new Date().toISOString(), new Date().toISOString(), sessionId, this.currentUserId]
       )
 
       await db.close()
@@ -849,7 +861,9 @@ class DatabaseManager {
       })
 
       // 检查消息ID是否已存在
-      const existingMessage = await db.get(`SELECT id FROM UnifiedMessage WHERE id = ?`, [messageData.id])
+      const existingMessage = await db.get(`SELECT id FROM UnifiedMessage WHERE id = ?`, [
+        messageData.id
+      ])
       if (existingMessage) {
         // 如果消息已存在，则更新它而不是插入
         await db.run(

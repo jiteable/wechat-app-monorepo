@@ -1462,12 +1462,10 @@ const handleUpdateRemark = (newRemark) => {
     contactStore.selectedContact.remark = newRemark
     contactStore.selectedContact.customRemark = newRemark
 
-    const userId = userStore.userId
-
     // 更新本地数据库中的备注信息
     if (window.api && typeof window.api.updateChatSessionRemark === 'function') {
       window.api
-        .updateChatSessionRemark(contactStore.selectedContact.id, newRemark, userId)
+        .updateChatSessionRemark(contactStore.selectedContact.id, newRemark)
         .catch((err) => console.error('更新本地数据库中的会话备注失败:', err))
     }
 

@@ -104,7 +104,7 @@ const fetchSessions = async () => {
       const userId = userStore.userId
 
       if (userId) {
-        const localResult = await window.api.getAllChatSessions(userId)
+        const localResult = await window.api.getAllChatSessions()
         console.log('getlocalResult: ', localResult)
 
         if (localResult.success && localResult.data) {
@@ -255,11 +255,8 @@ const handleSessionRemarkUpdated = (event) => {
     sessions.value[sessionIndex].customRemark = newRemark
     // 如果该会话在本地数据库中也存在，同步更新
     if (window.api && typeof window.api.updateChatSessionRemark === 'function') {
-      // 获取当前用户ID
-      const userStore = useUserStore()
-      const userId = userStore.userId
       window.api
-        .updateChatSessionRemark(sessionId, newRemark, userId)
+        .updateChatSessionRemark(sessionId, newRemark)
         .catch((err) => console.error('更新本地会话备注失败:', err))
     }
   }

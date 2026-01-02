@@ -68,7 +68,7 @@ interface Window {
 
     //本地数据库相关
     addChatSession: (sessionData: any) => Promise<any>
-    getAllChatSessions: (userId: string) => Promise<any>
+    getAllChatSessions: () => Promise<any>
     clearChatSessions: () => Promise<any>
     syncChatSessions: (sessions: any[]) => Promise<any>
     getLastSyncTime: () => Promise<any>
@@ -80,12 +80,12 @@ interface Window {
     // ChatSessionUser相关
     upsertChatSessionUser: (userData: Partial<ChatSessionUser>) => Promise<any>
     updateChatSessionUser: (id: string, updateData: Partial<ChatSessionUser>) => Promise<any>
-    getChatSessionUser: (sessionId: string, userId: string) => Promise<any>
+    getChatSessionUser: (sessionId: string) => Promise<any>
     getChatSessionUsersBySessionId: (sessionId: string) => Promise<any>
-    updateUnreadCount: (sessionId: string, userId: string, unreadCount: number) => Promise<any>
-    incrementUnreadCount: (sessionId: string, userId: string) => Promise<any>
-    resetUnreadCount: (sessionId: string, userId: string) => Promise<any>
-    updateChatSessionRemark: (sessionId: string, remark: string, userId: string) => Promise<any>
+    updateUnreadCount: (sessionId: string, unreadCount: number) => Promise<any>
+    incrementUnreadCount: (sessionId: string) => Promise<any>
+    resetUnreadCount: (sessionId: string) => Promise<any>
+    updateChatSessionRemark: (sessionId: string, remark: string) => Promise<any>
 
     // 删除相关函数
     deleteChatSessionUser: (id: string) => Promise<any>
