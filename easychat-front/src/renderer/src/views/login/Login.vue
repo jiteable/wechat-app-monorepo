@@ -233,9 +233,9 @@ const countDownText = computed(() => {
 })
 
 const handleClose = () => {
-  // 通知主进程关闭窗口
+  // 通知主进程关闭登录窗口
   if (window.api) {
-    window.api.closeWindow()
+    window.api.closeLoginWindow()
   }
 }
 

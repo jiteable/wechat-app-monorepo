@@ -23,6 +23,7 @@ interface Window {
     refreshMainWindow: () => void
     checkTokenAndSwitchWindow: () => void
     toggleLoginForm: (isLogin: boolean) => void
+    closeLoginWindow: () => void
 
     // 通讯录窗口相关
     openContactWindow: () => void

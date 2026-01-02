@@ -20,6 +20,7 @@ const api = {
   refreshMainWindow: (): void => ipcRenderer.send('refresh-main-window'),
   checkTokenAndSwitchWindow: (): void => ipcRenderer.send('check-token-and-switch-window'),
   toggleLoginForm: (isLogin: boolean): void => ipcRenderer.send('login-form-toggle', isLogin),
+  closeLoginWindow: (): void => ipcRenderer.send('close-login-window'),
 
   // 通讯录窗口相关
   openContactWindow: (): void => ipcRenderer.send('open-contact-window'),
