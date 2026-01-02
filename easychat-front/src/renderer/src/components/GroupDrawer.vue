@@ -182,6 +182,7 @@ import {
   updateUserNicknameInGroup
 } from '@/api/editGroupInfo'
 import { useUserStore } from '@/store/userStore'
+import { userContactStore } from '@/store/userContactStore'
 
 // Props
 const props = defineProps({
@@ -542,6 +543,17 @@ const saveAnnouncement = async () => {
             console.log('本地数据库中的群公告已更新')
           } catch (dbError) {
             console.error('更新本地数据库中的群公告失败:', dbError)
+          }
+        }
+
+        // 更新 userContactStore 中的群公告，使 ContactContent.vue 实时更新
+        const contactStore = userContactStore()
+        const currentSelectedUser = contactStore.selectedUser
+        if (currentSelectedUser && currentSelectedUser.id === props.group?.id) {
+          // 更新 selectedUser 中的公告
+          contactStore.selectedUser = {
+            ...currentSelectedUser,
+            announcement: groupEditForm.value.announcement
           }
         }
       } else {
