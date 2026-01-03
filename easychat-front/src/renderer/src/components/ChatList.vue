@@ -99,29 +99,24 @@ const fetchSessions = async () => {
   try {
     // 首先尝试从本地数据库获取会话
     if (window.api && typeof window.api.getAllChatSessions === 'function') {
-      // 获取当前用户ID（从 userStore 中获取）
-      const userStore = useUserStore()
-      const userId = userStore.userId
+      const localResult = await window.api.getAllChatSessions()
+      console.log('getlocalResult: ', localResult)
 
-      if (userId) {
-        const localResult = await window.api.getAllChatSessions()
-        console.log('getlocalResult: ', localResult)
-
-        if (localResult.success && localResult.data) {
-          // 从本地数据库获取到了会话数据
-          sessions.value = localResult.data
-          return
-        }
-      } else {
-        console.log('用户ID未找到，可能用户尚未登录')
+      if (localResult.success && localResult.data) {
+        // 从本地数据库获取到了会话数据
+        sessions.value = localResult.data
+        console.log('从本地数据库获取会话成功:', localResult.data)
+        return
       }
     }
 
+    console.log('尝试从服务器获取会话...')
     const response = await getSessions()
 
     console.log('getsession: ', response)
     if (response && response.success) {
       sessions.value = response.data
+      console.log('从服务器获取会话成功，会话数量:', response.data.length)
 
       // 将服务器获取到的会话同步到本地数据库
       if (
@@ -137,6 +132,7 @@ const fetchSessions = async () => {
         }
       }
     } else {
+      console.error('从服务器获取会话失败:', response?.error)
       ElMessage.error('获取会话失败')
     }
   } catch (error) {
