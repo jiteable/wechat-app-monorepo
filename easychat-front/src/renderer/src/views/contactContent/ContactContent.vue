@@ -313,26 +313,27 @@ const saveRemark = async () => {
   if (!isEditingRemark.value) return
 
   // 检查备注是否有变化
-  if (editingRemark.value !== (currentContact.value.remark || currentContact.value.name)) {
+  // 如果编辑的备注与用户名相同，则设置为默认空值
+  const finalRemark = editingRemark.value === currentContact.value.name ? '' : editingRemark.value
+  const oldRemark = currentContact.value.remark || currentContact.value.name || ''
+
+  if (finalRemark !== oldRemark) {
     try {
       // 调用API更新备注信息
       if (window.api && typeof window.api.updateContactRemark === 'function') {
-        const result = await window.api.updateContactRemark(
-          currentContact.value.id,
-          editingRemark.value
-        )
+        const result = await window.api.updateContactRemark(currentContact.value.id, finalRemark)
         if (result.success) {
           // 更新联系人信息
-          currentContact.value.remark = editingRemark.value
+          currentContact.value.remark = finalRemark
           // 直接更新store中的selectedUser的remark值
-          contactStore.selectedUser = { ...contactStore.selectedUser, remark: editingRemark.value }
+          contactStore.selectedUser = { ...contactStore.selectedUser, remark: finalRemark }
 
           // 向服务器发送更新请求
           try {
             const { setFriendInfo } = await import('@/api/setFriendInfo')
             const response = await setFriendInfo({
               friendId: currentContact.value.id,
-              remark: editingRemark.value
+              remark: finalRemark
             })
 
             if (response.success) {
