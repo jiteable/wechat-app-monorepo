@@ -18,6 +18,8 @@ let chatMessageWindow: BrowserWindow | null = null
 let setRemarkAndTagWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 
+let user_id: string | null = null
+
 // 存储用户信息
 let userInfo: any = null
 
@@ -288,6 +290,7 @@ export function createLoginWindow(icon: string): void {
 
 export function createMainWindow(icon: string, userId: string): BrowserWindow {
   console.log('userId: ', userId)
+  user_id = userId
   databaseManager.setCurrentUser(userId)
   // 检查数据库是否存在，如果不存在则创建
   if (!databaseManager.checkDatabaseExists(userId)) {
@@ -503,8 +506,15 @@ export function setupIpcHandlers(icon: string): void {
 
     if (mainWindow) {
       mainWindow.show()
+    } else if (user_id) {
+      mainWindow = createMainWindow(icon, user_id)
     } else {
-      mainWindow = createMainWindow(icon)
+      // 如果 user_id 为 null，可以考虑重新导航到登录界面或其他处理
+      console.error('User ID is null, cannot create main window')
+      // 可以选择重新打开登录窗口
+      if (!loginWindow) {
+        createLoginWindow(icon)
+      }
     }
   })
 

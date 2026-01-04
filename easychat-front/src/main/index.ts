@@ -18,7 +18,7 @@ const setWindow: BrowserWindow | null = null
 const createGroupWindow: BrowserWindow | null = null
 const chatMessageWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
-let userId = null
+let userId: string | null = null
 
 process.env.NODE_OPTIONS = '--experimental-fetch'
 process.env.LANG = 'zh_CN.UTF-8'
@@ -43,7 +43,15 @@ app.whenReady().then(() => {
   setScaleFactor(scaleFactor)
 
   // 设置窗口引用
-  setWindows(mainWindow, loginWindow, contactWindow, addFriendWindow, setWindow, createGroupWindow, chatMessageWindow)
+  setWindows(
+    mainWindow,
+    loginWindow,
+    contactWindow,
+    addFriendWindow,
+    setWindow,
+    createGroupWindow,
+    chatMessageWindow
+  )
 
   // 监听刷新主窗口的请求
   ipcMain.on('refresh-main-window', () => {
@@ -65,7 +73,7 @@ app.whenReady().then(() => {
 
     // 先创建目标窗口
     if (tokenExists) {
-      mainWindow = createMainWindow(icon, userId)
+      mainWindow = createMainWindow(icon, userId!)
       setWindows(
         mainWindow,
         loginWindow,
@@ -113,7 +121,7 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
       if (tokenExists) {
-        mainWindow = createMainWindow(icon, userId)
+        mainWindow = createMainWindow(icon, userId!)
         setWindows(
           mainWindow,
           loginWindow,
