@@ -43,23 +43,28 @@ function isTokenExpired(token) {
 onMounted(async () => {
   // 检查是否存在TOKEN以及是否过期
   const token = localStorage.getItem('TOKEN')
-  const userInfo = await getUserInfo()
 
   let tokenValid = false
+  let userId = null
+
   if (token) {
     try {
       // 检查token是否过期
       if (!isTokenExpired(token)) {
         tokenValid = true
+        // 只有在令牌有效的情况下才获取用户信息
+        const userInfo = await getUserInfo()
+        userId = userInfo.userId
       }
     } catch (error) {
-      console.error('Error checking token expiration:', error)
+      console.error('Error checking token expiration or getting user info:', error)
+      tokenValid = false
     }
   }
 
   // 通过IPC将结果发送回主进程
   if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.send('token-check-result', tokenValid, userInfo.userId)
+    window.electron.ipcRenderer.send('token-check-result', tokenValid, userId)
   }
 })
 </script>

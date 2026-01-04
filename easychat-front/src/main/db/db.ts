@@ -10,7 +10,6 @@ import { generateUUID, getFileExtension, getFileType } from './utils'
  */
 class DatabaseManager {
   private dbPath: string
-  private db: sqlite3.Database | null = null
   private currentUserId: string | null = null
 
   constructor() {
@@ -971,7 +970,7 @@ class DatabaseManager {
       }
 
       // 插入消息记录
-      const result = await db.run(
+      await db.run(
         `INSERT INTO UnifiedMessage 
          (id, sessionId, senderId, receiverId, groupId, content, messageType, mediaUrl, fileName, fileSize, senderName, senderAvatar,
           isRecalled, isDeleted, status, readStatus, createdAt, updatedAt, recalledAt, deletedAt)

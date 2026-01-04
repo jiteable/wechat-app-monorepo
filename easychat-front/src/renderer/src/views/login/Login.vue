@@ -271,13 +271,13 @@ const handleLogin = async () => {
       // 保存 token 到 localStorage
       localStorage.setItem('TOKEN', response.token)
 
-      // 通知主进程用户已登录
-      console.log('About to send navigate-to-main IPC message')
+      // 通知主进程用户已登录，并传递用户ID
+      console.log('About to send user-logged-in IPC message with userId:', response.user.id)
       if (window.api) {
-        console.log('Sending navigate-to-main IPC message')
-        window.api.navigateToMain()
+        console.log('Sending user-logged-in IPC message with userId:', response.user.id)
+        window.api.userLoggedIn(response.user.id)
       } else {
-        console.log('electron ipcRenderer not available, fallback to router navigation')
+        console.log('electron ipcRenderer not available')
         // 如果IPC通信不可用，则尝试直接跳转到主页
         router.push('/')
       }

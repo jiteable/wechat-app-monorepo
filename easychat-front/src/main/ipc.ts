@@ -415,7 +415,7 @@ export function createSetRemarkAndTagWindow(icon: string, contactData?: any): vo
 }
 export function setupIpcHandlers(icon: string): void {
   // 监听登录/注册表单切换事件并调整窗口大小
-  ipcMain.on('login-form-toggle', (event, isLogin) => {
+  ipcMain.on('login-form-toggle', (_event, isLogin) => {
     console.log(isLogin)
     if (loginWindow) {
       const [currentWidth, currentHeight] = loginWindow.getSize()
@@ -455,7 +455,7 @@ export function setupIpcHandlers(icon: string): void {
   //   // 这里暂时保留原逻辑结构
   // })
 
-  ipcMain.on('user-logged-in', (event, userId) => {
+  ipcMain.on('user-logged-in', (_event, userId) => {
     // Close login window and show main window
     if (loginWindow) {
       loginWindow.close()
@@ -470,7 +470,7 @@ export function setupIpcHandlers(icon: string): void {
   })
 
   // 设置备注和标签窗口相关事件
-  ipcMain.on('open-set-remark-and-tag-window', (event, contactData) => {
+  ipcMain.on('open-set-remark-and-tag-window', (_event, contactData) => {
     console.log('Received open-set-remark-and-tag-window event with data:', contactData) // 添加日志
     createSetRemarkAndTagWindow(icon, contactData)
   })
@@ -542,7 +542,7 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
-  ipcMain.on('toggle-always-on-top', (event, isAlwaysOnTop) => {
+  ipcMain.on('toggle-always-on-top', (_event, isAlwaysOnTop) => {
     if (mainWindow) {
       mainWindow.setAlwaysOnTop(isAlwaysOnTop)
     }
@@ -554,7 +554,7 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
-  ipcMain.on('toggle-maximize-window', (event, maximize) => {
+  ipcMain.on('toggle-maximize-window', (_event, maximize) => {
     if (mainWindow) {
       if (maximize) {
         mainWindow.maximize()
@@ -619,7 +619,7 @@ export function setupIpcHandlers(icon: string): void {
   })
 
   // 聊天消息窗口相关事件
-  ipcMain.on('open-chat-message-window', (event, contactData) => {
+  ipcMain.on('open-chat-message-window', (_event, contactData) => {
     createChatMessageWindow(icon, contactData)
   })
 
@@ -638,7 +638,7 @@ export function setupIpcHandlers(icon: string): void {
   })
 
   // WebSocket 相关事件
-  ipcMain.on('init-websocket', (event, userId) => {
+  ipcMain.on('init-websocket', (_event, userId) => {
     initWs(
       {
         userId: userId
@@ -683,12 +683,12 @@ export function setupIpcHandlers(icon: string): void {
     )
   })
 
-  ipcMain.on('send-websocket-message', (event, message) => {
+  ipcMain.on('send-websocket-message', (_event, message) => {
     sendMessage(message)
   })
 
   // 用户信息相关事件
-  ipcMain.on('set-user-info', (event, userInfoData) => {
+  ipcMain.on('set-user-info', (_event, userInfoData) => {
     userInfo = userInfoData
   })
 
@@ -707,7 +707,7 @@ export function setupIpcHandlers(icon: string): void {
   })
 
   // 修改打开聊天消息窗口的IPC处理程序
-  ipcMain.on('open-chat-message-window', (event, contactData) => {
+  ipcMain.on('open-chat-message-window', (_event, contactData) => {
     createChatMessageWindow(icon, contactData)
   })
 
@@ -874,24 +874,28 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
-  ipcMain.handle('update-chat-session-remark', async (event, sessionId: string, remark: string) => {
-    try {
-      const userSession = await databaseManager.getChatSessionUser(sessionId)
+  ipcMain.handle(
+    'update-chat-session-remark',
+    async (_event, sessionId: string, remark: string) => {
+      try {
+        const userSession = await databaseManager.getChatSessionUser(sessionId)
 
-      if (userSession && userSession.id) {
-        await databaseManager.updateChatSessionUser(userSession.id, {
-          customRemark: remark
-        })
+        if (userSession && userSession.id) {
+          await databaseManager.updateChatSessionUser(userSession.id, {
+            customRemark: remark
+          })
 
-        return { success: true, message: '备注更新成功' }
-      } else {
-        return { success: false, message: '未找到对应的会话用户记录' }
+          return { success: true, message: '备注更新成功' }
+        } else {
+          return { success: false, message: '未找到对应的会话用户记录' }
+        }
+      } catch (error) {
+        console.error('更新会话备注失败:', error)
+        return { success: false, error: error instanceof Error ? error.message : String(error) }
       }
-    } catch (error) {
-      console.error('更新会话备注失败:', error)
-      return { success: false, error: error.message }
     }
-  })
+  )
+  // ... existin
 
   ipcMain.handle('get-chat-session-user', async (_, sessionId) => {
     try {
@@ -1017,7 +1021,7 @@ export function setupIpcHandlers(icon: string): void {
   })
 
   // 添加联系人更新转发到主窗口的处理程序
-  ipcMain.on('updateContactInMainWindow', (event, { contactId, updatedContact }) => {
+  ipcMain.on('updateContactInMainWindow', (_event, { contactId, updatedContact }) => {
     console.log('Received updateContactInMainWindow event with data:', {
       contactId,
       updatedContact

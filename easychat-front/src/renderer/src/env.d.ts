@@ -17,7 +17,7 @@ interface Window {
     closeWindow: () => void
 
     // 登录相关
-    userLoggedIn: () => void
+    userLoggedIn: (userId: string) => void
     navigateToLogin: () => void
     navigateToMain: () => void
     refreshMainWindow: () => void

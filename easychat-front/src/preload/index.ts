@@ -14,7 +14,7 @@ const api = {
     ipcRenderer.send('toggle-always-on-top', isAlwaysOnTop),
 
   // 登录相关
-  userLoggedIn: (): void => ipcRenderer.send('user-logged-in'),
+  userLoggedIn: (userId: string): void => ipcRenderer.send('user-logged-in', userId),
   navigateToLogin: (): void => ipcRenderer.send('navigate-to-login'),
   navigateToMain: (): void => ipcRenderer.send('navigate-to-main'),
   refreshMainWindow: (): void => ipcRenderer.send('refresh-main-window'),
