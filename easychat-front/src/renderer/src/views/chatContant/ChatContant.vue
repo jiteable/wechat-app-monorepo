@@ -294,7 +294,16 @@
       class="context-menu"
       :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
     >
-      <div class="context-menu-item" @click="copyMessage">复制</div>
+      <div class="context-menu-item" @click="copyMessage">
+        {{
+          contextMenuMessage &&
+          (contextMenuMessage.type === 'file' ||
+            contextMenuMessage.type === 'video' ||
+            contextMenuMessage.type === 'image')
+            ? '复制下载链接'
+            : '复制'
+        }}
+      </div>
       <div class="context-menu-item" @click="forwardMessage">转发</div>
       <div class="context-menu-item" @click="multiSelectMessage">多选</div>
       <div class="context-menu-item" @click="quoteMessage">引用</div>
@@ -429,9 +438,21 @@ const copyMessage = () => {
   } else if (contextMenuMessage.value.type === 'image') {
     content = `[图片] ${contextMenuMessage.value.fileName || ''}`
   } else if (contextMenuMessage.value.type === 'file') {
-    content = `[文件] ${contextMenuMessage.value.content}`
+    // 对于文件消息，复制其下载链接
+    let fileUrl = contextMenuMessage.value.mediaUrl
+
+    // 检查是否有多种可能的URL字段
+    if (!fileUrl && contextMenuMessage.value.imageUrl) {
+      fileUrl = contextMenuMessage.value.imageUrl
+    }
+
+    if (!fileUrl && contextMenuMessage.value.url) {
+      fileUrl = contextMenuMessage.value.url
+    }
+    content = fileUrl
   } else if (contextMenuMessage.value.type === 'video') {
-    content = `[视频] ${contextMenuMessage.value.content}`
+    // 对于视频消息，复制其下载链接
+    content = contextMenuMessage.value.downloadUrl || contextMenuMessage.value.content
   } else {
     content = contextMenuMessage.value.content
   }
@@ -1024,7 +1045,7 @@ const addDeleteMessageListener = () => {
     console.log('收到删除消息:', data)
     // 从消息列表中移除被删除的消息
     if (data && data.messageId) {
-      const index = messages.value.findIndex(msg => msg.id === data.messageId)
+      const index = messages.value.findIndex((msg) => msg.id === data.messageId)
       if (index !== -1) {
         messages.value.splice(index, 1)
         ElMessage.info('消息已被删除')
@@ -1496,7 +1517,7 @@ const handleUpdateNickname = (newNickname) => {
 
     // 更新当前用户在会话中的昵称
     const currentSessionUser = contactStore.selectedContact.ChatSessionUsers?.find(
-      user => user.userId === userStore.userId
+      (user) => user.userId === userStore.userId
     )
     if (currentSessionUser) {
       currentSessionUser.nickname = newNickname
