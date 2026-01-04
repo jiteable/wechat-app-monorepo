@@ -502,6 +502,7 @@ const handleNewMessage = async (data) => {
         fileSize: data.data.fileSize,
         fileExtension: data.data.fileExtension,
         mimeType: data.data.mimeType,
+        downloadUrl: data.data.downloadUrl,
         senderName: data.data.sender?.username || data.data.senderName,
         senderAvatar: data.data.sender?.avatar || data.data.senderAvatar,
         isRecalled: false,

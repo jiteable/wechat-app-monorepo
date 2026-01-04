@@ -46,6 +46,17 @@ export interface UploadImageError {
   error: string
 }
 
+export interface videoInfo {
+  duration: number
+  width: number
+  height: number
+  bitrate: number
+  codec: string
+  fps: number
+  thumbnailUrl: string
+  downloadUrl: string
+}
+
 export interface UploadVideoResponse {
   success: boolean
   mediaUrl: string
@@ -53,6 +64,7 @@ export interface UploadVideoResponse {
   fileSize: number
   mimeType: string
   fileExtension: string
+  videoInfo: videoInfo
   message: string
 }
 

@@ -255,6 +255,7 @@ model Video {
   fps             Float?                                 // 帧率
   thumbnailUrl    String?                                // 视频缩略图URL
   previewUrl      String?                                // 视频预览URL
+  downloadUrl     String?                                // 下载链接
   createdAt       DateTime    @default(now())            // 创建时间
   updatedAt       DateTime    @updatedAt                 // 更新时间
   

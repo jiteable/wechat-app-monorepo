@@ -250,6 +250,9 @@ router.post('/video', authenticateToken, videoUpload.single('video'), async func
       // 视频文件的公共URL
       const videoUrl = `https://file-dev.document-ai.top/${uniqueFileName}`;
 
+      // 生成下载URL（使用OSS参数强制下载）
+      const downloadUrl = `https://file-dev.document-ai.top/${uniqueFileName}?response-content-disposition=attachment`;
+
       // 初始化视频信息对象
       const videoInfo = {
         duration: null,
@@ -258,7 +261,8 @@ router.post('/video', authenticateToken, videoUpload.single('video'), async func
         bitrate: null,
         codec: null,
         fps: null,
-        thumbnailUrl: null
+        thumbnailUrl: null,
+        downloadUrl: downloadUrl
       };
 
       try {
@@ -366,7 +370,7 @@ router.post('/video', authenticateToken, videoUpload.single('video'), async func
 
       // 将视频信息保存到数据库
       const fileExtension = fileExt.toLowerCase();
-
+      
       // 返回结果
       res.json({
         success: true,

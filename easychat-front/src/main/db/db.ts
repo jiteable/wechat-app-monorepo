@@ -186,6 +186,7 @@ class DatabaseManager {
         fileExtension TEXT,
         fileType TEXT,
         uploaderId TEXT,
+        downloadUrl: TEXT,
         unifiedMessageId TEXT UNIQUE,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         expireAt DATETIME,
@@ -949,8 +950,8 @@ class DatabaseManager {
         if (messageData.messageType === 'video' && messageData.videoInfo) {
           await db.run(
             `INSERT INTO Video 
-             (id, fileId, duration, width, height, bitrate, codec, fps, thumbnailUrl, previewUrl, createdAt, updatedAt)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (id, fileId, duration, width, height, bitrate, codec, fps, thumbnailUrl, previewUrl, downloadUrl, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               generateUUID(),
               (fileRecord as any).lastID, // 使用刚创建的文件ID
@@ -962,6 +963,7 @@ class DatabaseManager {
               messageData.videoInfo.fps || null,
               messageData.videoInfo.thumbnailUrl || null,
               messageData.videoInfo.previewUrl || null,
+              messageData.videoInfo.downloadUrl || null, // 从videoInfo中获取downloadUrl
               new Date().toISOString(),
               new Date().toISOString()
             ]

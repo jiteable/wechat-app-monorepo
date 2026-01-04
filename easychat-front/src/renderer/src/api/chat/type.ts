@@ -56,6 +56,7 @@ export interface videoInfo {
   bitrate?: string
   fps?: number
   thumbnailUrl?: string
+  downloadUrl?: string
 }
 
 export interface GetMessagesResponse {

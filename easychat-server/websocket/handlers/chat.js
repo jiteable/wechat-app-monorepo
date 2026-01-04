@@ -33,7 +33,11 @@ async function handleChatMessage(ws, data, clients) {
       where: { id: data.messageId || data.data?.id }, // 支持不同格式的ID
       include: {
         sender: true,
-        file: true // 包含文件信息
+        file: {
+          include: {
+            video: true // 包含视频信息
+          }
+        } // 包含文件信息
       }
     });
 
@@ -64,6 +68,15 @@ async function handleChatMessage(ws, data, clients) {
         timestamp: messageData.createdAt || messageData.timestamp || new Date().toISOString()
       }
     };
+
+    // 从文件记录中获取视频相关信息
+    if (messageData.file && messageData.file.thumbnailUrl) {
+      messageToSend.data.thumbnailUrl = messageData.file.thumbnailUrl;
+    }
+
+    if (messageData.file && messageData.file.video) {
+      messageToSend.data.videoInfo = messageData.file.video;
+    }
 
     // 广播消息给所有参与者
     if (data.session) {

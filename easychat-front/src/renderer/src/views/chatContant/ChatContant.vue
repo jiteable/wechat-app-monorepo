@@ -431,6 +431,7 @@ const closeContextMenu = () => {
 // 复制消息
 const copyMessage = () => {
   if (!contextMenuMessage.value) return
+  console.log('contextMenuMessage: ', contextMenuMessage.value)
 
   let content = ''
   if (contextMenuMessage.value.type === 'text') {
@@ -451,8 +452,11 @@ const copyMessage = () => {
     }
     content = fileUrl
   } else if (contextMenuMessage.value.type === 'video') {
-    // 对于视频消息，复制其下载链接
-    content = contextMenuMessage.value.downloadUrl || contextMenuMessage.value.content
+    // 对于视频消息，优先复制其下载链接
+    content =
+      contextMenuMessage.value.videoInfo.downloadUrl ||
+      contextMenuMessage.value.mediaUrl ||
+      contextMenuMessage.value.content
   } else {
     content = contextMenuMessage.value.content
   }
@@ -954,7 +958,8 @@ const addMessageListener = () => {
             duration: data.data.duration,
             width: data.data.width,
             height: data.data.height,
-            thumbnailUrl: data.data.thumbnailUrl // 包含视频缩略图信息
+            thumbnailUrl: data.data.thumbnailUrl, // 包含视频缩略图信息
+            downloadUrl: data.data.downloadUrl
           }
         }
 
@@ -2441,6 +2446,7 @@ const uploadFiles = async (file) => {
           senderAvatar: userStore.avatar || '',
           content: response.originalName, // 视频名
           mediaUrl: response.mediaUrl, // 视频URL
+          downloadUrl: response.videoInfo?.downloadUrl,
           thumbnailUrl: response.videoInfo?.thumbnailUrl, // 缩略图URL
           size: formatFileSize(response.fileSize), // 视频大小
           mimeType: response.mimeType, // MIME类型
@@ -2465,6 +2471,7 @@ const uploadFiles = async (file) => {
             fileSize: response.fileSize,
             mimeType: response.mimeType,
             fileExtension: response.fileExtension,
+            downloadUrl: response.videoInfo?.downloadUrl,
             videoInfo: response.videoInfo
           }
           // 如果是私聊
@@ -2481,7 +2488,7 @@ const uploadFiles = async (file) => {
             window.api.sendMessage({
               type: 'send_message',
               data: {
-                ...fileMessageData,
+                ...videoMessageData,
                 senderName: contactStore.selectedContact.nickname || userStore.username || '我'
               }
             })
@@ -2509,6 +2516,7 @@ const uploadFiles = async (file) => {
                 fileName: response.originalName,
                 fileSize: response.fileSize,
                 mimeType: response.mimeType,
+                downloadUrl: response.videoInfo?.downloadUrl,
                 fileExtension: response.fileExtension,
                 videoInfo: response.videoInfo,
                 status: 'SENT',
