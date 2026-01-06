@@ -143,59 +143,21 @@ export async function checkAndOpenFile(
     const foundFile = findFileInDirectory(filesPath, fileName, dateStr)
 
     if (foundFile) {
-      // 检查文件扩展名，对于某些特殊文件类型，直接打开文件夹而不是尝试打开文件
-      const fileExtension = path.extname(foundFile).toLowerCase()
-      const specialFileExtensions = ['.gitignore', '.env', '.htaccess', '.dockerignore', '.gitattributes', '.npmignore', '.editorconfig', '.prettierrc', '.eslintrc', '.babelrc', '.bowerrc', '.npmrc', '.nvmrc', '.env.local', '.env.development', '.env.production', '.env.test']
-
-      if (specialFileExtensions.includes(fileExtension)) {
-        // 对于特殊文件类型，直接打开文件夹而不是尝试打开文件
+      try {
+        // 不再尝试打开文件，而是直接打开文件所在文件夹
+        // 这样可以避免弹出选择应用对话框的问题
         const dirPath = path.dirname(foundFile)
         await shell.openPath(dirPath)
         return {
           exists: true,
-          message: `特殊文件类型 ${fileExtension}，已打开文件所在文件夹: ${dirPath}`,
+          message: `文件已找到，已打开文件所在文件夹: ${dirPath}`,
+          canOpen: false // 标记为不能直接打开文件，但打开了文件夹
+        }
+      } catch (folderError) {
+        return {
+          exists: true,
+          message: `文件已找到，但无法打开文件所在文件夹: ${foundFile}`,
           canOpen: false
-        }
-      }
-
-      try {
-        // 尝试打开文件（仅对非特殊文件类型）
-        const opened = shell.openPath(foundFile)
-        const openResult = await opened
-
-        if (openResult) {
-          // 如果有错误信息，说明无法打开文件，打开文件所在文件夹
-          const dirPath = path.dirname(foundFile)
-          await shell.openPath(dirPath)
-          return {
-            exists: true,
-            message: `文件已找到，但无法直接打开，已打开文件所在文件夹: ${dirPath}`,
-            canOpen: false
-          }
-        } else {
-          // 成功打开文件
-          return {
-            exists: true,
-            message: '文件已找到并成功打开',
-            canOpen: true
-          }
-        }
-      } catch (openError) {
-        // 如果无法打开文件，则打开文件所在文件夹
-        try {
-          const dirPath = path.dirname(foundFile)
-          await shell.openPath(dirPath)
-          return {
-            exists: true,
-            message: '文件已找到，但无法打开，已打开文件所在文件夹',
-            canOpen: false
-          }
-        } catch (folderError) {
-          return {
-            exists: true,
-            message: `文件已找到，但无法打开: ${foundFile}`,
-            canOpen: false
-          }
         }
       }
     }
