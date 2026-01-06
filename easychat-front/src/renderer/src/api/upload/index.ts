@@ -119,10 +119,10 @@ export const uploadVideo = async (
     formData.append('fileName', fileName)
   }
 
-  // 根据视频文件大小计算超时时间，每MB增加3秒，最少60秒，最多30分钟
-  // 视频文件通常比图片大，所以给予更长的超时时间
+  // 根据视频文件大小计算超时时间，每MB增加5秒，最少90秒，最多30分钟
+  // 视频文件通常比图片大，所以给予更长的超时时间，特别是需要处理缩略图和元数据
   const fileSizeMB = file.size / (1024 * 1024)
-  const timeout = Math.min(Math.max(60000, fileSizeMB * 3000), 1800000)
+  const timeout = Math.min(Math.max(90000, fileSizeMB * 5000), 1800000)
 
   const response = await http.post<UploadFileResponse & UploadFileError>(
     `${config.api}${API.UPLOAD_VIDEO_URL}`,

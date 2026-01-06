@@ -3,7 +3,7 @@ var router = express.Router();
 const { db } = require('../db/db');
 const { authenticateToken } = require('../middleware');
 const { broadcastToSession } = require('../websocket/utils/broadcast');
-
+const path = require('path');
 
 /**
  * 获取聊天记录接口
@@ -338,7 +338,6 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
           fileExtension: fileExtension || path.extname(fileName).toLowerCase(), // 使用传入的扩展名或从文件名提取
           uploaderId: senderId,
           thumbnailUrl: messageThumbnailUrl || null, // 将缩略图URL存储在文件记录中
-          downloadUrl: downloadUrl || null, // 将下载URL存储在文件记录中
           // 将视频信息存储在单独的video模型中，并与file建立关系
           video: messageVideoInfo ? {
             create: {
@@ -377,6 +376,8 @@ router.post('/sendChat', authenticateToken, async (req, res) => {
         file: true
       }
     });
+
+    console.log('newMessage: ', newMessage)
 
     // 更新会话的最后更新时间
     await db.chatSession.update({

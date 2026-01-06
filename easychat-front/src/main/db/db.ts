@@ -186,7 +186,7 @@ class DatabaseManager {
         fileExtension TEXT,
         fileType TEXT,
         uploaderId TEXT,
-        downloadUrl: TEXT,
+        downloadUrl TEXT,
         unifiedMessageId TEXT UNIQUE,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         expireAt DATETIME,

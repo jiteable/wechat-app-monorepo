@@ -244,7 +244,7 @@ router.post('/video', authenticateToken, videoUpload.single('video'), async func
     if (ossClient) {
       // 直接从 buffer 上传，不使用临时文件
       const result = await ossClient.put(uniqueFileName, req.file.buffer, {
-        timeout: 120000 // 为视频上传设置2分钟超时
+        timeout: 300000 // 为视频上传设置5分钟超时
       });
 
       // 视频文件的公共URL
