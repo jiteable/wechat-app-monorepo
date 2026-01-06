@@ -3051,8 +3051,14 @@ const handleFileDownload = async (fileMessage) => {
         loading.close()
 
         if (result.exists) {
-          // 文件已存在，直接打开文件或文件夹
-          ElMessage.success(result.message)
+          // 文件已存在，根据是否能打开显示不同提示
+          if (result.canOpen) {
+            // 文件成功打开
+            ElMessage.success(result.message)
+          } else {
+            // 文件无法打开，已打开所在文件夹
+            ElMessage.warning(result.message)
+          }
         } else {
           // 文件不存在，执行下载流程
           await downloadNewFile(fileUrl, fileName, storageLocation, fileMessage)
@@ -3642,6 +3648,7 @@ const formatDuration = (seconds) => {
 /* 文件信息 */
 .file-info {
   flex: 1;
+  min-width: 120px;
 }
 
 .file-name {

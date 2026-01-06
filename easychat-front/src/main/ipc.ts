@@ -1089,10 +1089,18 @@ export function setupIpcHandlers(icon: string): void {
   ipcMain.handle('check-and-open-file', async (_, fileName, basePath, dateStr) => {
     try {
       const result = await checkAndOpenFile(fileName, basePath, dateStr)
-      return { exists: result.exists, message: result.message }
+      return {
+        exists: result.exists,
+        message: result.message,
+        canOpen: result.canOpen
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      return { exists: false, message: `检查文件时出错: ${errorMessage}` }
+      return {
+        exists: false,
+        message: `检查文件时出错: ${errorMessage}`,
+        canOpen: false
+      }
     }
   })
 }
