@@ -62,5 +62,10 @@ export const AppRoutes = [
   {
     path: '/add-friend-to-group',
     component: () => import('../components/AddFriendToGroup.vue')
+  },
+  {
+    path: '/add-friend-to-group/:groupId',
+    component: () => import('../components/AddFriendToGroup.vue'),
+    props: true
   }
 ]

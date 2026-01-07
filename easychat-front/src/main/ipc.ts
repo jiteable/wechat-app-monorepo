@@ -455,11 +455,20 @@ export function createAddFriendToGroupWindow(icon: string, GroupId?: string): vo
 
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    addFriendToGroupWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/add-friend-to-group')
+    // 修改URL以包含groupId参数
+    const url = GroupId
+      ? `${process.env['ELECTRON_RENDERER_URL']}/#/add-friend-to-group/${GroupId}`
+      : `${process.env['ELECTRON_RENDERER_URL']}/#/add-friend-to-group`
+    addFriendToGroupWindow.loadURL(url)
   } else {
-    addFriendToGroupWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+    // 修改URL以包含groupId参数
+    const options: { hash?: string; query?: { [key: string]: string } } = {
       hash: '/add-friend-to-group'
-    })
+    }
+    if (GroupId) {
+      options.hash = `/add-friend-to-group/${GroupId}`
+    }
+    addFriendToGroupWindow.loadFile(join(__dirname, '../renderer/index.html'), options)
   }
 }
 export function setupIpcHandlers(icon: string): void {

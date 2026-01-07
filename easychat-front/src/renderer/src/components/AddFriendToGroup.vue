@@ -87,6 +87,7 @@ import { getContact } from '@/api/getRelationship'
 import { ElMessage } from 'element-plus'
 import { addMembersToGroup } from '@/api/add'
 import { getGroupInfo } from '@/api/chatSession' // 添加导入
+import { useRoute } from 'vue-router'
 
 // 定义联系人类型
 interface Contact {
@@ -106,6 +107,10 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
+// 使用路由参数
+const route = useRoute()
+const routeGroupId = route.params.groupId as string
+
 const searchText = ref('')
 const loading = ref(false)
 
@@ -117,13 +122,15 @@ const contacts = ref<Contact[]>([])
 
 // 获取群组成员信息
 const fetchGroupMembers = async () => {
-  if (!props.groupId) {
+  // 使用优先级：props.groupId > route参数 > 从主进程接收的值
+  const currentGroupId = props.groupId || routeGroupId
+  if (!currentGroupId) {
     console.warn('没有提供groupId')
     return
   }
 
   try {
-    const response = await getGroupInfo(props.groupId)
+    const response = await getGroupInfo(currentGroupId)
     console.log('responsesresponse: ', response)
     if (response && response.success && response.data && response.data.members) {
       groupMemberIds.value = response.data.members.map((member: any) => member.id)
@@ -140,6 +147,13 @@ const fetchGroupMembers = async () => {
 
 // 获取联系人数据
 const fetchContacts = async () => {
+  // 使用优先级：props.groupId > route参数 > 从主进程接收的值
+  const currentGroupId = props.groupId || routeGroupId
+  if (!currentGroupId) {
+    console.error('GroupId is not available, cannot fetch contacts')
+    return
+  }
+
   try {
     loading.value = true
     const response = await getContact()
@@ -156,7 +170,7 @@ const fetchContacts = async () => {
         }
 
         // 排除已在群组中的联系人
-        if (props.groupId && groupMemberIds.value.includes(id)) {
+        if (groupMemberIds.value.includes(id)) {
           return
         }
 
@@ -190,7 +204,9 @@ const fetchContacts = async () => {
 
 // 组件挂载时获取联系人数据
 onMounted(async () => {
-  if (props.groupId) {
+  // 使用优先级：props.groupId > route参数 > 从主进程接收的值
+  const currentGroupId = props.groupId || routeGroupId
+  if (currentGroupId) {
     await fetchGroupMembers() // 先获取群组成员
   }
   await fetchContacts() // 再获取联系人列表
@@ -277,10 +293,17 @@ const completeAdding = async () => {
     return
   }
 
+  // 使用优先级：props.groupId > route参数 > 从主进程接收的值
+  const currentGroupId = props.groupId || routeGroupId
+  if (!currentGroupId) {
+    ElMessage.error('群组ID未设置')
+    return
+  }
+
   try {
     const memberIds = selectedContacts.value.map((contact) => contact.id)
     const response = await addMembersToGroup({
-      groupId: props.groupId,
+      groupId: currentGroupId,
       memberIds
     })
 
