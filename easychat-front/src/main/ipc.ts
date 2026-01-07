@@ -17,6 +17,7 @@ let createGroupWindow: BrowserWindow | null = null
 let chatMessageWindow: BrowserWindow | null = null
 let setRemarkAndTagWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
+let addFriendToGroupWindow: BrowserWindow | null = null
 
 let user_id: string | null = null
 
@@ -410,6 +411,54 @@ export function createSetRemarkAndTagWindow(icon: string, contactData?: any): vo
   } else {
     setRemarkAndTagWindow.loadFile(join(__dirname, '../renderer/index.html'), {
       hash: '/set-remark-and-tag'
+    })
+  }
+}
+
+export function createAddFriendToGroupWindow(icon: string, GroupId?: string): void {
+  // 如果添加好友到群组窗口已存在，直接显示并获得焦点
+  if (addFriendToGroupWindow) {
+    addFriendToGroupWindow.show()
+    addFriendToGroupWindow.focus()
+
+    // 如果窗口已存在且提供了GroupId，通过IPC发送GroupId数据
+    if (GroupId) {
+      addFriendToGroupWindow.webContents.send('set-group-id-data', GroupId)
+    }
+    return
+  }
+
+  addFriendToGroupWindow = new BrowserWindow({
+    width: Math.round(880 / scaleFactor),
+    height: Math.round(680 / scaleFactor),
+    frame: false,
+    show: false,
+    autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  addFriendToGroupWindow.on('ready-to-show', () => {
+    addFriendToGroupWindow!.show()
+    // 窗口准备好后发送GroupId数据
+    if (GroupId) {
+      addFriendToGroupWindow!.webContents.send('set-group-id-data', GroupId)
+    }
+  })
+
+  addFriendToGroupWindow.on('closed', () => {
+    addFriendToGroupWindow = null
+  })
+
+  // Load the remote URL for development or the local html file for production.
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    addFriendToGroupWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/add-friend-to-group')
+  } else {
+    addFriendToGroupWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      hash: '/add-friend-to-group'
     })
   }
 }
@@ -1101,6 +1150,18 @@ export function setupIpcHandlers(icon: string): void {
         message: `检查文件时出错: ${errorMessage}`,
         canOpen: false
       }
+    }
+  })
+
+  // 添加好友到群组窗口相关事件
+  ipcMain.on('open-add-friend-to-group-window', (_event, groupId) => {
+    createAddFriendToGroupWindow(icon, groupId)
+  })
+
+  ipcMain.on('close-add-friend-to-group-window', () => {
+    if (addFriendToGroupWindow) {
+      addFriendToGroupWindow.close()
+      addFriendToGroupWindow = null
     }
   })
 }

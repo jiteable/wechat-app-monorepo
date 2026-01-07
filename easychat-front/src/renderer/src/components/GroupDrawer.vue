@@ -380,7 +380,15 @@ const getUserDisplayName = (userSession) => {
 }
 
 const addMember = () => {
-  emit('addMember')
+  // 关闭当前抽屉
+  emit('close')
+
+  // 打开添加好友到群组的窗口
+  if (window.api && window.api.openAddFriendToGroupWindow) {
+    window.api.openAddFriendToGroupWindow(props.group?.id)
+  } else {
+    console.error('API openAddFriendToGroupWindow not available')
+  }
 }
 
 const searchMessages = () => {

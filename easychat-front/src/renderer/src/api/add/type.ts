@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface AddFriendRequest {
   userId: number // 要添加为好友的用户ID
   source?: string // 添加好友的来源方式
@@ -6,4 +7,15 @@ export interface AddFriendRequest {
 export interface AddFriendResponse {
   success: boolean
   message?: string
+}
+
+export interface AddMembersToGroupRequest {
+  groupId: string
+  memberIds: string[]
+}
+
+export interface AddMembersToGroupResponse {
+  success: boolean
+  message?: string
+  data?: any
 }

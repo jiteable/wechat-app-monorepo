@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="vite/client" />
 
+import { Session } from 'inspector'
+
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
@@ -47,6 +49,9 @@ interface Window {
     openChatMessageWindow: (contactData?: any) => void
     closeChatMessageWindow: () => void
     minimizeChatMessageWindow: () => void
+
+    openAddFriendToGroupWindow: (GroupId: string) => void
+    closeAddFriendToGroupWindow: () => void
 
     // 用户信息相关
     setUserInfo: (userInfo: import('../renderer/src/api/user/type').UserInfo) => void
@@ -102,5 +107,8 @@ interface Window {
     updateContactRemark: (contactId: string, remark: string) => Promise<any>
     showSaveDialog: (options: any) => Promise<any>
     downloadFileToPath: (url: string, fileName: string, savePath: string) => Promise<any>
+
+    // 添加好友到群组窗口相关事件监听
+    onSetGroupData: (callback: (groupId: string) => void) => void
   }
 }

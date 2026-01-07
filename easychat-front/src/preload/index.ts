@@ -50,6 +50,11 @@ const api = {
     ipcRenderer.send('open-set-remark-and-tag-window', contactData),
   closeSetRemarkAndTagWindow: (): void => ipcRenderer.send('close-set-remark-and-tag-window'),
 
+  // 添加好友到群组窗口相关
+  openAddFriendToGroupWindow: (GroupId: string): void =>
+    ipcRenderer.send('open-add-friend-to-group-window', GroupId),
+  closeAddFriendToGroupWindow: (): void => ipcRenderer.send('close-add-friend-to-group-window'),
+
   // 用户信息相关
   setUserInfo: (userInfo: UserInfo): void => ipcRenderer.send('set-user-info', userInfo),
   getUserInfo: (): Promise<UserInfo> => ipcRenderer.invoke('get-user-info'),
@@ -163,7 +168,14 @@ const api = {
   downloadFileToPath: (url: string, fileName: string, savePath: string): Promise<any> =>
     ipcRenderer.invoke('download-file-to-path', url, fileName, savePath),
   checkAndOpenFile: (fileName: string, basePath: string, dateStr?: string): Promise<any> =>
-    ipcRenderer.invoke('check-and-open-file', fileName, basePath, dateStr)
+    ipcRenderer.invoke('check-and-open-file', fileName, basePath, dateStr),
+
+  // 添加监听sessionId数据的API
+  onSetGroupData: (callback: (sessionId: string) => void): void => {
+    ipcRenderer.on('set-group-id-data', (_event, sessionId) => {
+      callback(sessionId)
+    })
+  }
 }
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

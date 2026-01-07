@@ -58,5 +58,9 @@ export const AppRoutes = [
   {
     path: '/set-remark-and-tag',
     component: () => import('../views/setFriendInfo/SetRemarkAndTag.vue')
+  },
+  {
+    path: '/add-friend-to-group',
+    component: () => import('../components/AddFriendToGroup.vue')
   }
 ]
