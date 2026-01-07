@@ -275,6 +275,10 @@ const remarkInput = ref(null)
 const nicknameInput = ref(null)
 
 const userStore = useUserStore()
+const contactStore = userContactStore() // 创建 contactStore 实例
+
+// 添加消息列表的引用（在实际组件中可能需要从props或其它地方获取）
+const messages = ref([])
 
 // Watch props changes to update form data
 watch(
@@ -389,14 +393,38 @@ const clearChatHistory = () => {
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
-      emit('clearChatHistory')
+    .then(async () => {
+      // 执行清空聊天记录的逻辑
+      try {
+        const sessionId = contactStore.selectedContact?.id
+        if (sessionId) {
+          // 调用API删除该会话的所有消息记录
+          const result = await window.api.deleteUnifiedMessagesBySessionId(sessionId)
+
+          if (result.success) {
+            // 发送全局事件通知ChatList组件更新会话信息
+            window.dispatchEvent(new CustomEvent('chatHistoryCleared', { detail: { sessionId } }))
+
+            // 显示成功消息
+            ElMessage.success('聊天记录已清空')
+
+            console.log('聊天记录已清空，会话ID:', sessionId)
+          } else {
+            ElMessage.error('清空聊天记录失败: ' + result.error)
+            console.error('清空聊天记录失败:', result.error)
+          }
+        } else {
+          ElMessage.warning('未找到有效的会话信息')
+        }
+      } catch (error) {
+        ElMessage.error('清空聊天记录时发生错误')
+        console.error('清空聊天记录时发生错误:', error)
+      }
     })
     .catch(() => {
-      // 用户取消操作
+      // 用户取消操作，不执行任何操作
     })
 }
-
 const leaveGroup = () => {
   console.log('prop: ', props)
   ElMessageBox.confirm('确定要退出群聊吗？', '退出群聊', {
@@ -547,7 +575,6 @@ const saveAnnouncement = async () => {
         }
 
         // 更新 userContactStore 中的群公告，使 ContactContent.vue 实时更新
-        const contactStore = userContactStore()
         const currentSelectedUser = contactStore.selectedUser
         if (currentSelectedUser && currentSelectedUser.id === props.group?.id) {
           // 更新 selectedUser 中的公告

@@ -750,6 +750,8 @@ onMounted(() => {
   // 添加对 contactStoreUpdated 事件的监听
   window.addEventListener('contactStoreUpdated', handleContactStoreUpdate)
 
+  window.addEventListener('chatHistoryCleared', handleChatHistoryCleared)
+
   document.addEventListener('click', closeContextMenu)
 
   if (contactStore.selectedContact) {
@@ -2065,6 +2067,8 @@ onUnmounted(() => {
 
   // 移除右键菜单的事件监听
   document.removeEventListener('click', closeContextMenu)
+
+  window.removeEventListener('chatHistoryCleared', handleChatHistoryCleared)
 })
 
 const handleContactStoreUpdate = async (event) => {
@@ -2261,6 +2265,22 @@ const clearChatHistory = () => {
     .catch(() => {
       // 用户取消操作
     })
+}
+
+// 添加清空聊天记录事件处理
+const handleChatHistoryCleared = (event) => {
+  const { sessionId } = event.detail
+
+  // 检查是否是当前会话
+  if (contactStore.selectedContact?.id === sessionId) {
+    // 清空当前消息列表
+    messages.value = []
+
+    // 重新加载消息
+    if (contactStore.selectedContact?.id) {
+      loadMessages(contactStore.selectedContact.id)
+    }
+  }
 }
 
 const leaveGroup = () => {

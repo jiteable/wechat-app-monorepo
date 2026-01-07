@@ -241,6 +241,27 @@ const handleGroupInfoUpdated = (event) => {
   }
 }
 
+const handleChatHistoryCleared = (event) => {
+  const { sessionId } = event.detail
+
+  // 查找对应的会话并更新lastMessage
+  const sessionIndex = sessions.value.findIndex((session) => session.id === sessionId)
+  if (sessionIndex !== -1) {
+    // 清空会话的最后消息
+    sessions.value[sessionIndex] = {
+      ...sessions.value[sessionIndex],
+      lastMessage: null
+    }
+
+    // 如果该会话在本地数据库中也存在，同步更新
+    if (window.api && typeof window.api.updateChatSessionLastMessage === 'function') {
+      window.api
+        .updateChatSessionLastMessage(sessionId, null)
+        .catch((err) => console.error('更新本地会话最后消息失败:', err))
+    }
+  }
+}
+
 // 添加对会话备注更新事件的处理
 const handleSessionRemarkUpdated = (event) => {
   const { sessionId, newRemark } = event.detail
@@ -631,6 +652,9 @@ onMounted(() => {
   // 添加会话备注更新事件监听
   window.addEventListener('sessionRemarkUpdated', handleSessionRemarkUpdated)
 
+  // 添加清空聊天记录事件监听
+  window.addEventListener('chatHistoryCleared', handleChatHistoryCleared)
+
   // 监听路由变化
   updateSelectedSessionFromRoute()
   router.afterEach(updateSelectedSessionFromRoute)
@@ -656,6 +680,9 @@ onUnmounted(() => {
 
   // 移除会话备注更新事件监听
   window.removeEventListener('sessionRemarkUpdated', handleSessionRemarkUpdated)
+
+  // 移除清空聊天记录事件监听
+  window.removeEventListener('chatHistoryCleared', handleChatHistoryCleared)
 
   // 移除路由监听
   router.afterEach(() => {})
