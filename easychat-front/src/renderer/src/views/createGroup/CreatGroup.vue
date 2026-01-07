@@ -61,7 +61,9 @@
           <div class="avatar-container">
             <span>群聊头像:</span>
             <el-avatar v-if="groupAvatar" :src="groupAvatar" shape="square" :size="60" />
-            <el-button size="small" @click="changeGroupAvatar">更改头像</el-button>
+            <el-button size="small" @click="changeGroupAvatar">{{
+              groupAvatar ? '更改头像' : '设置头像'
+            }}</el-button>
             <input
               ref="groupAvatarInput"
               type="file"
@@ -129,6 +131,7 @@ export default defineComponent({
     const searchText = ref('')
     const groupName = ref('')
     const groupAvatar = ref('') // 群聊头像
+    const groupAvatarFile = ref<File | null>(null) // 保存头像文件引用
     const groupAvatarInput = ref<HTMLInputElement | null>(null) // 群聊头像输入框引用
     const loading = ref(false)
 
@@ -279,21 +282,45 @@ export default defineComponent({
       }
 
       try {
-        // 压缩图片
+        // 压缩图片并保存压缩后的文件
         const compressedFile = await compressImage(file)
 
-        // 上传文件到服务器并获取URL
-        const response = await uploadAvatar(compressedFile)
-        console.log('groupAvatarUrl: ', response.avatarUrl)
-
-        // 使用服务器返回的真实URL
-        groupAvatar.value = response.avatarUrl
+        // 创建本地预览URL（注意：这个可能会被CSP阻止）
+        // 我们改为使用FileReader读取文件内容
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          // 使用data URL替代blob URL以避免CSP问题
+          groupAvatar.value = e.target?.result as string
+          groupAvatarFile.value = compressedFile
+        }
+        reader.readAsDataURL(compressedFile)
 
         // 清空input值以便下次选择相同文件也能触发change事件
         target.value = ''
       } catch (error) {
         console.error('处理头像失败:', error)
         ElMessage.error('处理头像失败,请重试')
+      }
+    }
+
+    // 上传群聊头像到服务器
+    const uploadGroupAvatarToServer = async () => {
+      if (!groupAvatarFile.value) {
+        // 如果没有选择新头像，直接返回当前头像URL
+        return groupAvatar.value
+      }
+
+      try {
+        // 上传文件到服务器并获取URL
+        const response = await uploadAvatar(groupAvatarFile.value)
+        console.log('groupAvatarUrl: ', response.avatarUrl)
+
+        // 返回服务器上的真实URL
+        return response.avatarUrl
+      } catch (error) {
+        console.error('上传头像失败:', error)
+        ElMessage.error('上传头像失败,请重试')
+        throw error
       }
     }
 
@@ -310,11 +337,17 @@ export default defineComponent({
       }
 
       try {
+        // 上传群聊头像到服务器（如果已选择）
+        let finalGroupAvatar = groupAvatar.value
+        if (groupAvatarFile.value) {
+          finalGroupAvatar = await uploadGroupAvatarToServer()
+        }
+
         const memberIds = selectedContacts.value.map((contact) => contact.id)
         const response = await createGroup({
           groupName: groupName.value,
           memberIds: memberIds,
-          groupAvatar: groupAvatar.value // 添加群聊头像参数
+          groupAvatar: finalGroupAvatar // 使用最终的头像URL
         })
 
         if (response.success) {
