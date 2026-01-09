@@ -8,14 +8,3 @@ export interface AddFriendResponse {
   success: boolean
   message?: string
 }
-
-export interface AddMembersToGroupRequest {
-  groupId: string
-  memberIds: string[]
-}
-
-export interface AddMembersToGroupResponse {
-  success: boolean
-  message?: string
-  data?: any
-}

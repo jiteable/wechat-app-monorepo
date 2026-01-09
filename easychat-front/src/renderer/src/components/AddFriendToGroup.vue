@@ -79,46 +79,35 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Search, Check, Close } from '@element-plus/icons-vue'
 import convertToPinyinInitials from '@/utils/changeChinese'
 import { getContact } from '@/api/getRelationship'
 import { ElMessage } from 'element-plus'
-import { addMembersToGroup } from '@/api/add'
+import { sendGroupInvitations } from '@/api/messages'
 import { getGroupInfo } from '@/api/chatSession' // 添加导入
 import { useRoute } from 'vue-router'
 
-// 定义联系人类型
-interface Contact {
-  id: string
-  name: string
-  avatar: string
-  labels: string[]
-  selected: boolean
-}
-
 // 定义props和emits
-const props = defineProps<{
-  groupId?: string
-}>()
+const props = defineProps({
+  groupId: String
+})
 
-const emit = defineEmits<{
-  (e: 'close'): void
-}>()
+const emit = defineEmits(['close'])
 
 // 使用路由参数
 const route = useRoute()
-const routeGroupId = route.params.groupId as string
+const routeGroupId = route.params.groupId 
 
 const searchText = ref('')
 const loading = ref(false)
 
 // 群组成员ID列表
-const groupMemberIds = ref<string[]>([])
+const groupMemberIds = ref([])
 
 // 联系人数据
-const contacts = ref<Contact[]>([])
+const contacts = ref([])
 
 // 获取群组成员信息
 const fetchGroupMembers = async () => {
@@ -133,7 +122,7 @@ const fetchGroupMembers = async () => {
     const response = await getGroupInfo(currentGroupId)
     console.log('responsesresponse: ', response)
     if (response && response.success && response.data && response.data.members) {
-      groupMemberIds.value = response.data.members.map((member: any) => member.id)
+      groupMemberIds.value = response.data.members.map((member) => member.id)
       console.log('群组成员ID:', groupMemberIds.value)
     } else {
       console.error('获取群组信息失败:', response)
@@ -161,7 +150,7 @@ const fetchContacts = async () => {
     console.log('response.contacts:', response.contacts)
 
     if (response && response.contacts) {
-      const contactMap = new Map<string, Contact>()
+      const contactMap = new Map()
       response.contacts.forEach((contact) => {
         const id = contact.id?.toString()
         if (!id || id.trim() === '') {
@@ -238,7 +227,7 @@ const contactGroups = computed(() => {
     return pinyinA.localeCompare(pinyinB)
   })
 
-  const groups: Record<string, Contact[]> = {}
+  const groups = {}
 
   sorted.forEach((contact) => {
     // ✅ 不再浅拷贝，直接使用原始对象
@@ -274,7 +263,7 @@ const handleSearch = () => {
 }
 
 // 切换联系人选择状态
-const toggleContactSelection = (contact: Contact) => {
+const toggleContactSelection = (contact) => {
   const originalContact = contacts.value.find((c) => c.id === contact.id)
   if (originalContact) {
     originalContact.selected = !originalContact.selected
@@ -282,7 +271,7 @@ const toggleContactSelection = (contact: Contact) => {
 }
 
 // 移除已选择的联系人
-const removeContact = (contact: Contact) => {
+const removeContact = (contact) => {
   contact.selected = false
 }
 
@@ -302,9 +291,10 @@ const completeAdding = async () => {
 
   try {
     const memberIds = selectedContacts.value.map((contact) => contact.id)
-    const response = await addMembersToGroup({
+    const response = await sendGroupInvitations({
       groupId: currentGroupId,
-      memberIds
+      inviteeIds: memberIds,
+      inviteMessage: '邀请您加入群聊'
     })
 
     if (response.success) {
