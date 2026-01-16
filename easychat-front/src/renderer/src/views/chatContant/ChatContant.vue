@@ -2663,7 +2663,7 @@ const uploadFiles = async (file) => {
             window.api.sendMessage({
               type: 'send_message',
               data: {
-                ...videoMessageData,
+                ...fileMessageData,
                 senderName: contactStore.selectedContact.nickname || userStore.username || '我'
               }
             })
