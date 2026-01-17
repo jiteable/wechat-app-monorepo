@@ -1263,6 +1263,16 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
+  // 添加根据sessionId获取图片消息的IPC处理程序
+  ipcMain.handle('get-image-messages-by-session-id', async (_, sessionId) => {
+    try {
+      const messages = await databaseManager.getImageMessagesBySessionId(sessionId)
+      return { success: true, data: messages }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
   // 添加好友到群组窗口相关事件
   ipcMain.on('open-add-friend-to-group-window', (_event, groupId) => {
     createAddFriendToGroupWindow(icon, groupId)

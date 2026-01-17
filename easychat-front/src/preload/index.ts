@@ -184,7 +184,11 @@ const api = {
   toggleMaximizeImageViewWindow: (maximize: boolean): void =>
     ipcRenderer.send('toggle-maximize-image-view-window', maximize),
   toggleAlwaysOnTopImageViewWindow: (isAlwaysOnTop: boolean): void =>
-    ipcRenderer.send('toggle-always-on-top-image-view-window', isAlwaysOnTop)
+    ipcRenderer.send('toggle-always-on-top-image-view-window', isAlwaysOnTop),
+
+  // 添加获取图片消息的API
+  getImageMessagesBySessionId: (sessionId: string): Promise<any> =>
+    ipcRenderer.invoke('get-image-messages-by-session-id', sessionId)
 }
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

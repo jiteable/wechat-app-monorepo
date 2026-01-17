@@ -118,6 +118,9 @@ interface Window {
     toggleMaximizeImageViewWindow: (maximize: boolean) => void
     toggleAlwaysOnTopImageViewWindow: (isAlwaysOnTop: boolean) => void
 
+    // 添加获取图片消息的API
+    getImageMessagesBySessionId: (sessionId: string) => Promise<any>
+
     // 添加图片查看窗口相关事件监听
     onSetImageData: (
       callback: (data: { imageUrl: string; sessionId: string; clickedImageIndex: number }) => void

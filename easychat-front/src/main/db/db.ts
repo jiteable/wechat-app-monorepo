@@ -1406,6 +1406,55 @@ class DatabaseManager {
       throw error
     }
   }
+
+  /**
+   * 根据会话ID获取所有图片消息
+   */
+  public async getImageMessagesBySessionId(sessionId: string): Promise<any[]> {
+    try {
+      // 确保表存在
+      await this.initializeTables()
+
+      const db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      })
+
+      // 查询指定会话的所有图片消息，按创建时间降序排列（最新的在前）
+      const imageMessages = await db.all(
+        `SELECT m.*, 
+                f.thumbnailUrl as file_thumbnailUrl,
+                f.fileExtension as file_extension,
+                f.mimeType as mime_type,
+                f.name as file_name,
+                f.size as file_size
+         FROM UnifiedMessage m
+         LEFT JOIN File f ON m.id = f.unifiedMessageId
+         WHERE m.sessionId = ? AND m.messageType = 'image'
+         ORDER BY m.createdAt DESC`,
+        [sessionId]
+      )
+
+      await db.close()
+
+      // 处理消息数据
+      return imageMessages.map((message) => {
+        return {
+          ...message,
+          senderAvatar: message.senderAvatar,
+          senderName: message.senderName,
+          thumbnailUrl: message.file_thumbnailUrl,
+          fileExtension: message.file_extension,
+          mimeType: message.mime_type,
+          fileName: message.file_name,
+          fileSize: message.file_size
+        }
+      })
+    } catch (error) {
+      console.error('根据sessionId获取图片消息失败:', error)
+      throw error
+    }
+  }
 }
 
 export const databaseManager = new DatabaseManager()
