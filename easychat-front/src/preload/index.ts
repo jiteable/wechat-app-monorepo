@@ -177,8 +177,8 @@ const api = {
     })
   },
 
-  openImageViewWindow: (imageUrl: string): void =>
-    ipcRenderer.send('open-image-view-window', imageUrl),
+  openImageViewWindow: (imageUrl: string, sessionId?: string, clickedImageIndex?: number): void =>
+    ipcRenderer.send('open-image-view-window', imageUrl, sessionId, clickedImageIndex),
   closeImageViewWindow: (): void => ipcRenderer.send('close-image-view-window'),
   minimizeImageViewWindow: (): void => ipcRenderer.send('minimize-image-view-window'),
   toggleMaximizeImageViewWindow: (maximize: boolean): void =>

@@ -2994,19 +2994,21 @@ const insertImageToRichInput = (imageUrl) => {
 
 // 使用PreviewImage组件替换原来的previewImage函数
 const previewImage = (imageUrl) => {
-  // 通过IPC调用主进程打开新的图片查看窗口
+  const imageMessages = messages.value.filter((msg) => msg.type === 'image')
+  const clickedImageIndex = imageMessages.findIndex((msg) => msg.imageUrl === imageUrl)
+  console.log(clickedImageIndex)
+
+  // 获取当前会话的sessionId
+  const sessionId = contactStore.selectedContact?.id || ''
+
+  // 通过IPC调用主进程打开新的图片查看窗口，并传递参数
   if (window.api && typeof window.api.openImageViewWindow === 'function') {
-    window.api.openImageViewWindow(imageUrl)
+    window.api.openImageViewWindow(imageUrl, sessionId, clickedImageIndex)
   } else {
     // 如果没有IPC接口，则回退到原来的预览方式
     previewImageUrl.value = imageUrl
     isPreviewVisible.value = true
   }
-}
-
-const closePreview = () => {
-  isPreviewVisible.value = false
-  previewImageUrl.value = ''
 }
 
 const handleFileDownload = async (fileMessage) => {

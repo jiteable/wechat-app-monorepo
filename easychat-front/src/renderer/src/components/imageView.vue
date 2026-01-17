@@ -9,8 +9,11 @@
           <i class="iconfont icon-min"></i>
         </button>
         <button class="button" type="button" @click="toggleMaximize">
-          <i class="iconfont" :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
-            :style="{ color: isMaximized ? '#87CEEB' : '' }"></i>
+          <i
+            class="iconfont"
+            :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
+            :style="{ color: isMaximized ? '#87CEEB' : '' }"
+          ></i>
         </button>
         <button class="button" type="button" @click="closeWindow">
           <i class="iconfont icon-close"></i>
@@ -20,6 +23,9 @@
 
     <div class="image-container">
       <img :src="imageUrl" class="preview-image" @click="zoomImage" />
+      <div v-if="sessionId && clickedImageIndex >= 0" class="image-info">
+        会话ID: {{ sessionId }}, 图片索引: {{ clickedImageIndex }}
+      </div>
     </div>
   </div>
 </template>
@@ -31,6 +37,14 @@ const props = defineProps({
   imageUrl: {
     type: String,
     required: true
+  },
+  sessionId: {
+    type: String,
+    default: ''
+  },
+  clickedImageIndex: {
+    type: Number,
+    default: -1
   }
 })
 
@@ -76,8 +90,10 @@ const handleEscKey = (event) => {
 }
 
 onMounted(() => {
-  // 窗口被打开时打印imageUrl
+  // 窗口被打开时打印imageUrl和其他参数
   console.log('ImageView opened with imageUrl:', props.imageUrl)
+  console.log('Session ID:', props.sessionId)
+  console.log('Clicked Image Index:', props.clickedImageIndex)
   document.addEventListener('keydown', handleEscKey)
 })
 
@@ -142,6 +158,7 @@ onUnmounted(() => {
   overflow: auto;
   padding: 40px 0;
   /* 为顶部控件留出空间 */
+  position: relative;
 }
 
 .preview-image {
@@ -150,5 +167,16 @@ onUnmounted(() => {
   object-fit: contain;
   cursor: zoom-in;
   border-radius: 4px;
+}
+
+.image-info {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 </style>

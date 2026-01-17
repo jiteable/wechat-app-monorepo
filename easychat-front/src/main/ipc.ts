@@ -416,15 +416,20 @@ export function createSetRemarkAndTagWindow(icon: string, contactData?: any): vo
   }
 }
 
-export function createImageViewWindow(icon: string, imageUrl?: string): void {
+export function createImageViewWindow(
+  icon: string,
+  imageUrl?: string,
+  sessionId?: string,
+  clickedImageIndex?: number
+): void {
   // 如果图片查看窗口已存在，直接显示并获得焦点
   if (imageViewWindow) {
     imageViewWindow.show()
     imageViewWindow.focus()
 
     // 如果窗口已存在且提供了imageUrl，通过IPC发送图像URL数据
-    if (imageUrl) {
-      imageViewWindow.webContents.send('set-image-url', imageUrl)
+    if (imageUrl || sessionId || clickedImageIndex !== undefined) {
+      imageViewWindow.webContents.send('set-image-data', { imageUrl, sessionId, clickedImageIndex })
     }
     return
   }
@@ -445,8 +450,12 @@ export function createImageViewWindow(icon: string, imageUrl?: string): void {
   imageViewWindow.on('ready-to-show', () => {
     imageViewWindow!.show()
     // 窗口准备好后发送图像URL数据
-    if (imageUrl) {
-      imageViewWindow!.webContents.send('set-image-url', imageUrl)
+    if (imageUrl || sessionId || clickedImageIndex !== undefined) {
+      imageViewWindow!.webContents.send('set-image-data', {
+        imageUrl,
+        sessionId,
+        clickedImageIndex
+      })
     }
   })
 
@@ -454,12 +463,21 @@ export function createImageViewWindow(icon: string, imageUrl?: string): void {
     imageViewWindow = null
   })
 
+  // 构建URL，包括参数
+  let url = process.env['ELECTRON_RENDERER_URL']
+    ? `${process.env['ELECTRON_RENDERER_URL']}/#/image-view`
+    : join(__dirname, '../renderer/index.html') + '#/image-view'
+
+  if (sessionId && clickedImageIndex !== undefined) {
+    url += `/${sessionId}/${clickedImageIndex}`
+  }
+
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    imageViewWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/image-view')
+    imageViewWindow.loadURL(url)
   } else {
     imageViewWindow.loadFile(join(__dirname, '../renderer/index.html'), {
-      hash: '/image-view'
+      hash: `/image-view/${sessionId}/${clickedImageIndex}`
     })
   }
 }
@@ -702,8 +720,8 @@ export function setupIpcHandlers(icon: string): void {
   })
 
   // 添加图片查看窗口相关事件
-  ipcMain.on('open-image-view-window', (_event, imageUrl) => {
-    createImageViewWindow(icon, imageUrl)
+  ipcMain.on('open-image-view-window', (_event, imageUrl, sessionId, clickedImageIndex) => {
+    createImageViewWindow(icon, imageUrl, sessionId, clickedImageIndex)
   })
 
   ipcMain.on('close-image-view-window', () => {

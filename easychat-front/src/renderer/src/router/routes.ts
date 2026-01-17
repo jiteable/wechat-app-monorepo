@@ -71,5 +71,10 @@ export const AppRoutes = [
   {
     path: '/image-view',
     component: () => import('../views/ImageViewWrapper.vue')
+  },
+  {
+    path: '/image-view/:sessionId/:clickedImageIndex',
+    component: () => import('../views/ImageViewWrapper.vue'),
+    props: true
   }
 ]

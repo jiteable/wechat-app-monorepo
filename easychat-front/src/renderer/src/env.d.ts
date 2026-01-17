@@ -112,13 +112,15 @@ interface Window {
     onSetGroupData: (callback: (groupId: string) => void) => void
 
     // 添加图片查看窗口相关API
-    openImageViewWindow: (imageUrl: string) => void
+    openImageViewWindow: (imageUrl: string, sessionId?: string, clickedImageIndex?: number) => void
     closeImageViewWindow: () => void
     minimizeImageViewWindow: () => void
     toggleMaximizeImageViewWindow: (maximize: boolean) => void
     toggleAlwaysOnTopImageViewWindow: (isAlwaysOnTop: boolean) => void
 
     // 添加图片查看窗口相关事件监听
-    onSetImageUrl: (callback: (imageUrl: string) => void) => void
+    onSetImageData: (
+      callback: (data: { imageUrl: string; sessionId: string; clickedImageIndex: number }) => void
+    ) => void
   }
 }
