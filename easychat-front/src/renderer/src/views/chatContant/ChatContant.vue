@@ -2994,8 +2994,14 @@ const insertImageToRichInput = (imageUrl) => {
 
 // 使用PreviewImage组件替换原来的previewImage函数
 const previewImage = (imageUrl) => {
-  previewImageUrl.value = imageUrl
-  isPreviewVisible.value = true
+  // 通过IPC调用主进程打开新的图片查看窗口
+  if (window.api && typeof window.api.openImageViewWindow === 'function') {
+    window.api.openImageViewWindow(imageUrl)
+  } else {
+    // 如果没有IPC接口，则回退到原来的预览方式
+    previewImageUrl.value = imageUrl
+    isPreviewVisible.value = true
+  }
 }
 
 const closePreview = () => {

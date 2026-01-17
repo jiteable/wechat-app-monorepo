@@ -67,5 +67,9 @@ export const AppRoutes = [
     path: '/add-friend-to-group/:groupId',
     component: () => import('../components/AddFriendToGroup.vue'),
     props: true
+  },
+  {
+    path: '/image-view',
+    component: () => import('../views/ImageViewWrapper.vue')
   }
 ]

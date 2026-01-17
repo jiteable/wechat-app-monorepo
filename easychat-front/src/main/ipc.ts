@@ -18,6 +18,7 @@ let chatMessageWindow: BrowserWindow | null = null
 let setRemarkAndTagWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 let addFriendToGroupWindow: BrowserWindow | null = null
+let imageViewWindow: BrowserWindow | null = null
 
 let user_id: string | null = null
 
@@ -415,6 +416,54 @@ export function createSetRemarkAndTagWindow(icon: string, contactData?: any): vo
   }
 }
 
+export function createImageViewWindow(icon: string, imageUrl?: string): void {
+  // 如果图片查看窗口已存在，直接显示并获得焦点
+  if (imageViewWindow) {
+    imageViewWindow.show()
+    imageViewWindow.focus()
+
+    // 如果窗口已存在且提供了imageUrl，通过IPC发送图像URL数据
+    if (imageUrl) {
+      imageViewWindow.webContents.send('set-image-url', imageUrl)
+    }
+    return
+  }
+
+  imageViewWindow = new BrowserWindow({
+    width: Math.round(800 / scaleFactor),
+    height: Math.round(600 / scaleFactor),
+    frame: false,
+    show: false,
+    autoHideMenuBar: true,
+    resizable: true,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  imageViewWindow.on('ready-to-show', () => {
+    imageViewWindow!.show()
+    // 窗口准备好后发送图像URL数据
+    if (imageUrl) {
+      imageViewWindow!.webContents.send('set-image-url', imageUrl)
+    }
+  })
+
+  imageViewWindow.on('closed', () => {
+    imageViewWindow = null
+  })
+
+  // Load the remote URL for development or the local html file for production.
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    imageViewWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/image-view')
+  } else {
+    imageViewWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      hash: '/image-view'
+    })
+  }
+}
+
 export function createAddFriendToGroupWindow(icon: string, GroupId?: string): void {
   // 如果添加好友到群组窗口已存在，直接显示并获得焦点
   if (addFriendToGroupWindow) {
@@ -649,6 +698,40 @@ export function setupIpcHandlers(icon: string): void {
     if (addFriendWindow) {
       addFriendWindow.close()
       addFriendWindow = null
+    }
+  })
+
+  // 添加图片查看窗口相关事件
+  ipcMain.on('open-image-view-window', (_event, imageUrl) => {
+    createImageViewWindow(icon, imageUrl)
+  })
+
+  ipcMain.on('close-image-view-window', () => {
+    if (imageViewWindow) {
+      imageViewWindow.close()
+      imageViewWindow = null
+    }
+  })
+
+  ipcMain.on('minimize-image-view-window', () => {
+    if (imageViewWindow) {
+      imageViewWindow.minimize()
+    }
+  })
+
+  ipcMain.on('toggle-maximize-image-view-window', (_event, maximize) => {
+    if (imageViewWindow) {
+      if (maximize) {
+        imageViewWindow.maximize()
+      } else {
+        imageViewWindow.unmaximize()
+      }
+    }
+  })
+
+  ipcMain.on('toggle-always-on-top-image-view-window', (_event, isAlwaysOnTop) => {
+    if (imageViewWindow) {
+      imageViewWindow.setAlwaysOnTop(isAlwaysOnTop)
     }
   })
 

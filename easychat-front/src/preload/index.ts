@@ -175,7 +175,16 @@ const api = {
     ipcRenderer.on('set-group-id-data', (_event, sessionId) => {
       callback(sessionId)
     })
-  }
+  },
+
+  openImageViewWindow: (imageUrl: string): void =>
+    ipcRenderer.send('open-image-view-window', imageUrl),
+  closeImageViewWindow: (): void => ipcRenderer.send('close-image-view-window'),
+  minimizeImageViewWindow: (): void => ipcRenderer.send('minimize-image-view-window'),
+  toggleMaximizeImageViewWindow: (maximize: boolean): void =>
+    ipcRenderer.send('toggle-maximize-image-view-window', maximize),
+  toggleAlwaysOnTopImageViewWindow: (isAlwaysOnTop: boolean): void =>
+    ipcRenderer.send('toggle-always-on-top-image-view-window', isAlwaysOnTop)
 }
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

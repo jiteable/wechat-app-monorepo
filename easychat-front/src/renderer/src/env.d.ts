@@ -110,5 +110,15 @@ interface Window {
 
     // 添加好友到群组窗口相关事件监听
     onSetGroupData: (callback: (groupId: string) => void) => void
+
+    // 添加图片查看窗口相关API
+    openImageViewWindow: (imageUrl: string) => void
+    closeImageViewWindow: () => void
+    minimizeImageViewWindow: () => void
+    toggleMaximizeImageViewWindow: (maximize: boolean) => void
+    toggleAlwaysOnTopImageViewWindow: (isAlwaysOnTop: boolean) => void
+
+    // 添加图片查看窗口相关事件监听
+    onSetImageUrl: (callback: (imageUrl: string) => void) => void
   }
 }
