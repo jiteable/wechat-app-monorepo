@@ -2,11 +2,12 @@
   <div class="image-view-container">
     <div class="window-controls drag">
       <!-- 新增：左侧操作图标 -->
-      <div class="image-controls left">
-        <button class="button" type="button" @click="prevImage">
+      <div class="image-controls left no-drag">
+        <button class="button" type="button" :disabled="currentIndex.value === 0" @click="prevImage">
           <i class="iconfont icon-left"></i>
         </button>
-        <button class="button" type="button" @click="nextImage">
+        <button class="button" type="button" :disabled="currentIndex.value === props.imageMessages.length - 1"
+          @click="nextImage">
           <i class="iconfont icon-right"></i>
         </button>
         <button class="button" type="button" @click="downloadImage">
@@ -29,11 +30,8 @@
           <i class="iconfont icon-min"></i>
         </button>
         <button class="button" type="button" @click="toggleMaximize">
-          <i
-            class="iconfont"
-            :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
-            :style="{ color: isMaximized ? '#87CEEB' : '' }"
-          ></i>
+          <i class="iconfont" :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
+            :style="{ color: isMaximized ? '#87CEEB' : '' }"></i>
         </button>
         <button class="button" type="button" @click="closeWindow">
           <i class="iconfont icon-close"></i>
@@ -126,13 +124,18 @@ const zoomImage = () => {
 const prevImage = () => {
   if (currentIndex.value > 0) {
     currentIndex.value--
+    console.log('Switched to newer image:', currentIndex.value)
+  } else {
+    alert('已是最新图片')
   }
 }
 
-// 导航到下一张图片
 const nextImage = () => {
   if (currentIndex.value < props.imageMessages.length - 1) {
     currentIndex.value++
+    console.log('Switched to older image:', currentIndex.value)
+  } else {
+    alert('已是最早图片')
   }
 }
 
