@@ -3,12 +3,26 @@
     <div class="window-controls drag">
       <!-- 新增：左侧操作图标 -->
       <div class="image-controls left no-drag">
-        <button class="button" type="button" :disabled="currentIndex.value === 0" @click="prevImage">
-          <i class="iconfont icon-left"></i>
+        <button class="button" type="button" :disabled="currentIndex === 0" @click="prevImage">
+          <i
+            class="iconfont icon-left"
+            :class="{ 'disabled-icon': currentIndex === 0 }"
+            :style="{ color: currentIndex === 0 ? 'rgb(165, 165, 165)' : '' }"
+          ></i>
         </button>
-        <button class="button" type="button" :disabled="currentIndex.value === props.imageMessages.length - 1"
-          @click="nextImage">
-          <i class="iconfont icon-right"></i>
+        <button
+          class="button"
+          type="button"
+          :disabled="currentIndex === props.imageMessages.length - 1"
+          @click="nextImage"
+        >
+          <i
+            class="iconfont icon-right"
+            :class="{ 'disabled-icon': currentIndex === props.imageMessages.length - 1 }"
+            :style="{
+              color: currentIndex === props.imageMessages.length - 1 ? 'rgb(165, 165, 165)' : ''
+            }"
+          ></i>
         </button>
         <button class="button" type="button" @click="downloadImage">
           <i class="iconfont icon-download"></i>
@@ -21,7 +35,6 @@
         </button>
       </div>
 
-      <!-- 原有窗口控制按钮（右侧） -->
       <div class="window-button no-drag">
         <button class="button" type="button" @click="togglePin">
           <i class="iconfont icon-top" :style="{ color: isPinned ? '#87CEEB' : '' }"></i>
@@ -30,8 +43,11 @@
           <i class="iconfont icon-min"></i>
         </button>
         <button class="button" type="button" @click="toggleMaximize">
-          <i class="iconfont" :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
-            :style="{ color: isMaximized ? '#87CEEB' : '' }"></i>
+          <i
+            class="iconfont"
+            :class="isMaximized ? 'icon-maximize-copy' : 'icon-max'"
+            :style="{ color: isMaximized ? '#87CEEB' : '' }"
+          ></i>
         </button>
         <button class="button" type="button" @click="closeWindow">
           <i class="iconfont icon-close"></i>
@@ -70,7 +86,7 @@ const props = defineProps({
 const isMaximized = ref(false)
 const isPinned = ref(false)
 
-// 使用计算属性来获取当前显示的图片URL
+// 使用计算属性来获取当前显示的图片索引
 const currentIndex = ref(props.clickedImageIndex >= 0 ? props.clickedImageIndex : 0)
 
 // 计算当前图片URL
@@ -125,8 +141,6 @@ const prevImage = () => {
   if (currentIndex.value > 0) {
     currentIndex.value--
     console.log('Switched to newer image:', currentIndex.value)
-  } else {
-    alert('已是最新图片')
   }
 }
 
@@ -134,8 +148,6 @@ const nextImage = () => {
   if (currentIndex.value < props.imageMessages.length - 1) {
     currentIndex.value++
     console.log('Switched to older image:', currentIndex.value)
-  } else {
-    alert('已是最早图片')
   }
 }
 
@@ -184,6 +196,16 @@ onUnmounted(() => {
 
 // 监听props变化
 watch(
+  () => props.imageMessages,
+  (newVal) => {
+    // 当图片数组改变时，确保currentIndex在有效范围内
+    if (currentIndex.value >= newVal.length) {
+      currentIndex.value = newVal.length > 0 ? newVal.length - 1 : 0
+    }
+  }
+)
+
+watch(
   () => props.imageUrl,
   (newVal) => {
     // 如果当前没有有效的图片消息列表，使用传入的imageUrl
@@ -199,6 +221,17 @@ onMounted(() => {
   console.log('Session ID:', props.sessionId)
   console.log('Clicked Image Index:', props.clickedImageIndex)
   console.log('Total images in session:', props.imageMessages.length)
+
+  // 确保currentIndex的初始值正确反映禁用状态
+  if (props.imageMessages.length > 0) {
+    if (currentIndex.value < 0) {
+      currentIndex.value = 0
+    } else if (currentIndex.value >= props.imageMessages.length) {
+      currentIndex.value = props.imageMessages.length - 1
+    }
+  } else {
+    currentIndex.value = 0
+  }
 })
 </script>
 
@@ -247,8 +280,17 @@ onMounted(() => {
   background-color: rgb(225, 225, 225);
 }
 
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .button i {
   font-size: 13px;
+}
+
+.button i.disabled-icon {
+  color: rgb(165, 165, 165);
 }
 
 .image-container {
