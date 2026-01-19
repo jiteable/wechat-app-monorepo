@@ -1,6 +1,26 @@
 <template>
   <div class="image-view-container">
     <div class="window-controls drag">
+      <!-- 新增：左侧操作图标 -->
+      <div class="image-controls left">
+        <button class="button" type="button" @click="prevImage">
+          <i class="iconfont icon-left"></i>
+        </button>
+        <button class="button" type="button" @click="nextImage">
+          <i class="iconfont icon-right"></i>
+        </button>
+        <button class="button" type="button" @click="downloadImage">
+          <i class="iconfont icon-download"></i>
+        </button>
+        <button class="button" type="button" @click="zoomIn">
+          <i class="iconfont icon-enlarge"></i>
+        </button>
+        <button class="button" type="button" @click="zoomOut">
+          <i class="iconfont icon-narrow"></i>
+        </button>
+      </div>
+
+      <!-- 原有窗口控制按钮（右侧） -->
       <div class="window-button no-drag">
         <button class="button" type="button" @click="togglePin">
           <i class="iconfont icon-top" :style="{ color: isPinned ? '#87CEEB' : '' }"></i>
@@ -116,6 +136,26 @@ const nextImage = () => {
   }
 }
 
+const downloadImage = () => {
+  const img = document.querySelector('.preview-image')
+  if (!img) return
+
+  const link = document.createElement('a')
+  link.download = 'image.jpg'
+  link.href = img.src
+  link.click()
+}
+
+const zoomIn = () => {
+  // 实现放大逻辑，例如通过 CSS 或图片缩放
+  console.log('Zoom in')
+}
+
+const zoomOut = () => {
+  // 实现缩小逻辑
+  console.log('Zoom out')
+}
+
 // 监听键盘事件，ESC键关闭窗口，左右箭头导航图片
 const handleKeyDown = (event) => {
   switch (event.key) {
@@ -170,9 +210,10 @@ onMounted(() => {
 }
 
 .window-controls {
-  height: 80px;
+  height: 50px;
   flex-shrink: 0;
   position: relative;
+  background-color: rgb(237, 237, 237);
 }
 
 .window-button {
@@ -268,5 +309,19 @@ onMounted(() => {
   padding: 5px 10px;
   border-radius: 4px;
   font-size: 12px;
+}
+
+.image-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+}
+
+.image-controls.left {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 </style>
