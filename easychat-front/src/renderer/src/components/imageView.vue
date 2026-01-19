@@ -63,6 +63,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ElMessage, ElLoading } from 'element-plus'
 
 const props = defineProps({
   imageUrl: {
@@ -151,14 +152,113 @@ const nextImage = () => {
   }
 }
 
-const downloadImage = () => {
-  const img = document.querySelector('.preview-image')
-  if (!img) return
+// 修改下载图片功能，支持用户选择下载路径
+const downloadImage = async () => {
+  try {
+    // 获取当前图片URL
+    const imageUrl = currentImageUrl.value
 
-  const link = document.createElement('a')
-  link.download = 'image.jpg'
-  link.href = img.src
-  link.click()
+    // 从URL中提取文件名
+    let fileName = 'image.jpg'
+    try {
+      const urlObj = new URL(imageUrl)
+      const pathname = urlObj.pathname
+      const extractedFileName = pathname.split('/').pop() || ''
+
+      // 检查提取的文件名是否有有效扩展名
+      if (extractedFileName && extractedFileName.includes('.')) {
+        const extension = extractedFileName.split('.').pop()?.toLowerCase()
+        if (extension && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension)) {
+          fileName = extractedFileName
+        } else {
+          fileName = extractedFileName + '.jpg'
+        }
+      } else {
+        fileName = extractedFileName + '.jpg' || 'image.jpg'
+      }
+    } catch (urlError) {
+      console.error('Invalid image URL:', urlError)
+    }
+
+    // 使用 IPC 调用主进程来打开文件选择对话框
+    const result = await window.api.showSaveDialog({
+      title: '保存图片',
+      defaultPath: fileName,
+      filters: [
+        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    })
+
+    if (result.canceled) {
+      // 用户取消了选择
+      console.log('用户取消了下载')
+      return
+    }
+
+    const selectedPath = result.filePath
+    if (!selectedPath) {
+      console.error('未选择有效的保存路径')
+      ElMessage.error('未选择有效的保存路径')
+      return
+    }
+
+    // 显示正在下载提示
+    const loading = ElLoading.service({
+      text: '正在下载图片...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    // 通过IPC发送下载图片请求到主进程，指定下载路径
+    if (window.api && typeof window.api.downloadFileToPath === 'function') {
+      const downloadResult = await window.api.downloadFileToPath(imageUrl, fileName, selectedPath)
+
+      loading.close()
+
+      if (downloadResult.success) {
+        ElMessage.success(`图片已保存到: ${selectedPath}`)
+      } else {
+        ElMessage.error(`图片下载失败: ${downloadResult.error}`)
+
+        // 如果通过IPC下载失败，尝试浏览器下载方式
+        console.log('尝试使用浏览器下载方式...')
+        attemptBrowserDownload(imageUrl, fileName)
+      }
+    } else {
+      loading.close()
+      // 如果没有downloadFileToPath方法，则使用浏览器下载方式
+      ElMessage.info('正在使用浏览器下载...')
+      attemptBrowserDownload(imageUrl, fileName)
+    }
+  } catch (error) {
+    console.error('下载过程中出错:', error)
+    ElMessage.error('下载过程中出错: ' + (error.message || '未知错误'))
+  }
+}
+
+// 尝试使用浏览器默认下载
+const attemptBrowserDownload = (url, filename) => {
+  try {
+    // 创建一个隐藏的链接元素来触发下载
+    const link = document.createElement('a')
+    link.style.display = 'none'
+    link.href = url
+    link.download = filename // 设置下载文件名
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    ElMessage.success('已启动浏览器下载')
+  } catch (error) {
+    console.error('浏览器下载失败:', error)
+    try {
+      // 备选方案：在新窗口中打开
+      window.open(url, '_blank')
+      ElMessage.info('已在新窗口中打开图片链接')
+    } catch (openError) {
+      console.error('打开新窗口也失败:', openError)
+      ElMessage.error('无法下载图片，请检查网络连接或稍后再试')
+    }
+  }
 }
 
 const zoomIn = () => {
