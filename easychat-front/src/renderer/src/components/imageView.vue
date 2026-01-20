@@ -320,6 +320,9 @@ const zoomOut = () => {
     if (scale.value <= 1) {
       scale.value = 1
       isZoomed.value = false
+      // 当缩放比例回到1时，重置位置到原点
+      translateX.value = 0
+      translateY.value = 0
     }
   } else {
     ElMessage.info('已达到最小缩放倍数')
@@ -381,6 +384,18 @@ watch(
     // 当图片数组改变时，确保currentIndex在有效范围内
     if (currentIndex.value >= newVal.length) {
       currentIndex.value = newVal.length > 0 ? newVal.length - 1 : 0
+    }
+  }
+)
+
+watch(
+  () => scale.value,
+  (newScale) => {
+    if (newScale === 1) {
+      // 当缩放比例回到1时，重置位置到原点
+      translateX.value = 0
+      translateY.value = 0
+      isZoomed.value = false
     }
   }
 )
