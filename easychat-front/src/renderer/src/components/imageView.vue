@@ -56,7 +56,13 @@
     </div>
 
     <div class="image-container">
-      <img :src="currentImageUrl" class="preview-image" @click="zoomImage" />
+      <img
+        :src="currentImageUrl"
+        class="preview-image"
+        draggable="false"
+        ondragstart="return false;"
+        @mousedown="startDrag"
+      />
     </div>
   </div>
 </template>
@@ -86,6 +92,13 @@ const props = defineProps({
 
 const isMaximized = ref(false)
 const isPinned = ref(false)
+const scale = ref(1) // 图片缩放比例
+const isZoomed = ref(false) // 是否处于缩放状态
+const isDragging = ref(false) // 是否正在拖拽
+const dragStartX = ref(0) // 拖拽开始位置X
+const dragStartY = ref(0) // 拖拽开始位置Y
+const translateX = ref(0) // X轴偏移量
+const translateY = ref(0) // Y轴偏移量
 
 // 使用计算属性来获取当前显示的图片索引
 const currentIndex = ref(props.clickedImageIndex >= 0 ? props.clickedImageIndex : 0)
@@ -132,9 +145,26 @@ const closeWindow = () => {
   }
 }
 
-const zoomImage = () => {
-  // 图片点击放大功能
-  console.log('Zoom image clicked')
+// 开始拖拽
+const startDrag = (e) => {
+  if (scale.value <= 1) return // 只有在放大状态下才允许拖拽
+  isDragging.value = true
+  dragStartX.value = e.clientX - translateX.value
+  dragStartY.value = e.clientY - translateY.value
+  e.preventDefault()
+}
+
+// 拖拽中
+const dragging = (e) => {
+  if (!isDragging.value || scale.value <= 1) return
+  translateX.value = e.clientX - dragStartX.value
+  translateY.value = e.clientY - dragStartY.value
+  e.preventDefault()
+}
+
+// 结束拖拽
+const endDrag = () => {
+  isDragging.value = false
 }
 
 // 导航到上一张图片
@@ -142,6 +172,11 @@ const prevImage = () => {
   if (currentIndex.value > 0) {
     currentIndex.value--
     console.log('Switched to newer image:', currentIndex.value)
+    // 切换图片时重置缩放和平移
+    scale.value = 1
+    isZoomed.value = false
+    translateX.value = 0
+    translateY.value = 0
   }
 }
 
@@ -149,6 +184,11 @@ const nextImage = () => {
   if (currentIndex.value < props.imageMessages.length - 1) {
     currentIndex.value++
     console.log('Switched to older image:', currentIndex.value)
+    // 切换图片时重置缩放和平移
+    scale.value = 1
+    isZoomed.value = false
+    translateX.value = 0
+    translateY.value = 0
   }
 }
 
@@ -261,17 +301,40 @@ const attemptBrowserDownload = (url, filename) => {
   }
 }
 
+// 放大图片
 const zoomIn = () => {
-  // 实现放大逻辑，例如通过 CSS 或图片缩放
-  console.log('Zoom in')
+  if (scale.value < 3) {
+    // 限制最大放大倍数为3倍
+    scale.value += 0.25
+    isZoomed.value = true
+  } else {
+    ElMessage.info('已达到最大放大倍数')
+  }
 }
 
+// 缩小图片
 const zoomOut = () => {
-  // 实现缩小逻辑
-  console.log('Zoom out')
+  if (scale.value > 0.25) {
+    // 限制最小缩放倍数为0.25倍
+    scale.value -= 0.25
+    if (scale.value <= 1) {
+      scale.value = 1
+      isZoomed.value = false
+    }
+  } else {
+    ElMessage.info('已达到最小缩放倍数')
+  }
 }
 
-// 监听键盘事件，ESC键关闭窗口，左右箭头导航图片
+// 重置图片缩放到原始大小
+const resetZoom = () => {
+  scale.value = 1
+  isZoomed.value = false
+  translateX.value = 0
+  translateY.value = 0
+}
+
+// 监听键盘事件，ESC键关闭窗口，左右箭头导航图片，+/-键缩放，R键重置
 const handleKeyDown = (event) => {
   switch (event.key) {
     case 'Escape':
@@ -283,15 +346,32 @@ const handleKeyDown = (event) => {
     case 'ArrowRight':
       nextImage()
       break
+    case '+':
+    case '=':
+      zoomIn()
+      break
+    case '-':
+      zoomOut()
+      break
+    case 'r':
+    case 'R':
+      resetZoom()
+      break
   }
 }
 
 // 监听键盘事件
 document.addEventListener('keydown', handleKeyDown)
 
+// 监听鼠标事件，用于拖拽
+document.addEventListener('mousemove', dragging)
+document.addEventListener('mouseup', endDrag)
+
 // 组件卸载时移除事件监听
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeyDown)
+  document.removeEventListener('mousemove', dragging)
+  document.removeEventListener('mouseup', endDrag)
 })
 
 // 监听props变化
@@ -407,11 +487,20 @@ onMounted(() => {
 .preview-image {
   max-width: 90vw;
   max-height: 75vh;
-  /* 留出空间给导航控件 */
   object-fit: contain;
-  cursor: zoom-in;
   border-radius: 4px;
   margin-bottom: 20px;
+  transform-origin: center center;
+  transform: scale(v-bind(scale)) translate(v-bind(translateX + 'px'), v-bind(translateY + 'px'));
+  transition: transform 0.2s ease;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.preview-image.dragging {
+  cursor: grabbing;
 }
 
 .image-navigation {
