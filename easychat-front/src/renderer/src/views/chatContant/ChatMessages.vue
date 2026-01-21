@@ -247,7 +247,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElDatePicker, ElPopover, ElMessage, ElLoading } from 'element-plus'
@@ -256,26 +256,6 @@ import { useUserStore } from '@/store/userStore'
 import { useUserSetStore } from '@/store/userSetStore'
 import { formatDate } from '@/utils/formatDate'
 import { formatFileSize } from '@/utils/formatFileSize'
-
-interface Message {
-  id: string | number
-  content: string
-  time: string
-  type: string
-  senderName: string
-  senderAvatar: string
-  imageUrl?: string
-  fileName?: string
-  fileExtension?: string
-  size?: string
-  mediaUrl?: string
-  thumbnailUrl?: string
-  videoInfo?: {
-    duration?: number
-    width?: number
-    height?: number
-  }
-}
 
 // 搜索相关
 const searchText = ref('')
@@ -317,7 +297,7 @@ const handleContactData = (event, contactData) => {
 }
 
 // 监听来自其他窗口的store更新事件
-const handleStoreUpdate = (event: CustomEvent) => {
+const handleStoreUpdate = (event) => {
   console.log('contactStore 状态已更新:', event.detail)
   // 更新当前窗口的store状态
   contactStore.syncFromOtherWindows(event.detail)
@@ -336,7 +316,7 @@ onMounted(async () => {
   }
 
   // 添加事件监听器
-  window.addEventListener('contactStoreUpdated', handleStoreUpdate as EventListener)
+  window.addEventListener('contactStoreUpdated', handleStoreUpdate)
 
   if (contactStore.selectedContact) {
     chatTitle.value = contactStore.selectedContact.name || '聊天记录'
@@ -366,7 +346,7 @@ onUnmounted(() => {
   }
 
   // 移除事件监听器
-  window.removeEventListener('contactStoreUpdated', handleStoreUpdate as EventListener)
+  window.removeEventListener('contactStoreUpdated', handleStoreUpdate)
 })
 
 // 获取真实聊天记录数据
@@ -481,7 +461,7 @@ const formatTime = (timestamp) => {
 }
 
 // 模拟聊天记录数据
-const messages = ref<Message[]>([])
+const messages = ref([])
 
 // 过滤后的消息列表
 const filteredMessages = computed(() => {
@@ -541,7 +521,7 @@ const sortedMessages = computed(() => {
 })
 
 // 日期选择器绑定值
-const selectedDate = ref<string | null>(null)
+const selectedDate = ref(null)
 
 // 过滤消息：按日期筛选
 const filterByDate = () => {
@@ -553,7 +533,7 @@ const filterByDate = () => {
 }
 
 // 处理日期变化
-const handleDateChange = (value: string | null) => {
+const handleDateChange = (value) => {
   selectedDate.value = value
   filterByDate()
   // 选择日期后隐藏选择器
@@ -567,7 +547,7 @@ const getActiveTabName = () => {
 }
 
 // 切换标签
-const switchTab = (tabId: string) => {
+const switchTab = (tabId) => {
   activeTab.value = tabId
   // 当切换到日期标签时，清除之前选择的日期，让用户重新选择
   if (tabId === 'date') {
@@ -864,7 +844,7 @@ const handleFileDownload = async (fileMessage) => {
       // 通过IPC发送检查文件请求到主进程
       if (window.api && typeof window.api.checkAndOpenFile === 'function') {
         // 从消息中提取日期信息
-        let messageDate: string | null = null
+        let messageDate = null
         if (fileMessage.createdAt) {
           const date = new Date(fileMessage.createdAt)
           messageDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`
@@ -994,8 +974,38 @@ const formatDuration = (seconds) => {
 
 // 图片预览相关
 const previewImage = (imageUrl) => {
-  // 在新窗口中打开图片或者使用模态框预览
-  window.open(imageUrl, '_blank')
+  // 获取当前会话的图片消息列表
+  const imageMessages = messages.value.filter((msg) => msg.type === 'image')
+
+  // 创建可序列化的图片消息列表（只包含基本数据类型）
+  const serializableImageMessages = imageMessages.map(msg => ({
+    id: msg.id,
+    content: msg.content,
+    time: msg.time,
+    type: msg.type,
+    senderName: msg.senderName,
+    senderAvatar: msg.senderAvatar,
+    imageUrl: msg.imageUrl,
+    fileName: msg.fileName
+  }))
+
+  const clickedImageIndex = imageMessages.findIndex((msg) => msg.imageUrl === imageUrl)
+
+  // 获取当前会话的sessionId
+  const sessionId = contactStore.selectedContact?.id || ''
+
+  console.log('准备打开图片查看窗口:', imageUrl, sessionId, clickedImageIndex)
+  console.log('图片消息列表长度:', serializableImageMessages.length)
+
+  // 通过IPC调用主进程打开新的图片查看窗口，并传递参数
+  if (window.api && typeof window.api.openImageViewWindow === 'function') {
+    console.log('调用IPC接口打开图片窗口')
+    window.api.openImageViewWindow(imageUrl, sessionId, clickedImageIndex, serializableImageMessages)
+  } else {
+    console.log('IPC接口不可用，使用浏览器打开')
+    // 如果没有IPC接口，则回退到原来的预览方式
+    window.open(imageUrl, '_blank')
+  }
 }
 </script>
 
