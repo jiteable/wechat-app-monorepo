@@ -123,7 +123,7 @@
         <p>暂无相关聊天记录</p>
       </div>
 
-      <div v-else class="messages-list">
+      <div v-else ref="messagesListContainer" class="messages-list">
         <div v-for="message in sortedMessages" :key="message.id" class="message-item">
           <!-- 时间戳消息 -->
           <div v-if="message.type === 'timestamp'" class="message-timestamp">
@@ -248,7 +248,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElDatePicker, ElPopover, ElMessage, ElLoading } from 'element-plus'
 import { userContactStore } from '@/store/userContactStore'
@@ -264,7 +264,7 @@ const isSearchFocused = ref(false)
 
 // 日期选择器相关
 const datePickerVisible = ref(false)
-const dateButtonRef = ref<HTMLElement | null>(null)
+const dateButtonRef = ref(null)
 
 // 分类标签
 const tabs = ref([
@@ -277,6 +277,21 @@ const tabs = ref([
 ])
 
 const activeTab = ref('all')
+
+// 添加分页相关数据
+const pagination = ref({
+  currentPage: 1,
+  totalPages: 1,
+  totalMessages: 0,
+  hasNextPage: false,
+  hasPrevPage: false
+})
+
+// 添加加载更多状态
+const loadingMore = ref(false)
+
+// 添加消息容器引用
+const messagesListContainer = ref(null)
 
 // 从Pinia存储中获取当前会话信息
 const contactStore = userContactStore()
@@ -309,6 +324,51 @@ const handleStoreUpdate = (event) => {
   }
 }
 
+// 处理滚动事件，实现无限滚动加载
+const handleScroll = () => {
+  const container = messagesListContainer.value
+
+  if (!container) {
+    console.log('没有容器元素，返回')
+    return
+  }
+
+  if (loadingMore.value) {
+    console.log('正在加载更多，返回')
+    return
+  }
+
+  // 计算滚动位置 - 滚动到底部的距离
+  const scrollTop = container.scrollTop
+  const scrollHeight = container.scrollHeight
+  const clientHeight = container.clientHeight
+  const threshold = 10 // 距离底部10像素时触发加载
+
+  // 当接近底部时加载更多消息（新消息）
+  if (scrollHeight - scrollTop - clientHeight <= threshold) {
+    // 检查是否有下一页（更旧的消息）
+    if (pagination.value && pagination.value.hasNextPage) {
+      console.log('有更旧的消息可加载，加载更多')
+      loadOlderMessages()
+    } else {
+      console.log('没有更多历史消息可加载')
+    }
+  }
+}
+
+// 加载更多消息（加载更旧的消息）
+const loadOlderMessages = async () => {
+  if (loadingMore.value || !pagination.value || !pagination.value.hasNextPage) return
+
+  loadingMore.value = true
+  const sessionId = contactStore.selectedContact?.id
+  if (sessionId) {
+    // 加载下一页（更旧的）消息
+    await loadMessages(sessionId, pagination.value.currentPage + 1, true, false)
+  }
+  loadingMore.value = false
+}
+
 onMounted(async () => {
   // 添加IPC监听器
   if (window.electron && window.electron.ipcRenderer) {
@@ -337,6 +397,12 @@ onMounted(async () => {
       }
     }
   }
+
+  // 添加滚动事件监听器
+  const container = messagesListContainer.value
+  if (container) {
+    container.addEventListener('scroll', handleScroll)
+  }
 })
 
 onUnmounted(() => {
@@ -347,21 +413,31 @@ onUnmounted(() => {
 
   // 移除事件监听器
   window.removeEventListener('contactStoreUpdated', handleStoreUpdate)
+
+  // 移除滚动事件监听器
+  const container = messagesListContainer.value
+  if (container) {
+    container.removeEventListener('scroll', handleScroll)
+  }
 })
 
 // 获取真实聊天记录数据
-const loadMessages = async (sessionId) => {
+const loadMessages = async (sessionId, page = 1, append = false, loadNewer = false) => {
   try {
-    loading.value = true
+    if (!append && !loadNewer) {
+      loading.value = true
+      messages.value = [] // 清空现有消息
+    }
+
     // 使用 window.api.getMessagesBySessionId 替代 getMessages API 调用
-    const response = await window.api.getMessagesBySessionId(sessionId, 1, 50)
+    const response = await window.api.getMessagesBySessionId(sessionId, page, 50)
 
     if (response.success) {
       // 更新消息数量
       messageCount.value = response.data.pagination.totalMessages
 
       // 将获取到的消息转换为组件所需格式
-      messages.value = response.data.messages.map((msg) => {
+      const newMessages = response.data.messages.map((msg) => {
         const baseMessage = {
           id: msg.id,
           content: msg.content,
@@ -392,6 +468,26 @@ const loadMessages = async (sessionId) => {
 
         return baseMessage
       })
+
+      // 更新分页信息
+      pagination.value = {
+        currentPage: response.data.pagination.currentPage,
+        totalPages: response.data.pagination.totalPages,
+        totalMessages: response.data.pagination.totalMessages,
+        hasNextPage: response.data.pagination.hasNextPage,
+        hasPrevPage: response.data.pagination.hasPrevPage
+      }
+
+      if (loadNewer) {
+        // 如果是加载更新的消息，添加到数组开头
+        messages.value = [...newMessages, ...messages.value]
+      } else if (append) {
+        // 如果是追加历史消息，添加到数组末尾
+        messages.value = [...messages.value, ...newMessages]
+      } else {
+        // 否则是首次加载或刷新，替换所有消息
+        messages.value = newMessages
+      }
     }
 
     console.log('messagessss: ', response.data.messages)
@@ -978,7 +1074,7 @@ const previewImage = (imageUrl) => {
   const imageMessages = messages.value.filter((msg) => msg.type === 'image')
 
   // 创建可序列化的图片消息列表（只包含基本数据类型）
-  const serializableImageMessages = imageMessages.map(msg => ({
+  const serializableImageMessages = imageMessages.map((msg) => ({
     id: msg.id,
     content: msg.content,
     time: msg.time,
@@ -1000,7 +1096,12 @@ const previewImage = (imageUrl) => {
   // 通过IPC调用主进程打开新的图片查看窗口，并传递参数
   if (window.api && typeof window.api.openImageViewWindow === 'function') {
     console.log('调用IPC接口打开图片窗口')
-    window.api.openImageViewWindow(imageUrl, sessionId, clickedImageIndex, serializableImageMessages)
+    window.api.openImageViewWindow(
+      imageUrl,
+      sessionId,
+      clickedImageIndex,
+      serializableImageMessages
+    )
   } else {
     console.log('IPC接口不可用，使用浏览器打开')
     // 如果没有IPC接口，则回退到原来的预览方式
