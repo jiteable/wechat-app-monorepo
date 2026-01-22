@@ -221,6 +221,11 @@
                   <el-button type="text" @click="triggerFileSelect">
                     <span class="icon iconfont icon-wenjian"></span>
                   </el-button>
+                  <el-button @click="AudioCall">
+                    <el-icon>
+                      <Phone />
+                    </el-icon>
+                  </el-button>
                   <!-- 隐藏的文件输入框 -->
                   <input
                     ref="fileInput"
@@ -2945,6 +2950,21 @@ const getFileIconPath = (fileExtension) => {
     return `${import.meta.env.BASE_URL}src/assets/filetypeicon/${newNormalizedExtension}.png`
   } else {
     return `${import.meta.env.BASE_URL}src/assets/filetypeicon/txt.png`
+  }
+}
+
+const AudioCall = () => {
+  // 获取当前会话的信息
+  const contactData = contactStore.selectedContact
+  if (contactData) {
+    // 发送IPC消息打开音频通话窗口
+    window.api.openAudioCallWindow({
+      contactName: contactData.name || contactData.remark || '联系人',
+      avatar: contactData.avatar || '',
+      sessionId: contactData.id
+    })
+  } else {
+    ElMessage.warning('请选择一个聊天会话进行通话')
   }
 }
 

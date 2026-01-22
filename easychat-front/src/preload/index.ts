@@ -186,6 +186,11 @@ const api = {
   toggleAlwaysOnTopImageViewWindow: (isAlwaysOnTop: boolean): void =>
     ipcRenderer.send('toggle-always-on-top-image-view-window', isAlwaysOnTop),
 
+  // 添加音频通话窗口相关 API
+  openAudioCallWindow: (contactData?: any): void =>
+    ipcRenderer.send('open-audio-call-window', contactData),
+  closeAudioCallWindow: (): void => ipcRenderer.send('close-audio-call-window'),
+
   // 添加获取图片消息的API
   getImageMessagesBySessionId: (sessionId: string): Promise<any> =>
     ipcRenderer.invoke('get-image-messages-by-session-id', sessionId)

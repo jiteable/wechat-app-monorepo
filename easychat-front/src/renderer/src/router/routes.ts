@@ -76,5 +76,9 @@ export const AppRoutes = [
     path: '/image-view/:sessionId/:clickedImageIndex',
     component: () => import('../views/ImageViewWrapper.vue'),
     props: true
+  },
+  {
+    path: '/audiocall',
+    component: () => import('../components/AudioCall.vue')
   }
 ]

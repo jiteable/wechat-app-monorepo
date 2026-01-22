@@ -118,6 +118,9 @@ interface Window {
     toggleMaximizeImageViewWindow: (maximize: boolean) => void
     toggleAlwaysOnTopImageViewWindow: (isAlwaysOnTop: boolean) => void
 
+    openAudioCallWindow: (contactData?: any) => void
+    closeAudioCallWindow: () => void
+
     // 添加获取图片消息的API
     getImageMessagesBySessionId: (sessionId: string) => Promise<any>
 

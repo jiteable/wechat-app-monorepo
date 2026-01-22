@@ -19,6 +19,7 @@ let setRemarkAndTagWindow: BrowserWindow | null = null
 let scaleFactor = 1.0
 let addFriendToGroupWindow: BrowserWindow | null = null
 let imageViewWindow: BrowserWindow | null = null
+let audioCallWindow: BrowserWindow | null = null
 
 let user_id: string | null = null
 
@@ -536,6 +537,55 @@ export function createAddFriendToGroupWindow(icon: string, GroupId?: string): vo
       options.hash = `/add-friend-to-group/${GroupId}`
     }
     addFriendToGroupWindow.loadFile(join(__dirname, '../renderer/index.html'), options)
+  }
+}
+
+export function createAudioCallWindow(icon: string, contactData?: any): void {
+  // 如果音频通话窗口已存在，直接显示并获得焦点
+  if (audioCallWindow) {
+    audioCallWindow.show()
+    audioCallWindow.focus()
+
+    // 如果窗口已存在且提供了联系人数据，通过IPC发送联系人数据
+    if (contactData) {
+      audioCallWindow.webContents.send('set-contact-data', contactData)
+    }
+    return
+  }
+
+  audioCallWindow = new BrowserWindow({
+    width: Math.round(400 / scaleFactor),
+    height: Math.round(600 / scaleFactor),
+    frame: false,
+    show: false,
+    autoHideMenuBar: true,
+    resizable: false,
+    ...(process.platform === 'linux' ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  audioCallWindow.on('ready-to-show', () => {
+    audioCallWindow!.show()
+    // 窗口准备好后发送联系人数据
+    if (contactData) {
+      audioCallWindow!.webContents.send('set-contact-data', contactData)
+    }
+  })
+
+  audioCallWindow.on('closed', () => {
+    audioCallWindow = null
+  })
+
+  // Load the remote URL for development or the local html file for production.
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    audioCallWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/audiocall')
+  } else {
+    audioCallWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      hash: '/audiocall'
+    })
   }
 }
 export function setupIpcHandlers(icon: string): void {
@@ -1276,6 +1326,17 @@ export function setupIpcHandlers(icon: string): void {
   // 添加好友到群组窗口相关事件
   ipcMain.on('open-add-friend-to-group-window', (_event, groupId) => {
     createAddFriendToGroupWindow(icon, groupId)
+  })
+
+  ipcMain.on('open-audio-call-window', (_event, contactData) => {
+    createAudioCallWindow(icon, contactData)
+  })
+
+  ipcMain.on('close-audio-call-window', () => {
+    if (audioCallWindow) {
+      audioCallWindow.close()
+      audioCallWindow = null
+    }
   })
 
   ipcMain.on('close-add-friend-to-group-window', () => {
