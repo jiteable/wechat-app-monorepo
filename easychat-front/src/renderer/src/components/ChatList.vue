@@ -64,6 +64,7 @@ import { markAsRead } from '@/api/chat'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/formatDate'
+import { useSessionListStore } from '@/store/sessionListStore'
 
 const contactStore = userContactStore()
 const router = useRouter()
@@ -106,6 +107,19 @@ const fetchSessions = async () => {
         // 从本地数据库获取到了会话数据
         sessions.value = localResult.data
         console.log('从本地数据库获取会话成功:', localResult.data)
+
+        // 将获取到的会话数据存储到sessionListStore中
+        const sessionListStore = useSessionListStore()
+        const sessionItems = localResult.data.map(session => ({
+          userSessionId: session.userSessionId || session.id, // 使用userSessionId，如果没有则使用id
+          avatar: session.avatar || '',
+          displayName: session.displayName || session.name || '',
+          name: session.name || session.displayName || ''
+        }))
+
+        sessionListStore.setSessions(sessionItems)
+        console.log('会话数据已存储到sessionListStore:', sessionItems)
+
         return
       }
     }
@@ -127,6 +141,18 @@ const fetchSessions = async () => {
         try {
           await window.api.syncChatSessions(response.data)
           console.log('会话数据已同步到本地数据库')
+
+          // 同时将服务器获取的数据也存储到sessionListStore中
+          const sessionListStore = useSessionListStore()
+          const sessionItems = response.data.map(session => ({
+            userSessionId: session.userSessionId || session.id,
+            avatar: session.avatar || '',
+            displayName: session.displayName || session.name || '',
+            name: session.name || session.displayName || ''
+          }))
+
+          sessionListStore.setSessions(sessionItems)
+          console.log('服务器会话数据已存储到sessionListStore:', sessionItems)
         } catch (syncError) {
           console.error('同步会话到本地数据库失败:', syncError)
         }

@@ -16,7 +16,7 @@
     </div>
 
     <!-- 通话控制按钮 -->
-    <div class="call-controls" v-if="!callStarted">
+    <div v-if="!callStarted" class="call-controls">
       <button class="control-btn accept-btn" @click="acceptCall">
         <el-icon>
           <Phone />
@@ -31,7 +31,7 @@
     </div>
 
     <!-- 通话开始后的关闭按钮 -->
-    <div class="call-controls-centered" v-else>
+    <div v-else class="call-controls-centered">
       <button class="control-btn decline-btn" @click="endCall">
         <el-icon>
           <PhoneFilled />
@@ -41,9 +41,10 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Check, Close } from '@element-plus/icons-vue'
+import { Phone, Close, PhoneFilled } from '@element-plus/icons-vue'
+import { useSessionListStore } from '@/store/sessionListStore' // 导入sessionListStore
 
 const props = defineProps({
   contactName: {
@@ -78,6 +79,60 @@ const endCall = () => {
 // 监听通话状态变化
 onMounted(() => {
   // 初始化音频通话逻辑
+
+  // 打印sessionListStore中的数据
+  const sessionListStore = useSessionListStore()
+  console.log('AudioCall.vue中当前sessionListStore的数据:', sessionListStore.sessions)
+
+  // 监听来自其他窗口的sessionListStore更新事件
+  const handleStoreUpdate = (event) => {
+    const customEvent = event
+    sessionListStore.syncFromOtherWindows(customEvent.detail)
+  }
+
+  // 添加事件监听器
+  window.addEventListener('sessionListStoreUpdated', handleStoreUpdate)
+
+  // 监听localStorage变化以同步store状态
+  const handleStorageChange = (event) => {
+    if (event.key === 'sessionListStoreUpdated') {
+      try {
+        const state = JSON.parse(event.newValue)
+        console.log('通过localStorage收到sessionListStore更新:', state)
+        sessionListStore.syncFromOtherWindows(state)
+      } catch (e) {
+        console.error('解析sessionListStore状态失败:', e)
+      }
+    }
+  }
+
+  window.addEventListener('storage', handleStorageChange)
+
+  // 请求主进程发送最新的会话列表数据
+  if (window.electron && window.electron.ipcRenderer) {
+    window.electron.ipcRenderer
+      .invoke('request-session-list')
+      .then((sessionList) => {
+        console.log('从主进程获取到的会话列表:', sessionList)
+        if (sessionList && sessionList.length > 0) {
+          sessionListStore.setSessions(sessionList)
+          console.log('设置后AudioCall.vue中sessionListStore的数据:', sessionListStore.sessions)
+        } else {
+          console.log('从主进程获取的会话列表为空或未定义')
+        }
+      })
+      .catch((err) => {
+        console.error('请求会话列表失败:', err)
+      })
+  } else {
+    console.warn('未找到window.electron.ipcRenderer，无法请求会话列表')
+  }
+
+  // 组件卸载时清理监听器
+  onUnmounted(() => {
+    window.removeEventListener('sessionListStoreUpdated', handleStoreUpdate)
+    window.removeEventListener('storage', handleStorageChange)
+  })
 })
 
 onUnmounted(() => {

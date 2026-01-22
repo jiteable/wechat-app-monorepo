@@ -946,6 +946,25 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
+  ipcMain.handle('request-session-list', async () => {
+    try {
+      const sessions = await databaseManager.getAllChatSessions()
+
+      // 将数据库中的会话数据转换为SessionItem格式
+      const sessionItems = sessions.map(session => ({
+        userSessionId: session.userSessionId || session.id,
+        avatar: session.avatar || '',
+        displayName: session.displayName || session.name || '',
+        name: session.name || session.displayName || ''
+      }))
+
+      return sessionItems
+    } catch (error) {
+      console.error('获取会话列表失败:', error)
+      return []
+    }
+  })
+
   // 添加清空ChatSession的IPC处理程序
   ipcMain.handle('clear-chat-sessions', async () => {
     try {
