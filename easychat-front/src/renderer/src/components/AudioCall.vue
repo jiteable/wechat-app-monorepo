@@ -15,13 +15,27 @@
       </div>
     </div>
 
-    <div class="call-controls">
+    <!-- 通话控制按钮 -->
+    <div class="call-controls" v-if="!callStarted">
       <button class="control-btn accept-btn" @click="acceptCall">
-        <i class="icon-accept"></i>
+        <el-icon>
+          <Phone />
+        </el-icon>
       </button>
 
       <button class="control-btn decline-btn" @click="declineCall">
-        <i class="icon-decline"></i>
+        <el-icon>
+          <Close />
+        </el-icon>
+      </button>
+    </div>
+
+    <!-- 通话开始后的关闭按钮 -->
+    <div class="call-controls-centered" v-else>
+      <button class="control-btn decline-btn" @click="endCall">
+        <el-icon>
+          <PhoneFilled />
+        </el-icon>
       </button>
     </div>
   </div>
@@ -29,6 +43,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { Check, Close } from '@element-plus/icons-vue'
 
 const props = defineProps({
   contactName: {
@@ -42,16 +57,21 @@ const props = defineProps({
 })
 
 const callStatus = ref('正在等待接听...')
-const callActive = ref(false)
+const callStarted = ref(false)
 
 const acceptCall = () => {
   callStatus.value = '通话中...'
-  callActive.value = true
+  callStarted.value = true
   // 实现接受通话逻辑
 }
 
 const declineCall = () => {
   // 实现拒绝通话逻辑
+  window.close()
+}
+
+const endCall = () => {
+  // 结束通话
   window.close()
 }
 
@@ -133,6 +153,12 @@ onUnmounted(() => {
   margin-top: 20px;
 }
 
+.call-controls-centered {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
 .control-btn {
   width: 70px;
   height: 70px;
@@ -157,13 +183,5 @@ onUnmounted(() => {
 
 .decline-btn {
   background-color: #f56c6c;
-}
-
-.icon-accept::before {
-  content: '✓';
-}
-
-.icon-decline::before {
-  content: '✕';
 }
 </style>
