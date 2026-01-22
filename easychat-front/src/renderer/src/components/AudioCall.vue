@@ -42,23 +42,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Phone, Close, PhoneFilled } from '@element-plus/icons-vue'
-import { useSessionListStore } from '@/store/sessionListStore' // 导入sessionListStore
+import { useSessionListStore } from '@/store/sessionListStore'
+import { useRoute } from 'vue-router'
 
-const props = defineProps({
-  contactName: {
-    type: String,
-    default: '联系人'
-  },
-  avatar: {
-    type: String,
-    default: ''
-  }
-})
+const route = useRoute()
 
 const callStatus = ref('正在等待接听...')
 const callStarted = ref(false)
+const sessionId = ref('')
+const avatar = ref('')
+const contactName = ref('')
 
 const acceptCall = () => {
   callStatus.value = '通话中...'
@@ -76,18 +71,48 @@ const endCall = () => {
   window.close()
 }
 
+// 根据sessionId查找并设置联系人信息
+const setContactInfo = () => {
+  if (!sessionId.value) return
+
+  const sessionListStore = useSessionListStore()
+  const session = sessionListStore.sessions.find((s) => s.sessionId === sessionId.value)
+
+  if (session) {
+    avatar.value = session.avatar || ''
+    contactName.value = session.displayName || session.name || ''
+  } else {
+    // 如果在sessionListStore中没找到，尝试从props获取的contactData中获取信息
+    if (window.contactData) {
+      avatar.value = window.contactData.avatar || ''
+      contactName.value = window.contactData.name || window.contactData.displayName || ''
+    } else {
+      contactName.value = '未知联系人'
+    }
+  }
+}
+
 // 监听通话状态变化
 onMounted(() => {
   // 初始化音频通话逻辑
+  const routeSessionId = route.params.id || route.query.sessionId
+  sessionId.value = routeSessionId || ''
+
+  console.log('AudioCall.vue中从路由参数获取的sessionId:', sessionId.value)
 
   // 打印sessionListStore中的数据
   const sessionListStore = useSessionListStore()
   console.log('AudioCall.vue中当前sessionListStore的数据:', sessionListStore.sessions)
 
+  // 设置初始联系人信息
+  setContactInfo()
+
   // 监听来自其他窗口的sessionListStore更新事件
   const handleStoreUpdate = (event) => {
     const customEvent = event
     sessionListStore.syncFromOtherWindows(customEvent.detail)
+    // 重新设置联系人信息
+    setContactInfo()
   }
 
   // 添加事件监听器
@@ -100,6 +125,8 @@ onMounted(() => {
         const state = JSON.parse(event.newValue)
         console.log('通过localStorage收到sessionListStore更新:', state)
         sessionListStore.syncFromOtherWindows(state)
+        // 重新设置联系人信息
+        setContactInfo()
       } catch (e) {
         console.error('解析sessionListStore状态失败:', e)
       }
@@ -107,6 +134,15 @@ onMounted(() => {
   }
 
   window.addEventListener('storage', handleStorageChange)
+
+  // 监听sessionListStore的变化
+  watch(
+    () => sessionListStore.sessions,
+    () => {
+      setContactInfo()
+    },
+    { deep: true }
+  )
 
   // 请求主进程发送最新的会话列表数据
   if (window.electron && window.electron.ipcRenderer) {
@@ -117,6 +153,8 @@ onMounted(() => {
         if (sessionList && sessionList.length > 0) {
           sessionListStore.setSessions(sessionList)
           console.log('设置后AudioCall.vue中sessionListStore的数据:', sessionListStore.sessions)
+          // 重新设置联系人信息
+          setContactInfo()
         } else {
           console.log('从主进程获取的会话列表为空或未定义')
         }
@@ -178,9 +216,9 @@ onUnmounted(() => {
 .avatar {
   width: 120px;
   height: 120px;
-  border-radius: 50%;
+  border-radius: 8px;
+  /* 修改为方形边角 */
   object-fit: cover;
-  border: 5px solid #fff;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 

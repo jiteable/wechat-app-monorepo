@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 const SESSION_LIST_STORE_UPDATE_EVENT = 'sessionListStoreUpdated'
 
 export interface SessionItem {
-  userSessionId: string
+  sessionId: string
   avatar: string
   displayName: string
   name: string
@@ -19,12 +19,12 @@ export const useSessionListStore = defineStore('sessionList', {
   }),
 
   getters: {
-    getSessionById: (state) => (userSessionId: string) => {
-      return state.sessions.find(session => session.userSessionId === userSessionId)
+    getSessionById: (state) => (sessionId: string) => {
+      return state.sessions.find((session) => session.sessionId === sessionId)
     },
 
     getSessionByName: (state) => (name: string) => {
-      return state.sessions.find(session => session.name === name)
+      return state.sessions.find((session) => session.name === name)
     }
   },
 
@@ -41,7 +41,7 @@ export const useSessionListStore = defineStore('sessionList', {
      * 添加或更新单个会话
      */
     upsertSession(session: SessionItem) {
-      const index = this.sessions.findIndex(s => s.userSessionId === session.userSessionId)
+      const index = this.sessions.findIndex((s) => s.sessionId === session.sessionId)
       if (index !== -1) {
         // 更新现有会话
         this.sessions[index] = { ...this.sessions[index], ...session }
@@ -53,10 +53,10 @@ export const useSessionListStore = defineStore('sessionList', {
     },
 
     /**
-     * 根据 userSessionId 删除会话
+     * 根据 sessionId 删除会话
      */
-    removeSession(userSessionId: string) {
-      this.sessions = this.sessions.filter(session => session.userSessionId !== userSessionId)
+    removeSession(sessionId: string) {
+      this.sessions = this.sessions.filter((session) => session.sessionId !== sessionId)
       this.syncToOtherWindows()
     },
 

@@ -78,7 +78,7 @@ export const AppRoutes = [
     props: true
   },
   {
-    path: '/audiocall',
+    path: '/audiocall/:id',
     component: () => import('../components/AudioCall.vue')
   }
 ]

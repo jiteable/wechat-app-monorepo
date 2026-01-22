@@ -221,7 +221,7 @@
                   <el-button type="text" @click="triggerFileSelect">
                     <span class="icon iconfont icon-wenjian"></span>
                   </el-button>
-                  <el-button @click="AudioCall">
+                  <el-button v-if="!isGroupChat" @click="AudioCall">
                     <el-icon>
                       <Phone />
                     </el-icon>

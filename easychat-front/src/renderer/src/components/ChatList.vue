@@ -110,8 +110,8 @@ const fetchSessions = async () => {
 
         // 将获取到的会话数据存储到sessionListStore中
         const sessionListStore = useSessionListStore()
-        const sessionItems = localResult.data.map(session => ({
-          userSessionId: session.userSessionId || session.id, // 使用userSessionId，如果没有则使用id
+        const sessionItems = localResult.data.map((session) => ({
+          sessionId: session.id,
           avatar: session.avatar || '',
           displayName: session.displayName || session.name || '',
           name: session.name || session.displayName || ''
@@ -144,8 +144,8 @@ const fetchSessions = async () => {
 
           // 同时将服务器获取的数据也存储到sessionListStore中
           const sessionListStore = useSessionListStore()
-          const sessionItems = response.data.map(session => ({
-            userSessionId: session.userSessionId || session.id,
+          const sessionItems = response.data.map((session) => ({
+            sessionId: session.id,
             avatar: session.avatar || '',
             displayName: session.displayName || session.name || '',
             name: session.name || session.displayName || ''

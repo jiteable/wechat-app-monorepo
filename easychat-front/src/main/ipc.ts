@@ -540,7 +540,7 @@ export function createAddFriendToGroupWindow(icon: string, GroupId?: string): vo
   }
 }
 
-export function createAudioCallWindow(icon: string, contactData?: any): void {
+export function createAudioCallWindow(icon: string, contactData: any): void {
   // 如果音频通话窗口已存在，直接显示并获得焦点
   if (audioCallWindow) {
     audioCallWindow.show()
@@ -579,12 +579,15 @@ export function createAudioCallWindow(icon: string, contactData?: any): void {
     audioCallWindow = null
   })
 
+  const sessionId = contactData?.sessionId || 'default'
+  const routePath = `/audiocall/${sessionId}`
+
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    audioCallWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/audiocall')
+    audioCallWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#${routePath}`)
   } else {
     audioCallWindow.loadFile(join(__dirname, '../renderer/index.html'), {
-      hash: '/audiocall'
+      hash: routePath
     })
   }
 }
@@ -951,8 +954,8 @@ export function setupIpcHandlers(icon: string): void {
       const sessions = await databaseManager.getAllChatSessions()
 
       // 将数据库中的会话数据转换为SessionItem格式
-      const sessionItems = sessions.map(session => ({
-        userSessionId: session.userSessionId || session.id,
+      const sessionItems = sessions.map((session) => ({
+        sessionId: session.id,
         avatar: session.avatar || '',
         displayName: session.displayName || session.name || '',
         name: session.name || session.displayName || ''
