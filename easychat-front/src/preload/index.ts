@@ -191,6 +191,40 @@ const api = {
     ipcRenderer.send('open-audio-call-window', contactData),
   closeAudioCallWindow: (): void => ipcRenderer.send('close-audio-call-window'),
 
+  // 新增接收通话相关消息的API
+  onIncomingCall: (callback: (callData: any) => void) => {
+    ipcRenderer.on('incoming-call', (_, callData) => callback(callData))
+    return () => ipcRenderer.removeListener('incoming-call', callback)
+  },
+  onCallAccepted: (callback: (data: any) => void) => {
+    ipcRenderer.on('call-accepted', (_, data) => callback(data))
+    return () => ipcRenderer.removeListener('call-accepted', callback)
+  },
+  onCallRejected: (callback: (data: any) => void) => {
+    ipcRenderer.on('call-rejected', (_, data) => callback(data))
+    return () => ipcRenderer.removeListener('call-rejected', callback)
+  },
+  onCallEnded: (callback: (data: any) => void) => {
+    ipcRenderer.on('call-ended', (_, data) => callback(data))
+    return () => ipcRenderer.removeListener('call-ended', callback)
+  },
+  onWebrtcOffer: (callback: (data: any) => void) => {
+    ipcRenderer.on('webrtc-offer', (_, data) => callback(data))
+    return () => ipcRenderer.removeListener('webrtc-offer', callback)
+  },
+  onWebrtcAnswer: (callback: (data: any) => void) => {
+    ipcRenderer.on('webrtc-answer', (_, data) => callback(data))
+    return () => ipcRenderer.removeListener('webrtc-answer', callback)
+  },
+  onWebrtcIceCandidate: (callback: (data: any) => void) => {
+    ipcRenderer.on('webrtc-ice-candidate', (_, data) => callback(data))
+    return () => ipcRenderer.removeListener('webrtc-ice-candidate', callback)
+  },
+  sendWebrtcOffer: (data: any) => ipcRenderer.invoke('send-webrtc-offer', data),
+  sendWebrtcAnswer: (data: any) => ipcRenderer.invoke('send-webrtc-answer', data),
+  sendWebrtcIceCandidate: (data: any) => ipcRenderer.invoke('send-webrtc-ice-candidate', data),
+  sendCallEnd: (data: any) => ipcRenderer.invoke('send-call-end', data),
+
   // 添加获取图片消息的API
   getImageMessagesBySessionId: (sessionId: string): Promise<any> =>
     ipcRenderer.invoke('get-image-messages-by-session-id', sessionId)

@@ -121,6 +121,18 @@ interface Window {
     openAudioCallWindow: (contactData?: any) => void
     closeAudioCallWindow: () => void
 
+    onIncomingCall: (callback: (callData: any) => void) => () => void
+    onCallAccepted: (callback: (data: any) => void) => () => void
+    onCallRejected: (callback: (data: any) => void) => () => void
+    onCallEnded: (callback: (data: any) => void) => () => void
+    onWebrtcOffer: (callback: (data: any) => void) => () => void
+    onWebrtcAnswer: (callback: (data: any) => void) => () => void
+    onWebrtcIceCandidate: (callback: (data: any) => void) => () => void
+    sendWebrtcOffer: (data: any) => void
+    sendWebrtcAnswer: (data: any) => void
+    sendWebrtcIceCandidate: (data: any) => void
+    sendCallEnd: (data: any) => void
+
     // 添加获取图片消息的API
     getImageMessagesBySessionId: (sessionId: string) => Promise<any>
 

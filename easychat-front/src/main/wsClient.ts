@@ -8,6 +8,15 @@ interface WsConfig {
 interface MessageSender {
   handleNewMessage: (data: any) => void
   handleDeleteMessage: (data: any) => void
+  handleIncomingCall: (data: any) => void
+  handleCallInitiated: (data: any) => void
+  handleCallAccepted: (data: any) => void
+  handleCallRejected: (data: any) => void
+  handleCallEnded: (data: any) => void
+  handleOffer: (data: any) => void
+  handleAnswer: (data: any) => void
+  handleIceCandidate: (data: any) => void
+  handleCallFailed: (data: any) => void
 }
 
 let ws: WebSocket | null = null
@@ -146,6 +155,62 @@ const createWs = () => {
             // 处理删除消息确认
             if (sender) {
               console.log('收到删除消息确认:', data)
+            }
+            break
+
+          // 处理通话相关消息
+          case 'incoming_call':
+            // 处理来电
+            if (sender && typeof sender.handleIncomingCall === 'function') {
+              sender.handleIncomingCall(data)
+            }
+            break
+          case 'call_initiated':
+            // 通话已发起
+            if (sender && typeof sender.handleCallInitiated === 'function') {
+              sender.handleCallInitiated(data)
+            }
+            break
+          case 'call_accepted':
+            // 通话被接受
+            if (sender && typeof sender.handleCallAccepted === 'function') {
+              sender.handleCallAccepted(data)
+            }
+            break
+          case 'call_rejected':
+            // 通话被拒绝
+            if (sender && typeof sender.handleCallRejected === 'function') {
+              sender.handleCallRejected(data)
+            }
+            break
+          case 'call_ended':
+            // 通话结束
+            if (sender && typeof sender.handleCallEnded === 'function') {
+              sender.handleCallEnded(data)
+            }
+            break
+          case 'offer':
+            // 接收SDP offer
+            if (sender && typeof sender.handleOffer === 'function') {
+              sender.handleOffer(data)
+            }
+            break
+          case 'answer':
+            // 接收SDP answer
+            if (sender && typeof sender.handleAnswer === 'function') {
+              sender.handleAnswer(data)
+            }
+            break
+          case 'ice_candidate':
+            // 接收ICE候选
+            if (sender && typeof sender.handleIceCandidate === 'function') {
+              sender.handleIceCandidate(data)
+            }
+            break
+          case 'call_failed':
+            // 通话失败
+            if (sender && typeof sender.handleCallFailed === 'function') {
+              sender.handleCallFailed(data)
             }
             break
           case 'server_message':

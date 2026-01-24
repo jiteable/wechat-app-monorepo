@@ -890,6 +890,123 @@ export function setupIpcHandlers(icon: string): void {
             console.log('Sending delete message to chat message window')
             chatMessageWindow.webContents.send('delete-message', data)
           }
+        },
+        handleIncomingCall: (data) => {
+          console.log('Received incoming call (main process):', data)
+          // Forward the incoming call to all open windows
+          if (mainWindow) {
+            mainWindow.webContents.send('incoming-call', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('incoming-call', data)
+          }
+          if (chatMessageWindow) {
+            chatMessageWindow.webContents.send('incoming-call', data)
+          }
+        },
+        handleCallInitiated: (data) => {
+          console.log('Received call initiated (main process):', data)
+          // Forward the call initiated event to all open windows
+          if (mainWindow) {
+            mainWindow.webContents.send('call-initiated', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('call-initiated', data)
+          }
+          if (chatMessageWindow) {
+            chatMessageWindow.webContents.send('call-initiated', data)
+          }
+        },
+        handleCallAccepted: (data) => {
+          console.log('Received call accepted (main process):', data)
+          // Forward the call accepted event to all open windows
+          if (mainWindow) {
+            mainWindow.webContents.send('call-accepted', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('call-accepted', data)
+          }
+          if (chatMessageWindow) {
+            chatMessageWindow.webContents.send('call-accepted', data)
+          }
+        },
+        handleCallRejected: (data) => {
+          console.log('Received call rejected (main process):', data)
+          // Forward the call rejected event to all open windows
+          if (mainWindow) {
+            mainWindow.webContents.send('call-rejected', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('call-rejected', data)
+          }
+          if (chatMessageWindow) {
+            chatMessageWindow.webContents.send('call-rejected', data)
+          }
+        },
+        handleCallEnded: (data) => {
+          console.log('Received call ended (main process):', data)
+          // Forward the call ended event to all open windows
+          if (mainWindow) {
+            mainWindow.webContents.send('call-ended', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('call-ended', data)
+          }
+          if (chatMessageWindow) {
+            chatMessageWindow.webContents.send('call-ended', data)
+          }
+        },
+        handleOffer: (data) => {
+          console.log('Received offer (main process):', data)
+          // Forward the offer to all open windows
+          if (mainWindow) {
+            mainWindow.webContents.send('offer', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('offer', data)
+          }
+          if (chatMessageWindow) {
+            chatMessageWindow.webContents.send('offer', data)
+          }
+        },
+        handleAnswer: (data) => {
+          console.log('Received answer (main process):', data)
+          // Forward the answer to all open windows
+          if (mainWindow) {
+            mainWindow.webContents.send('answer', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('answer', data)
+          }
+          if (chatMessageWindow) {
+            chatMessageWindow.webContents.send('answer', data)
+          }
+        },
+        handleIceCandidate: (data) => {
+          console.log('Received ice candidate (main process):', data)
+          // Forward the ice candidate to all open windows
+          if (mainWindow) {
+            mainWindow.webContents.send('ice-candidate', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('ice-candidate', data)
+          }
+          if (chatMessageWindow) {
+            chatMessageWindow.webContents.send('ice-candidate', data)
+          }
+        },
+        handleCallFailed: (data) => {
+          console.log('Received call failed (main process):', data)
+          // Forward the call failed event to all open windows
+          if (mainWindow) {
+            mainWindow.webContents.send('call-failed', data)
+          }
+          if (contactWindow) {
+            contactWindow.webContents.send('call-failed', data)
+          }
+          if (chatMessageWindow) {
+            chatMessageWindow.webContents.send('call-failed', data)
+          }
         }
       }
     )

@@ -1,5 +1,5 @@
 <template>
-  <div class="audio-call-container">
+  <div class="audio-call-container drag">
     <div class="call-header">
       <h2>音频通话</h2>
     </div>
@@ -15,9 +15,9 @@
       </div>
     </div>
 
-    <!-- 通话控制按钮 -->
-    <div v-if="!callStarted" class="call-controls">
-      <button class="control-btn accept-btn" @click="acceptCall">
+    <!-- 接收方的控制按钮 -->
+    <div v-if="!isCaller" class="call-controls no-drag">
+      <button v-if="!callStarted" class="control-btn accept-btn" @click="acceptCall">
         <el-icon>
           <Phone />
         </el-icon>
@@ -30,9 +30,14 @@
       </button>
     </div>
 
-    <!-- 通话开始后的关闭按钮 -->
-    <div v-else class="call-controls-centered">
-      <button class="control-btn decline-btn" @click="endCall">
+    <!-- 发送方的控制按钮 - 显示拒绝按钮，通话开始后显示结束按钮 -->
+    <div v-else class="call-controls no-drag">
+      <button v-if="!callStarted" class="control-btn decline-btn" @click="declineCall">
+        <el-icon>
+          <Close />
+        </el-icon>
+      </button>
+      <button v-else class="control-btn decline-btn" @click="endCall">
         <el-icon>
           <PhoneFilled />
         </el-icon>
@@ -54,6 +59,8 @@ const callStarted = ref(false)
 const sessionId = ref('')
 const avatar = ref('')
 const contactName = ref('')
+// 新增变量来区分发送方和接收方
+const isCaller = ref(false) // true表示发送方，false表示接收方
 
 const acceptCall = () => {
   callStatus.value = '通话中...'
@@ -98,7 +105,11 @@ onMounted(() => {
   const routeSessionId = route.params.id || route.query.sessionId
   sessionId.value = routeSessionId || ''
 
+  // 根据路由参数判断是发送方还是接收方
+  isCaller.value = !!routeSessionId
+
   console.log('AudioCall.vue中从路由参数获取的sessionId:', sessionId.value)
+  console.log('当前角色是发送方:', isCaller.value)
 
   // 打印sessionListStore中的数据
   const sessionListStore = useSessionListStore()
