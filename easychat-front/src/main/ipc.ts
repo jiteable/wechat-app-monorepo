@@ -26,6 +26,8 @@ let user_id: string | null = null
 // 存储用户信息
 let userInfo: any = null
 
+let globalContactData: any = null
+
 // 窗口创建函数
 export function setWindows(
   mainWin: BrowserWindow | null,
@@ -541,15 +543,12 @@ export function createAddFriendToGroupWindow(icon: string, GroupId?: string): vo
 }
 
 export function createAudioCallWindow(icon: string, contactData: any): void {
+  globalContactData = contactData
   // 如果音频通话窗口已存在，直接显示并获得焦点
   if (audioCallWindow) {
     audioCallWindow.show()
     audioCallWindow.focus()
 
-    // 如果窗口已存在且提供了联系人数据，通过IPC发送联系人数据
-    if (contactData) {
-      audioCallWindow.webContents.send('set-contact-data', contactData)
-    }
     return
   }
   audioCallWindow = new BrowserWindow({
@@ -569,9 +568,6 @@ export function createAudioCallWindow(icon: string, contactData: any): void {
     audioCallWindow!.show()
     // 窗口准备好后发送联系人数据
     console.log('contactData: ', contactData)
-    if (contactData) {
-      audioCallWindow!.webContents.send('set-contact-data', contactData)
-    }
   })
 
   audioCallWindow.on('closed', () => {
@@ -1081,6 +1077,15 @@ export function setupIpcHandlers(icon: string): void {
     } catch (error) {
       console.error('获取会话列表失败:', error)
       return []
+    }
+  })
+
+  ipcMain.handle('set-contact-data', async () => {
+    try {
+      return globalContactData || {}
+    } catch (error) {
+      console.error('处理联系人数据失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
 

@@ -228,9 +228,8 @@ onMounted(() => {
   console.log('AudioCall.vue中从路由参数获取的sessionId:', sessionId.value)
   console.log('当前角色是发送方:', isCaller.value)
 
-  // 监听主进程发送的contactData
   if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.on('set-contact-data', (event, contactData) => {
+    window.electron.ipcRenderer.invoke('set-contact-data').then((contactData) => {
       console.log('接收到主进程发送的contactData:', contactData)
       window.contactData = contactData
       // 更新sessionId（如果之前没有获取到）

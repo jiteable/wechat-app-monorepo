@@ -66,7 +66,7 @@ function handleSignalingMessage(ws, data, clients) {
  * 发起通话请求
  */
 function handleCallInitiate(ws, data, clients) {
-  const { targetUserId, sessionId, callType, callerInfo } = data;
+  const { targetUserId, sessionId, callType, callerInfo } = data.data;
 
   if (!targetUserId) {
     ws.send(JSON.stringify({
