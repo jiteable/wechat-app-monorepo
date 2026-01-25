@@ -118,7 +118,7 @@ interface Window {
     toggleMaximizeImageViewWindow: (maximize: boolean) => void
     toggleAlwaysOnTopImageViewWindow: (isAlwaysOnTop: boolean) => void
 
-    openAudioCallWindow: (contactData?: any) => void
+    openAudioCallWindow: (contactData: any) => void
     closeAudioCallWindow: () => void
 
     onIncomingCall: (callback: (callData: any) => void) => () => void

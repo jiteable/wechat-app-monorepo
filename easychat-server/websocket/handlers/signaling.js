@@ -66,7 +66,7 @@ function handleSignalingMessage(ws, data, clients) {
  * 发起通话请求
  */
 function handleCallInitiate(ws, data, clients) {
-  const { targetUserId, sessionId, callType } = data;
+  const { targetUserId, sessionId, callType, callerInfo } = data;
 
   if (!targetUserId) {
     ws.send(JSON.stringify({
@@ -75,6 +75,15 @@ function handleCallInitiate(ws, data, clients) {
     }));
     return;
   }
+
+  // 打印接收到的通话信息
+  console.log('收到通话发起请求:', {
+    targetUserId,
+    sessionId,
+    callType,
+    callerInfo,
+    fromUserId: ws.userId
+  });
 
   // 检查目标用户是否在线
   const targetWs = clients.get(targetUserId);
@@ -111,24 +120,36 @@ function handleCallInitiate(ws, data, clients) {
 
   activeCalls.set(callKey, callInfo);
 
-  // 发送通话请求到被叫方
-  broadcastToUser(clients, targetUserId, {
+  // 构建发送给被叫方的消息
+  const incomingCallMessage = {
     type: 'incoming_call',
     callId,
     callerId: ws.userId,
-    callerName: ws.userInfo?.username || 'Unknown',
-    callerAvatar: ws.userInfo?.avatar || '',
+    callerName: callerInfo?.name || ws.userInfo?.username || 'Unknown',
+    callerAvatar: callerInfo?.avatar || ws.userInfo?.avatar || '',
     callType: callInfo.callType,
     sessionId
-  });
+  };
 
-  // 通知发起方通话已发送
-  ws.send(JSON.stringify({
+  // 打印将要发送给被叫方的消息内容
+  console.log('发送给被叫方的消息:', incomingCallMessage);
+
+  // 发送通话请求到被叫方
+  broadcastToUser(clients, targetUserId, incomingCallMessage);
+
+  // 构建发送给发起方的消息
+  const callInitiatedMessage = {
     type: 'call_initiated',
     callId,
     targetUserId,
     status: 'ringing'
-  }));
+  };
+
+  // 打印将要发送给发起方的消息内容
+  console.log('发送给发起方的消息:', callInitiatedMessage);
+
+  // 通知发起方通话已发送
+  ws.send(JSON.stringify(callInitiatedMessage));
 }
 
 /**

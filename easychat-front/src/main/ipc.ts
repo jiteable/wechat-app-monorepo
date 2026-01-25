@@ -552,14 +552,12 @@ export function createAudioCallWindow(icon: string, contactData: any): void {
     }
     return
   }
-
   audioCallWindow = new BrowserWindow({
     width: Math.round(400 / scaleFactor),
     height: Math.round(600 / scaleFactor),
     frame: false,
     show: false,
     autoHideMenuBar: true,
-    resizable: false,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -570,6 +568,7 @@ export function createAudioCallWindow(icon: string, contactData: any): void {
   audioCallWindow.on('ready-to-show', () => {
     audioCallWindow!.show()
     // 窗口准备好后发送联系人数据
+    console.log('contactData: ', contactData)
     if (contactData) {
       audioCallWindow!.webContents.send('set-contact-data', contactData)
     }
@@ -1470,7 +1469,6 @@ export function setupIpcHandlers(icon: string): void {
   ipcMain.on('open-audio-call-window', (_event, contactData) => {
     createAudioCallWindow(icon, contactData)
   })
-
   ipcMain.on('close-audio-call-window', () => {
     if (audioCallWindow) {
       audioCallWindow.close()

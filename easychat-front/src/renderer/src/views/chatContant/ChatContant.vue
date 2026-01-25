@@ -2956,12 +2956,24 @@ const getFileIconPath = (fileExtension) => {
 const AudioCall = () => {
   // 获取当前会话的信息
   const contactData = contactStore.selectedContact
+  // 获取当前用户信息
+  const currentUserInfo = userStore
+
+  console.log('contactData: ', contactData)
+  console.log('currentUserInfo: ', currentUserInfo)
+
   if (contactData) {
-    // 发送IPC消息打开音频通话窗口
+    // 发送IPC消息打开音频通话窗口，同时传递当前用户信息
     window.api.openAudioCallWindow({
       contactName: contactData.name || contactData.remark || '联系人',
       avatar: contactData.avatar || '',
-      sessionId: contactData.id
+      sessionId: contactData.id,
+      targetUserId: contactData.contactId,
+      callerInfo: {
+        name: currentUserInfo?.username || '',
+        avatar: currentUserInfo?.avatar || '',
+        userId: currentUserInfo?.userId || ''
+      }
     })
   } else {
     ElMessage.warning('请选择一个聊天会话进行通话')

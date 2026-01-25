@@ -282,11 +282,20 @@ const handleReconnection = () => {
 const sendMessage = (message: any) => {
   if (ws && ws.readyState === WebSocket.OPEN) {
     // 如果是发送聊天消息的请求，则直接发送到后端
-    if (message.type === 'send_message') {
+    if (
+      message.type === 'send_message' ||
+      message.type === 'call_initiate' ||
+      message.type === 'call_accept' ||
+      message.type === 'call_reject' ||
+      message.type === 'call_end' ||
+      message.type === 'offer' ||
+      message.type === 'answer' ||
+      message.type === 'ice_candidate'
+    ) {
       ws.send(
         JSON.stringify({
-          type: 'send_message', // 与后端路由保持一致
-          data: message.data
+          type: message.type, // 与后端路由保持一致
+          ...(message.data ? { data: message.data } : message)
         })
       )
     } else {
