@@ -2953,30 +2953,48 @@ const getFileIconPath = (fileExtension) => {
   }
 }
 
-const AudioCall = () => {
-  // 获取当前会话的信息
-  const contactData = contactStore.selectedContact
-  // 获取当前用户信息
-  const currentUserInfo = userStore
+const AudioCall = async () => {
+  // 检查麦克风权限
+  try {
+    // 尝试访问麦克风以请求权限
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
-  console.log('contactData: ', contactData)
-  console.log('currentUserInfo: ', currentUserInfo)
+    // 如果成功获取到流，说明有权限，可以关闭流并继续打开通话窗口
+    stream.getTracks().forEach(track => track.stop())
 
-  if (contactData) {
-    // 发送IPC消息打开音频通话窗口，同时传递当前用户信息
-    window.api.openAudioCallWindow({
-      contactName: contactData.name || contactData.remark || '联系人',
-      avatar: contactData.avatar || '',
-      sessionId: contactData.id,
-      targetUserId: contactData.contactId,
-      callerInfo: {
-        name: currentUserInfo?.username || '',
-        avatar: currentUserInfo?.avatar || '',
-        userId: currentUserInfo?.userId || ''
-      }
-    })
-  } else {
-    ElMessage.warning('请选择一个聊天会话进行通话')
+    // 获取当前会话的信息
+    const contactData = contactStore.selectedContact
+    // 获取当前用户信息
+    const currentUserInfo = userStore
+
+    console.log('contactData: ', contactData)
+    console.log('currentUserInfo: ', currentUserInfo)
+
+    if (contactData) {
+      // 发送IPC消息打开音频通话窗口，同时传递当前用户信息
+      window.api.openAudioCallWindow({
+        contactName: contactData.name || contactData.remark || '联系人',
+        avatar: contactData.avatar || '',
+        sessionId: contactData.id,
+        targetUserId: contactData.contactId,
+        callerInfo: {
+          name: currentUserInfo?.username || '',
+          avatar: currentUserInfo?.avatar || '',
+          userId: currentUserInfo?.userId || ''
+        }
+      })
+    } else {
+      ElMessage.warning('请选择一个聊天会话进行通话')
+    }
+  } catch (error) {
+    console.error('获取麦克风权限失败:', error)
+    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      ElMessage.error('您拒绝了麦克风权限，无法使用语音通话功能')
+    } else if (error.name === 'NotFoundError' || error.name === 'OverconstrainedError') {
+      ElMessage.error('未找到可用的麦克风设备，无法使用语音通话功能')
+    } else {
+      ElMessage.error('无法访问麦克风，语音通话功能不可用: ' + error.message)
+    }
   }
 }
 
