@@ -23,6 +23,8 @@ let audioCallWindow: BrowserWindow | null = null
 
 let user_id: string | null = null
 
+let appIcon: string = ''
+
 // 存储用户信息
 let userInfo: any = null
 
@@ -586,7 +588,25 @@ export function createAudioCallWindow(icon: string, contactData: any): void {
     })
   }
 }
+
+// 处理来自WebSocket的incoming_call消息
+export function handleIncomingCall(callData: any): void {
+  // 从app图标获取图标路径
+  const iconPath = appIcon
+
+  // 创建音频通话窗口，并将通话数据作为contactData传递
+  createAudioCallWindow(iconPath, {
+    contactName: callData.callerName,
+    avatar: callData.callerAvatar,
+    sessionId: callData.sessionId,
+    callId: callData.callId,
+    callerId: callData.callerId,
+    callType: callData.callType,
+    targetUserId: callData.callerId // 接听方的目标用户是呼叫方
+  })
+}
 export function setupIpcHandlers(icon: string): void {
+  appIcon = icon
   // 监听登录/注册表单切换事件并调整窗口大小
   ipcMain.on('login-form-toggle', (_event, isLogin) => {
     console.log(isLogin)
@@ -888,16 +908,7 @@ export function setupIpcHandlers(icon: string): void {
         },
         handleIncomingCall: (data) => {
           console.log('Received incoming call (main process):', data)
-          // Forward the incoming call to all open windows
-          if (mainWindow) {
-            mainWindow.webContents.send('incoming-call', data)
-          }
-          if (contactWindow) {
-            contactWindow.webContents.send('incoming-call', data)
-          }
-          if (chatMessageWindow) {
-            chatMessageWindow.webContents.send('incoming-call', data)
-          }
+          handleIncomingCall(data)
         },
         handleCallInitiated: (data) => {
           console.log('Received call initiated (main process):', data)
