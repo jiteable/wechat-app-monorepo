@@ -922,6 +922,9 @@ export function setupIpcHandlers(icon: string): void {
           if (chatMessageWindow) {
             chatMessageWindow.webContents.send('call-initiated', data)
           }
+          if (audioCallWindow) {
+            audioCallWindow.webContents.send('call-initiated', data)
+          }
         },
         handleCallAccepted: (data) => {
           console.log('Received call accepted (main process):', data)
@@ -934,6 +937,9 @@ export function setupIpcHandlers(icon: string): void {
           }
           if (chatMessageWindow) {
             chatMessageWindow.webContents.send('call-accepted', data)
+          }
+          if (audioCallWindow) {
+            audioCallWindow.webContents.send('call-accepted', data)
           }
         },
         handleCallRejected: (data) => {
@@ -948,6 +954,9 @@ export function setupIpcHandlers(icon: string): void {
           if (chatMessageWindow) {
             chatMessageWindow.webContents.send('call-rejected', data)
           }
+          if (audioCallWindow) {
+            audioCallWindow.webContents.send('call-rejected', data)
+          }
         },
         handleCallEnded: (data) => {
           console.log('Received call ended (main process):', data)
@@ -960,6 +969,9 @@ export function setupIpcHandlers(icon: string): void {
           }
           if (chatMessageWindow) {
             chatMessageWindow.webContents.send('call-ended', data)
+          }
+          if (audioCallWindow) {
+            audioCallWindow.webContents.send('call-ended', data)
           }
         },
         handleOffer: (data) => {
@@ -974,6 +986,9 @@ export function setupIpcHandlers(icon: string): void {
           if (chatMessageWindow) {
             chatMessageWindow.webContents.send('offer', data)
           }
+          if (audioCallWindow) {
+            audioCallWindow.webContents.send('offer', data)
+          }
         },
         handleAnswer: (data) => {
           console.log('Received answer (main process):', data)
@@ -986,6 +1001,9 @@ export function setupIpcHandlers(icon: string): void {
           }
           if (chatMessageWindow) {
             chatMessageWindow.webContents.send('answer', data)
+          }
+          if (audioCallWindow) {
+            audioCallWindow.webContents.send('answer', data)
           }
         },
         handleIceCandidate: (data) => {
@@ -1000,6 +1018,9 @@ export function setupIpcHandlers(icon: string): void {
           if (chatMessageWindow) {
             chatMessageWindow.webContents.send('ice-candidate', data)
           }
+          if (audioCallWindow) {
+            audioCallWindow.webContents.send('ice-candidate', data)
+          }
         },
         handleCallFailed: (data) => {
           console.log('Received call failed (main process):', data)
@@ -1012,6 +1033,9 @@ export function setupIpcHandlers(icon: string): void {
           }
           if (chatMessageWindow) {
             chatMessageWindow.webContents.send('call-failed', data)
+          }
+          if (audioCallWindow) {
+            audioCallWindow.webContents.send('call-failed', data)
           }
         }
       }
