@@ -226,6 +226,7 @@ onMounted(() => {
     window.electron.ipcRenderer.invoke('set-contact-data').then((contactData) => {
       console.log('接收到主进程发送的contactData:', contactData)
       window.contactData = contactData
+      callId.value = contactData.callId
       isCaller.value = contactData.callerId ? false : true
       console.log('isCaller: ', isCaller.value)
       // 更新sessionId（如果之前没有获取到）
@@ -281,7 +282,14 @@ onMounted(() => {
 
     window.electron.ipcRenderer.on('call-rejected', (event, data) => {
       console.log('收到call-rejected消息:', data)
-      callStatus.value = '通话被拒绝'
+      //注: 这里应该通过  data.reason 判断是因什么原因拒绝的
+
+      if (data.rejectedBy === window.currentUser?.userId) {
+        callStatus.value = '通话已拒绝' // 当前用户自己拒绝了通话
+      } else {
+        callStatus.value = '通话被拒绝' // 对方拒绝了通话
+      }
+
       setTimeout(() => window.close(), 1000)
     })
 
