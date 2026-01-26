@@ -207,8 +207,6 @@ onMounted(() => {
   // 从多种来源获取sessionId，优先级：window.contactData > 路由参数
   let currentSessionId = ''
 
-  console.log('aaaaaaawindow.contactData: ', window.contactData)
-
   // 首先尝试从window.contactData获取（主进程通过IPC发送的数据）
   if (window.contactData && window.contactData.sessionId) {
     currentSessionId = window.contactData.sessionId
@@ -222,16 +220,14 @@ onMounted(() => {
 
   sessionId.value = currentSessionId
 
-  // 根据是否有sessionId判断是发送方还是接收方
-  isCaller.value = !!currentSessionId
-
   console.log('AudioCall.vue中从路由参数获取的sessionId:', sessionId.value)
-  console.log('当前角色是发送方:', isCaller.value)
 
   if (window.electron && window.electron.ipcRenderer) {
     window.electron.ipcRenderer.invoke('set-contact-data').then((contactData) => {
       console.log('接收到主进程发送的contactData:', contactData)
       window.contactData = contactData
+      isCaller.value = contactData.callerId ? false : true
+      console.log('isCaller: ', isCaller.value)
       // 更新sessionId（如果之前没有获取到）
       if (!sessionId.value && (contactData.sessionId || contactData.id)) {
         sessionId.value = contactData.sessionId || contactData.id

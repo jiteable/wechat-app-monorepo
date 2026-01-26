@@ -373,7 +373,7 @@ router.post('/createSession', authenticateToken, async (req, res) => {
               lastReadTime: new Date(),
               displayName,
               displayAvatar,
-              contactId: sessionType === 'private' && userId !== currentUserId ? userId : null,
+              contactId: sessionType === 'private' ? (userId === currentUserId ? otherUserInfo?.id : userInfo?.id) : null,
               groupId: sessionType === 'group' ? groupId : null
             };
           })
