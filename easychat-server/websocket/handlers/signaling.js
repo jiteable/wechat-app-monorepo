@@ -209,7 +209,7 @@ function handleCallAccept(ws, data, clients) {
  * 拒绝通话请求
  */
 function handleCallReject(ws, data, clients) {
-  const { callId, targetUserId } = data;
+  const { callId, targetUserId } = data.data;
 
   // 查找通话记录
   let callInfo = null;
@@ -231,28 +231,29 @@ function handleCallReject(ws, data, clients) {
     return;
   }
 
-  // 检查是否是被叫方拒绝
-  if (ws.userId !== callInfo.calleeId) {
-    ws.send(JSON.stringify({
-      type: 'error',
-      message: 'Only callee can reject the call'
-    }));
-    return;
-  }
-
   // 通知发起方通话被拒绝
   broadcastToUser(clients, callInfo.callerId, {
     type: 'call_rejected',
     callId,
-    rejectedBy: ws.userId
+    rejectedBy: ws.userId,
+    reason: 'rejected_by_caller'
   });
 
-  // 通知被叫方通话已拒绝
-  ws.send(JSON.stringify({
+  broadcastToUser(clients, callInfo.calleeId, {
     type: 'call_rejected',
     callId,
-    reason: 'rejected_by_callee'
-  }));
+    rejectedBy: ws.userId,
+    reason: 'rejected_by_caller'
+  });
+
+
+  // // 通知被叫方通话已拒绝
+  // ws.send(JSON.stringify({
+  //   type: 'call_rejected',
+  //   callId,
+  //   reason: 'rejected_by_callee'
+  // }));
+
 
   // 从活动通话中移除
   if (callKey) {
