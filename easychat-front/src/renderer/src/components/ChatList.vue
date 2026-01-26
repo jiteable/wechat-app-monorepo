@@ -357,6 +357,16 @@ const handleClickSession = async (session) => {
       )
       sessions.value = updatedSessions
 
+      // 更新本地数据库中的未读计数
+      if (window.api && typeof window.api.updateUnreadCount === 'function') {
+        try {
+          await window.api.updateUnreadCount(sessionWithGroupInfo.id, 0)
+          console.log('本地数据库未读计数已更新')
+        } catch (localUpdateError) {
+          console.error('更新本地数据库未读计数失败:', localUpdateError)
+        }
+      }
+
       // 更新store中的会话信息，以便ChatContant组件可以获取到正确的会话信息
       contactStore.setSelectedContact({
         ...sessionWithGroupInfo,
