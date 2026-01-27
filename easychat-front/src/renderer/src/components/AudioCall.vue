@@ -122,6 +122,17 @@ const acceptCall = () => {
 // 拒绝通话
 const declineCall = () => {
   if (window.api && typeof window.api.sendMessage === 'function') {
+
+    // 判断是接收方拒绝还是发起方取消
+    let reason = ''
+    if (window.contactData?.callerId) {
+      // 如果有callerId，表示当前用户是接收方，拒绝通话
+      reason = '接收方拒绝通话'
+    } else {
+      // 如果没有callerId，表示当前用户是发起方，取消通话
+      reason = '发送方取消通话'
+    }
+
     const declineData = {
       type: 'call_reject',
       data: {
@@ -130,7 +141,8 @@ const declineCall = () => {
           window.contactData?.targetUserId ||
           window.contactData?.contactId ||
           window.contactData?.callerInfo?.userId ||
-          ''
+          '',
+        reason: reason
       }
     }
 
@@ -141,7 +153,7 @@ const declineCall = () => {
   }
 
   // 关闭窗口
-  window.close()
+  // window.close()
 }
 
 // 结束通话
@@ -284,13 +296,13 @@ onMounted(() => {
       console.log('收到call-rejected消息:', data)
       //注: 这里应该通过  data.reason 判断是因什么原因拒绝的
 
-      if (data.rejectedBy === window.currentUser?.userId) {
-        callStatus.value = '通话已拒绝' // 当前用户自己拒绝了通话
-      } else {
-        callStatus.value = '通话被拒绝' // 对方拒绝了通话
+      if (data.reason === '发送方取消通话') {
+        callStatus.value = '通话已取消' // 发起方取消了通话
+      } else if (data.reason === '接收方拒绝通话') {
+        callStatus.value = '通话被拒绝' // 接收方拒绝了通话
       }
 
-      setTimeout(() => window.close(), 1000)
+      // setTimeout(() => window.close(), 1000)
     })
 
     window.electron.ipcRenderer.on('call-ended', (event, data) => {

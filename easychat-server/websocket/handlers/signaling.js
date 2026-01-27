@@ -209,7 +209,7 @@ function handleCallAccept(ws, data, clients) {
  * 拒绝通话请求
  */
 function handleCallReject(ws, data, clients) {
-  const { callId, targetUserId } = data.data;
+  const { callId, targetUserId, reason } = data.data;
 
   // 查找通话记录
   let callInfo = null;
@@ -236,14 +236,14 @@ function handleCallReject(ws, data, clients) {
     type: 'call_rejected',
     callId,
     rejectedBy: ws.userId,
-    reason: 'rejected_by_caller'
+    reason: reason
   });
 
   broadcastToUser(clients, callInfo.calleeId, {
     type: 'call_rejected',
     callId,
     rejectedBy: ws.userId,
-    reason: 'rejected_by_caller'
+    reason: reason
   });
 
 
