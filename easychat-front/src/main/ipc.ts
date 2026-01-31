@@ -867,6 +867,67 @@ export function setupIpcHandlers(icon: string): void {
     }
   })
 
+  ipcMain.handle('send-webrtc-offer', async (_event, data) => {
+    try {
+      console.log('发送WebRTC Offer:', data)
+      // 通过WebSocket发送Offer
+      sendMessage({
+        type: 'offer',
+        data: data
+      })
+      return { success: true }
+    } catch (error) {
+      console.error('发送WebRTC Offer失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('send-webrtc-answer', async (_event, data) => {
+    try {
+      console.log('发送WebRTC Answer:', data)
+      // 通过WebSocket发送Answer
+      sendMessage({
+        type: 'answer',
+        data: data
+      })
+      return { success: true }
+    } catch (error) {
+      console.error('发送WebRTC Answer失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('send-webrtc-ice-candidate', async (_event, data) => {
+    try {
+      console.log('发送WebRTC ICE候选:', data)
+      // 通过WebSocket发送ICE候选
+      sendMessage({
+        type: 'ice_candidate',
+        data: data
+      })
+      return { success: true }
+    } catch (error) {
+      console.error('发送WebRTC ICE候选失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  // 添加通话结束的IPC处理程序
+  ipcMain.handle('send-call-end', async (_event, data) => {
+    try {
+      console.log('发送通话结束:', data)
+      // 通过WebSocket发送通话结束消息
+      sendMessage({
+        type: 'call_end',
+        data: data
+      })
+      return { success: true }
+    } catch (error) {
+      console.error('发送通话结束失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
   // WebSocket 相关事件
   ipcMain.on('init-websocket', (_event, userId) => {
     initWs(
