@@ -594,7 +594,9 @@ export function handleIncomingCall(callData: any): void {
   // 从app图标获取图标路径
   const iconPath = appIcon
 
-  // 创建音频通话窗口，并将通话数据作为contactData传递
+  console.log('callDatacallData: ', callData)
+
+  // 创建音频通话窗口，并将完整的通话数据作为contactData传递
   createAudioCallWindow(iconPath, {
     contactName: callData.callerName,
     avatar: callData.callerAvatar,
@@ -602,7 +604,8 @@ export function handleIncomingCall(callData: any): void {
     callId: callData.callId,
     callerId: callData.callerId,
     callType: callData.callType,
-    targetUserId: callData.callerId // 接听方的目标用户是呼叫方
+    targetUserId: callData.callerId, // 接听方的目标用户是呼叫方
+    offerSdp: callData.offerSdp
   })
 }
 export function setupIpcHandlers(icon: string): void {

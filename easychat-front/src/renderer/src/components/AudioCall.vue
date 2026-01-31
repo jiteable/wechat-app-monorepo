@@ -50,6 +50,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Phone, Close, PhoneFilled } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
+import WebRTCManager from '@/utils/webRTCManager'
 
 const route = useRoute()
 
@@ -61,68 +62,172 @@ const contactName = ref('')
 // 新增变量来区分发送方和接收方
 const isCaller = ref(false) // true表示发送方，false表示接收方
 const callId = ref(null) // 存储通话ID
+const webrtcManager = new WebRTCManager()
 
 // 发起通话请求
-const initiateCall = () => {
-  if (window.api && typeof window.api.sendMessage === 'function') {
-    console.log('window.contactData: ', window.contactData)
-    // 确保targetUserId有效
-    const targetUserId =
-      window.contactData?.targetUserId ||
-      window.contactData?.contactId ||
-      window.contactData?.callerInfo?.userId
+const initiateCall = async () => {
+  try {
+    // 获取本地音频流
+    await webrtcManager.getLocalStream({ audio: true, video: false })
 
-    if (!targetUserId) {
-      console.error('无法发起通话：缺少目标用户ID', window.contactData)
-      return
-    }
+    // 初始化PeerConnection
+    await webrtcManager.initializePeerConnection()
 
-    const callData = {
-      type: 'call_initiate',
-      data: {
-        targetUserId: targetUserId,
-        sessionId: sessionId.value,
-        callType: 'audio', // 或 'video'
-        callerInfo: window.contactData?.callerInfo || {}
+    // 创建Offer
+    const offer = await webrtcManager.createOffer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: false
+    })
+
+    if (window.api && typeof window.api.sendMessage === 'function') {
+      console.log('window.contactData: ', window.contactData)
+      // 确保targetUserId有效
+      const targetUserId =
+        window.contactData?.targetUserId ||
+        window.contactData?.contactId ||
+        window.contactData?.callerInfo?.userId
+
+      if (!targetUserId) {
+        console.error('无法发起通话：缺少目标用户ID', window.contactData)
+        return
       }
-    }
 
-    window.api.sendMessage(callData)
-    console.log('已发送通话发起请求:', callData)
-  } else {
-    console.error('window.api.sendMessage 方法不可用')
+      const callData = {
+        type: 'call_initiate',
+        data: {
+          targetUserId: targetUserId,
+          sessionId: sessionId.value,
+          callType: 'audio',
+          callerInfo: window.contactData?.callerInfo || {},
+          sdp: {
+            type: offer.type,
+            sdp: offer.sdp
+          }
+        }
+      }
+
+      window.api.sendMessage(callData)
+      console.log('已发送通话发起请求:', callData)
+    } else {
+      console.error('window.api.sendMessage 方法不可用')
+    }
+  } catch (error) {
+    console.error('发起通话失败:', error)
   }
 }
 
 // 接受通话
-const acceptCall = () => {
-  callStatus.value = '通话中...'
-  callStarted.value = true
+const acceptCall = async () => {
+  try {
+    console.log('开始接受通话，当前window.contactData:', window.contactData)
 
-  if (window.api && typeof window.api.sendMessage === 'function') {
-    const acceptData = {
-      type: 'call_accept',
-      data: {
-        callId: callId.value,
-        targetUserId:
-          window.contactData?.targetUserId ||
-          window.contactData?.contactId ||
-          window.contactData?.callerInfo?.userId ||
-          ''
-      }
+    // 获取本地音频流
+    await webrtcManager.getLocalStream({ audio: true, video: false })
+
+    // 初始化PeerConnection
+    await webrtcManager.initializePeerConnection()
+
+    // 首先设置远程Offer（这应该是从incoming_call消息中获得的）
+    if (window.contactData?.offerSdp) {
+      console.log('设置远程Offer:', window.contactData.offerSdp)
+      await webrtcManager.setRemoteDescription(window.contactData.offerSdp)
+      console.log('已设置远程Offer')
+    } else {
+      console.warn('没有找到远程Offer SDP')
+      console.log('window.contactData内容:', JSON.stringify(window.contactData, null, 2))
+      // 如果没有offer SDP，可能需要等待
+      throw new Error('缺少远程Offer SDP')
     }
 
-    window.api.sendMessage(acceptData)
-    console.log('已发送通话接受:', acceptData)
-  } else {
-    console.error('window.api.sendMessage 方法不可用')
+    // 创建Answer
+    const answer = await webrtcManager.createAnswer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: false
+    })
+
+    // 发送Answer给呼叫方
+    window.api.sendWebrtcAnswer({
+      targetUserId: window.contactData?.targetUserId || window.contactData?.contactId,
+      sdp: {
+        type: answer.type,
+        sdp: answer.sdp
+      },
+      callId: window.contactData?.callId,
+      sessionId: window.contactData?.sessionId
+    })
+
+    callStatus.value = '通话中'
+    callStarted.value = true
+
+    console.log('通话已接受，Answer已发送')
+  } catch (error) {
+    console.error('接受通话失败:', error)
   }
 }
 
+// 处理WebRTC信令消息
+const handleWebrtcOffer = async (data) => {
+  console.log('收到WebRTC Offer:', data)
+
+  try {
+    // 确保PeerConnection已初始化
+    if (!webrtcManager.getPeerConnection()) {
+      await webrtcManager.initializePeerConnection()
+      await webrtcManager.getLocalStream({ audio: true, video: false })
+    }
+
+    // 设置远程描述
+    await webrtcManager.setRemoteDescription(data.sdp)
+
+    // 创建Answer
+    const answer = await webrtcManager.createAnswer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: false
+    })
+
+    // 发送Answer给远端
+    window.api.sendWebrtcAnswer({
+      targetUserId: data.senderId,
+      sdp: answer,
+      callId: data.callId,
+      sessionId: data.sessionId
+    })
+
+    console.log('Answer已创建并发送')
+  } catch (error) {
+    console.error('处理WebRTC Offer失败:', error)
+  }
+}
+
+const handleWebrtcAnswer = async (data) => {
+  console.log('收到WebRTC Answer:', data)
+
+  try {
+    // 设置远程描述
+    await webrtcManager.setRemoteDescription(data.sdp)
+
+    // 通话已连接
+    callStatus.value = '通话中'
+    callStarted.value = true
+
+    console.log('通话已连接')
+  } catch (error) {
+    console.error('处理WebRTC Answer失败:', error)
+  }
+}
+const handleWebrtcIceCandidate = async (data) => {
+  console.log('收到ICE候选:', data)
+
+  try {
+    // 添加ICE候选
+    await webrtcManager.addIceCandidate(data.candidate)
+  } catch (error) {
+    console.error('处理ICE候选失败:', error)
+  }
+}
 // 拒绝通话
 const declineCall = () => {
   if (window.api && typeof window.api.sendMessage === 'function') {
-
     // 判断是接收方拒绝还是发起方取消
     let reason = ''
     if (window.contactData?.callerId) {
@@ -153,27 +258,34 @@ const declineCall = () => {
   }
 
   // 关闭窗口
-  // window.close()
+  window.close()
 }
 
 // 结束通话
-const endCall = () => {
-  if (window.api && typeof window.api.sendMessage === 'function') {
-    const endCallData = {
-      type: 'call_end',
-      data: {
-        callId: callId.value
+const endCall = async () => {
+  try {
+    // 关闭WebRTC连接
+    await webrtcManager.closeConnection()
+
+    if (window.api && typeof window.api.sendMessage === 'function') {
+      const endCallData = {
+        type: 'call_end',
+        data: {
+          callId: callId.value
+        }
       }
+
+      window.api.sendMessage(endCallData)
+      console.log('已发送通话结束:', endCallData)
+    } else {
+      console.error('window.api.sendMessage 方法不可用')
     }
 
-    window.api.sendMessage(endCallData)
-    console.log('已发送通话结束:', endCallData)
-  } else {
-    console.error('window.api.sendMessage 方法不可用')
+    // 关闭窗口
+    window.close()
+  } catch (error) {
+    console.error('结束通话失败:', error)
   }
-
-  // 关闭窗口
-  window.close()
 }
 
 // 处理接受通话
@@ -215,6 +327,31 @@ const setContactInfo = (sessionData) => {
 
 // 监听通话状态变化
 onMounted(() => {
+  // 设置远程流处理
+  webrtcManager.setOnRemoteTrack((event) => {
+    console.log('远程轨道到达:', event)
+    // 将远程流连接到audio元素
+    if (remoteAudioRef.value) {
+      remoteAudioRef.value.srcObject = event.streams[0]
+    }
+  })
+
+  // 设置ICE候选处理
+  webrtcManager.getPeerConnection()?.addEventListener('icecandidate', (event) => {
+    if (event.candidate) {
+      console.log('本地ICE候选生成:', event.candidate)
+      // 发送ICE候选给远端
+      if (window.contactData?.targetUserId && window.contactData?.callId) {
+        window.api.sendWebrtcIceCandidate({
+          targetUserId: window.contactData.targetUserId,
+          candidate: event.candidate,
+          callId: window.contactData.callId,
+          sessionId: window.contactData.sessionId
+        })
+      }
+    }
+  })
+
   // 初始化音频通话逻辑
   // 从多种来源获取sessionId，优先级：window.contactData > 路由参数
   let currentSessionId = ''
@@ -255,15 +392,19 @@ onMounted(() => {
         }, 100) // 延迟100毫秒
       }
     })
-  }
 
-  // 监听来自主进程的WebSocket消息
-  if (window.electron && window.electron.ipcRenderer) {
-    // 监听通话相关的信令消息
+    // 监听来自主进程的WebSocket消息
     window.electron.ipcRenderer.on('incoming-call', (event, data) => {
       console.log('收到incoming-call消息:', data)
-      if (!isCaller.value) {
-        // 只有接收方才处理这个
+      console.log('当前isCaller值:', isCaller.value)
+      console.log('当前window.contactData:', window.contactData)
+
+      // 更可靠的判断方式：检查是否有callerId来确定是否为接收方
+      const isReceiver = !!data.callerId
+      console.log('根据callerId判断是否为接收方:', isReceiver)
+
+      if (isReceiver) {
+        // 这是接收方
         callStatus.value = '响铃中...'
         callId.value = data.callId
 
@@ -274,6 +415,36 @@ onMounted(() => {
         if (data.callerAvatar) {
           avatar.value = data.callerAvatar
         }
+
+        // 存储Offer SDP（如果有的话）
+        if (data.offerSdp && data.offerSdp.sdp) {
+          window.contactData = window.contactData || {}
+          // 确保保存完整的contactData信息
+          Object.assign(window.contactData, {
+            contactName: data.callerName,
+            avatar: data.callerAvatar,
+            sessionId: data.sessionId,
+            callId: data.callId,
+            callerId: data.callerId,
+            callType: data.callType,
+            targetUserId: data.callerId,
+            offerSdp: {
+              type: data.offerSdp.type,
+              sdp: data.offerSdp.sdp
+            }
+          })
+
+          console.log('已存储远程Offer SDP:', {
+            type: data.offerSdp.type,
+            sdp_length: data.offerSdp.sdp.length
+          })
+          console.log('存储后的window.contactData:', window.contactData)
+        } else {
+          console.warn('收到的incoming-call消息中没有有效的offerSdp')
+          console.log('data.offerSdp值:', data.offerSdp)
+        }
+      } else {
+        console.log('忽略incoming-call消息，因为当前是发送方')
       }
     })
 
@@ -287,7 +458,7 @@ onMounted(() => {
 
     window.electron.ipcRenderer.on('call-accepted', (event, data) => {
       console.log('收到call-accepted消息:', data)
-      callStatus.value = '通话中...'
+      callStatus.value = '通话中'
       callStarted.value = true
       callId.value = data.callId
     })
@@ -315,6 +486,19 @@ onMounted(() => {
       console.log('收到call-failed消息:', data)
       callStatus.value = '通话失败: ' + (data.message || '')
       setTimeout(() => window.close(), 1000)
+    })
+
+    // 监听WebRTC信令消息
+    window.electron.ipcRenderer.on('webrtc-offer', (event, data) => {
+      handleWebrtcOffer(data)
+    })
+
+    window.electron.ipcRenderer.on('webrtc-answer', (event, data) => {
+      handleWebrtcAnswer(data)
+    })
+
+    window.electron.ipcRenderer.on('webrtc-ice-candidate', (event, data) => {
+      handleWebrtcIceCandidate(data)
     })
   }
 
@@ -407,7 +591,7 @@ onMounted(() => {
   }
 })
 
-onUnmounted(() => {
+onUnmounted(async () => {
   // 移除IPC监听器
   if (window.electron && window.electron.ipcRenderer) {
     window.electron.ipcRenderer.removeAllListeners('set-contact-data')
@@ -417,9 +601,19 @@ onUnmounted(() => {
     window.electron.ipcRenderer.removeAllListeners('call-rejected')
     window.electron.ipcRenderer.removeAllListeners('call-ended')
     window.electron.ipcRenderer.removeAllListeners('call-failed')
+
+    // 移除WebRTC信令监听器
+    window.electron.ipcRenderer.removeAllListeners('webrtc-offer')
+    window.electron.ipcRenderer.removeAllListeners('webrtc-answer')
+    window.electron.ipcRenderer.removeAllListeners('webrtc-ice-candidate')
   }
 
-  // 清理资源
+  // 清理WebRTC资源
+  try {
+    await webrtcManager.closeConnection()
+  } catch (error) {
+    console.error('清理WebRTC资源失败:', error)
+  }
 })
 </script>
 

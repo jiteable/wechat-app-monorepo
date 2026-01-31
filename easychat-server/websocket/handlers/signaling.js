@@ -59,6 +59,10 @@ function handleSignalingMessage(ws, data, clients) {
 
     default:
       console.log('Unknown signaling type:', type);
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Unknown signaling type'
+      }));
   }
 }
 
@@ -66,7 +70,7 @@ function handleSignalingMessage(ws, data, clients) {
  * 发起通话请求
  */
 function handleCallInitiate(ws, data, clients) {
-  const { targetUserId, sessionId, callType, callerInfo } = data.data;
+  const { targetUserId, sessionId, callType, callerInfo, sdp } = data.data;
 
   if (!targetUserId) {
     ws.send(JSON.stringify({
@@ -82,6 +86,7 @@ function handleCallInitiate(ws, data, clients) {
     sessionId,
     callType,
     callerInfo,
+    sdp: sdp ? { type: sdp.type, sdp: sdp.sdp ? sdp.sdp.substring(0, 100) + '...' : 'no sdp' } : 'no sdp object',
     fromUserId: ws.userId
   });
 
@@ -112,10 +117,11 @@ function handleCallInitiate(ws, data, clients) {
     callerId: ws.userId,
     calleeId: targetUserId,
     sessionId,
-    callType: callType || 'video', // 'audio' or 'video'
+    callType: callType || 'audio', // 'audio' or 'video'
     status: 'ringing',
     initiatedAt: new Date(),
-    participants: [ws.userId, targetUserId]
+    participants: [ws.userId, targetUserId],
+    offerSdp: sdp // 存储完整的SDP对象
   };
 
   activeCalls.set(callKey, callInfo);
@@ -131,8 +137,21 @@ function handleCallInitiate(ws, data, clients) {
     sessionId
   };
 
+  // 只有当SDP存在且有效时才添加
+  if (sdp && sdp.sdp) {
+    incomingCallMessage.offerSdp = {
+      type: sdp.type,
+      sdp: sdp.sdp
+    };
+  }
+
   // 打印将要发送给被叫方的消息内容
-  console.log('发送给被叫方的消息:', incomingCallMessage);
+  console.log('发送给被叫方的消息:', {
+    ...incomingCallMessage,
+    offerSdp: incomingCallMessage.offerSdp ?
+      { type: incomingCallMessage.offerSdp.type, sdp: incomingCallMessage.offerSdp.sdp.substring(0, 100) + '...' } :
+      'no offer sdp'
+  });
 
   // 发送通话请求到被叫方
   broadcastToUser(clients, targetUserId, incomingCallMessage);
@@ -156,7 +175,7 @@ function handleCallInitiate(ws, data, clients) {
  * 接受通话请求
  */
 function handleCallAccept(ws, data, clients) {
-  const { callId, targetUserId } = data;
+  const { callId, answerSdp } = data.data;
 
   // 查找通话记录
   let callInfo = null;
@@ -179,30 +198,39 @@ function handleCallAccept(ws, data, clients) {
   }
 
   // 检查是否是被叫方接受
-  if (ws.userId !== callInfo.calleeId) {
+  if (callInfo.calleeId !== ws.userId) {
     ws.send(JSON.stringify({
       type: 'error',
-      message: 'Only callee can accept the call'
+      message: 'Only callee can accept call'
     }));
     return;
   }
 
   // 更新通话状态
   callInfo.status = 'connected';
-  callInfo.acceptedAt = new Date();
+
+  if (answerSdp) {
+    callInfo.answerSdp = answerSdp;
+  }
 
   // 通知双方通话已建立
   broadcastToUser(clients, callInfo.callerId, {
     type: 'call_accepted',
-    callId: callInfo.id,
+    callId,
     targetUserId: ws.userId
   });
-
-  ws.send(JSON.stringify({
+  broadcastToUser(clients, callInfo.calleeId, {
     type: 'call_accepted',
-    callId: callInfo.id,
-    targetUserId: callInfo.callerId
+    callId,
+    targetUserId: ws.userId
+  })
+
+  // 通知发起方可以开始发送offer（如果之前没有发送的话）
+  ws.send(JSON.stringify({
+    type: 'call_accept_confirmed',
+    callId
   }));
+
 }
 
 /**
@@ -245,15 +273,6 @@ function handleCallReject(ws, data, clients) {
     rejectedBy: ws.userId,
     reason: reason
   });
-
-
-  // // 通知被叫方通话已拒绝
-  // ws.send(JSON.stringify({
-  //   type: 'call_rejected',
-  //   callId,
-  //   reason: 'rejected_by_callee'
-  // }));
-
 
   // 从活动通话中移除
   if (callKey) {
@@ -321,7 +340,7 @@ function handleCallEnd(ws, data, clients) {
  * 处理SDP Offer
  */
 function handleOffer(ws, data, clients) {
-  const { targetUserId, sessionId, sdp, callId } = data;
+  const { targetUserId, sessionId, sdp, callId } = data.data;
 
   if (!targetUserId) {
     ws.send(JSON.stringify({
@@ -339,6 +358,13 @@ function handleOffer(ws, data, clients) {
       message: 'Target user is offline'
     }));
     return;
+  }
+
+  for (const [key, call] of activeCalls.entries()) {
+    if (call.id === callId) {
+      call.offerSdp = sdp;
+      break;
+    }
   }
 
   // 发送offer到目标用户
@@ -375,6 +401,13 @@ function handleAnswer(ws, data, clients) {
     return;
   }
 
+  for (const [key, call] of activeCalls.entries()) {
+    if (call.id === callId) {
+      call.answerSdp = sdp;
+      break;
+    }
+  }
+
   // 发送answer到目标用户
   broadcastToUser(clients, targetUserId, {
     type: 'answer',
@@ -389,7 +422,7 @@ function handleAnswer(ws, data, clients) {
  * 处理ICE候选
  */
 function handleIceCandidate(ws, data, clients) {
-  const { targetUserId, sessionId, candidate, callId } = data;
+  const { targetUserId, sessionId, candidate, callId } = data.data;
 
   if (!targetUserId) {
     ws.send(JSON.stringify({
