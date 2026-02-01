@@ -1,4 +1,3 @@
-// 以下是 WebRTCManager 类的完整实现，包含在之前基础上的改进
 export interface WebRTCConfig {
   stunServerUrls?: string[]
   iceServers?: RTCIceServer[]
@@ -18,11 +17,7 @@ class WebRTCManager {
 
   constructor(config?: WebRTCConfig) {
     this.config = {
-      stunServerUrls: [
-        'stun:stun.l.google.com:19302',
-        'stun:stun1.l.google.com:19302',
-        'stun:stun2.l.google.com:19302'
-      ],
+      stunServerUrls: ['stun:stun.l.google.com:19302'],
       ...config
     }
   }
@@ -54,6 +49,8 @@ class WebRTCManager {
     }
 
     this.peerConnection = new RTCPeerConnection(configuration)
+
+    console.log('新的ICE候选: ')
 
     // 处理ICE候选
     this.peerConnection.onicecandidate = (event) => {

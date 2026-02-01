@@ -381,7 +381,7 @@ function handleOffer(ws, data, clients) {
  * 处理SDP Answer
  */
 function handleAnswer(ws, data, clients) {
-  const { targetUserId, sessionId, sdp, callId } = data;
+  const { targetUserId, sessionId, sdp, callId } = data.data;
 
   if (!targetUserId) {
     ws.send(JSON.stringify({

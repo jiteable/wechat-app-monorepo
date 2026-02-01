@@ -1069,6 +1069,9 @@ export function setupIpcHandlers(icon: string): void {
           if (audioCallWindow) {
             audioCallWindow.webContents.send('answer', data)
           }
+          if (audioCallWindow) {
+            audioCallWindow.webContents.send('webrtc-answer', data)
+          }
         },
         handleIceCandidate: (data) => {
           console.log('Received ice candidate (main process):', data)
