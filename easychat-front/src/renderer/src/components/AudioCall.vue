@@ -15,15 +15,34 @@
       </div>
     </div>
 
+    <!-- 隐藏的音频元素用于播放远程音频流 -->
+    <audio id="remoteAudio" ref="audioRef" autoplay playsinline style="display: none" />
+
+    <!-- 显示ICE连接状态 -->
+    <div class="connection-info">
+      <p>ICE状态: {{ iceConnectionState || '未连接' }}</p>
+      <p v-if="connectionStats">连接统计: {{ connectionStats }}</p>
+      <p>WebRTC状态: {{ webRtcStatus }}</p>
+    </div>
+
     <!-- 接收方的控制按钮 -->
     <div v-if="!isCaller" class="call-controls no-drag">
-      <button v-if="!callStarted" class="control-btn accept-btn" @click="handleAcceptCall">
+      <button
+        v-if="!callStarted"
+        class="control-btn accept-btn"
+        :disabled="isProcessingCall"
+        @click="handleAcceptCall"
+      >
         <el-icon>
           <Phone />
         </el-icon>
       </button>
 
-      <button class="control-btn decline-btn" @click="handleDeclineCall">
+      <button
+        class="control-btn decline-btn"
+        :disabled="isProcessingCall"
+        @click="handleDeclineCall"
+      >
         <el-icon>
           <Close />
         </el-icon>
@@ -32,12 +51,22 @@
 
     <!-- 发送方的控制按钮 - 显示拒绝按钮，通话开始后显示结束按钮 -->
     <div v-else class="call-controls no-drag">
-      <button v-if="!callStarted" class="control-btn decline-btn" @click="handleDeclineCall">
+      <button
+        v-if="!callStarted"
+        class="control-btn decline-btn"
+        :disabled="isProcessingCall"
+        @click="handleDeclineCall"
+      >
         <el-icon>
           <Close />
         </el-icon>
       </button>
-      <button v-else class="control-btn decline-btn" @click="handleEndCall">
+      <button
+        v-else
+        class="control-btn decline-btn"
+        :disabled="isProcessingCall"
+        @click="handleEndCall"
+      >
         <el-icon>
           <PhoneFilled />
         </el-icon>
@@ -47,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Phone, Close, PhoneFilled } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 import WebRTCManager from '@/utils/webRTCManager'
@@ -62,22 +91,89 @@ const contactName = ref('')
 // 新增变量来区分发送方和接收方
 const isCaller = ref(false) // true表示发送方，false表示接收方
 const callId = ref(null) // 存储通话ID
+const isProcessingCall = ref(false) // 标记是否正在处理通话相关操作
+const iceConnectionState = ref('') // ICE连接状态
+const connectionStats = ref('') // 连接统计信息
+const webRtcStatus = ref('初始化') // WebRTC整体状态
+
+// 添加对远程音频元素的引用
+const audioRef = ref(null)
+
+// 创建WebRTCManager实例时配置多个STUN服务器
 const webrtcManager = new WebRTCManager()
+
+// 监听ICE连接状态变化
+watch(
+  () => webrtcManager.getIceConnectionState(),
+  (newState) => {
+    iceConnectionState.value = newState
+    console.log('ICE连接状态更新:', newState)
+
+    // 更新整体状态
+    if (newState === 'connected') {
+      webRtcStatus.value = '已连接'
+    } else if (newState === 'failed') {
+      webRtcStatus.value = '连接失败'
+      callStatus.value = '连接失败，请检查网络'
+      // 尝试重启ICE
+      webrtcManager.restartIce()
+    } else if (newState === 'checking') {
+      webRtcStatus.value = '正在连接'
+    } else if (newState === 'disconnected') {
+      webRtcStatus.value = '已断开'
+    } else {
+      webRtcStatus.value = `ICE: ${newState}`
+    }
+  }
+)
+
+// 监听连接状态变化
+watch(
+  () => webrtcManager.getConnectionState(),
+  (newState) => {
+    console.log('WebRTC连接状态更新:', newState)
+    if (newState === 'connected') {
+      webRtcStatus.value = '已连接'
+    } else if (newState === 'failed') {
+      webRtcStatus.value = '连接失败 - 可能是网络问题'
+      callStatus.value = '连接失败，请检查网络设置'
+      // 尝试重启连接或使用备用方案
+      webrtcManager.restartIce()
+    } else if (newState === 'connecting') {
+      webRtcStatus.value = '正在连接'
+    } else if (newState === 'disconnected') {
+      webRtcStatus.value = '已断开'
+    }
+  }
+)
+
+// 定期获取连接统计信息
+let statsInterval = null
 
 // 发起通话请求
 const initiateCall = async () => {
+  isProcessingCall.value = true
+  webRtcStatus.value = '正在发起通话'
+
   try {
-    // 获取本地音频流
-    await webrtcManager.getLocalStream({ audio: true, video: false })
+    console.log('开始获取本地音视频流...')
 
-    // 初始化PeerConnection
+    // 先初始化PeerConnection，再获取本地流
+    console.log('开始初始化PeerConnection...')
     await webrtcManager.initializePeerConnection()
+    console.log('PeerConnection初始化成功')
 
+    // 获取本地音频流 - 现在PeerConnection已经存在，轨道会被正确添加
+    await webrtcManager.getLocalStream({ audio: true, video: false })
+    console.log('本地音视频流获取成功')
+
+    console.log('开始创建Offer...')
     // 创建Offer
     const offer = await webrtcManager.createOffer({
       offerToReceiveAudio: true,
       offerToReceiveVideo: false
     })
+    console.log('Offer创建成功:', offer)
 
     if (window.api && typeof window.api.sendMessage === 'function') {
       console.log('window.contactData: ', window.contactData)
@@ -113,19 +209,28 @@ const initiateCall = async () => {
     }
   } catch (error) {
     console.error('发起通话失败:', error)
+    callStatus.value = `发起通话失败: ${error.message}`
+    webRtcStatus.value = '发起失败'
+  } finally {
+    isProcessingCall.value = false
   }
 }
 
 // 接受通话
 const acceptCall = async () => {
+  isProcessingCall.value = true
+  webRtcStatus.value = '正在接受通话'
+
   try {
     console.log('开始接受通话，当前window.contactData:', window.contactData)
 
-    // 获取本地音频流
-    await webrtcManager.getLocalStream({ audio: true, video: false })
-
-    // 初始化PeerConnection
+    // 先初始化PeerConnection，再获取本地流
     await webrtcManager.initializePeerConnection()
+    console.log('PeerConnection初始化成功')
+
+    // 获取本地音频流 - 现在PeerConnection已经存在，轨道会被正确添加
+    await webrtcManager.getLocalStream({ audio: true, video: false })
+    console.log('本地音频流获取成功')
 
     // 首先设置远程Offer（这应该是从incoming_call消息中获得的）
     if (window.contactData?.offerSdp) {
@@ -144,6 +249,7 @@ const acceptCall = async () => {
       offerToReceiveAudio: true,
       offerToReceiveVideo: false
     })
+    console.log('Answer创建成功:', answer)
 
     // 发送Answer给呼叫方
     window.api.sendWebrtcAnswer({
@@ -162,6 +268,10 @@ const acceptCall = async () => {
     console.log('通话已接受，Answer已发送')
   } catch (error) {
     console.error('接受通话失败:', error)
+    callStatus.value = `接受通话失败: ${error.message}`
+    webRtcStatus.value = '接受失败'
+  } finally {
+    isProcessingCall.value = false
   }
 }
 
@@ -173,6 +283,7 @@ const handleWebrtcOffer = async (data) => {
     // 确保PeerConnection已初始化
     if (!webrtcManager.getPeerConnection()) {
       await webrtcManager.initializePeerConnection()
+      // 在PeerConnection初始化后再获取本地流
       await webrtcManager.getLocalStream({ audio: true, video: false })
     }
 
@@ -227,6 +338,8 @@ const handleWebrtcIceCandidate = async (data) => {
 }
 // 拒绝通话
 const declineCall = () => {
+  isProcessingCall.value = true
+
   if (window.api && typeof window.api.sendMessage === 'function') {
     // 判断是接收方拒绝还是发起方取消
     let reason = ''
@@ -258,11 +371,16 @@ const declineCall = () => {
   }
 
   // 关闭窗口
-  window.close()
+  setTimeout(() => {
+    window.close()
+    isProcessingCall.value = false
+  }, 500)
 }
 
 // 结束通话
 const endCall = async () => {
+  isProcessingCall.value = true
+
   try {
     // 关闭WebRTC连接
     await webrtcManager.closeConnection()
@@ -282,9 +400,16 @@ const endCall = async () => {
     }
 
     // 关闭窗口
-    window.close()
+    setTimeout(() => {
+      window.close()
+      isProcessingCall.value = false
+    }, 500)
   } catch (error) {
     console.error('结束通话失败:', error)
+    setTimeout(() => {
+      window.close()
+      isProcessingCall.value = false
+    }, 500)
   }
 }
 
@@ -325,32 +450,75 @@ const setContactInfo = (sessionData) => {
   }
 }
 
+// 获取连接统计信息
+const updateConnectionStats = async () => {
+  const pc = webrtcManager.getPeerConnection()
+  if (pc) {
+    try {
+      const stats = await pc.getStats()
+      const statsInfo = []
+      stats.forEach((report) => {
+        if (report.type === 'candidate-pair' && report.state === 'failed') {
+          statsInfo.push(`连接失败: ${report.localCandidateId} -> ${report.remoteCandidateId}`)
+        } else if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          statsInfo.push(`连接成功: ${report.localCandidateId} -> ${report.remoteCandidateId}`)
+        } else if (report.type === 'transport') {
+          statsInfo.push(`传输统计: 发送${report.bytesSent}, 接收${report.bytesReceived}`)
+        }
+      })
+      if (statsInfo.length > 0) {
+        connectionStats.value = statsInfo.join('; ')
+      }
+    } catch (error) {
+      console.error('获取统计信息失败:', error)
+    }
+  }
+}
+
 // 监听通话状态变化
 onMounted(() => {
   // 设置远程流处理
   webrtcManager.setOnRemoteTrack((event) => {
     console.log('远程轨道到达:', event)
-    // 将远程流连接到audio元素
-    if (remoteAudioRef.value) {
-      remoteAudioRef.value.srcObject = event.streams[0]
-    }
-  })
+    // 检查是否为音频轨道
+    if (event.track.kind === 'audio') {
+      console.log('检测到远程音频轨道:', event.track)
+      // 获取远程音频流
+      const remoteStream = new MediaStream([event.track])
 
-  // 设置ICE候选处理
-  webrtcManager.getPeerConnection()?.addEventListener('icecandidate', (event) => {
-    if (event.candidate) {
-      console.log('本地ICE候选生成:', event.candidate)
-      // 发送ICE候选给远端
-      if (window.contactData?.targetUserId && window.contactData?.callId) {
-        window.api.sendWebrtcIceCandidate({
-          targetUserId: window.contactData.targetUserId,
-          candidate: event.candidate,
-          callId: window.contactData.callId,
-          sessionId: window.contactData.sessionId
+      // 将远程音频流分配给音频元素
+      if (audioRef.value) {
+        audioRef.value.srcObject = remoteStream
+        audioRef.value.play().catch((error) => {
+          console.error('播放远程音频失败:', error)
         })
       }
     }
   })
+
+  // 设置ICE候选处理
+  const pc = webrtcManager.getPeerConnection()
+  if (pc) {
+    pc.addEventListener('icecandidate', (event) => {
+      if (event.candidate) {
+        console.log('本地ICE候选生成:', event.candidate)
+        // 发送ICE候选给远端
+        if (window.contactData?.targetUserId && window.contactData?.callId) {
+          window.api.sendWebrtcIceCandidate({
+            targetUserId: window.contactData.targetUserId,
+            candidate: event.candidate,
+            callId: window.contactData.callId,
+            sessionId: window.contactData.sessionId
+          })
+        }
+      } else {
+        console.log('所有本地ICE候选已收集')
+      }
+    })
+  }
+
+  // 启动定期统计信息更新
+  statsInterval = setInterval(updateConnectionStats, 2000)
 
   // 初始化音频通话逻辑
   // 从多种来源获取sessionId，优先级：window.contactData > 路由参数
@@ -592,6 +760,11 @@ onMounted(() => {
 })
 
 onUnmounted(async () => {
+  // 清理统计信息更新定时器
+  if (statsInterval) {
+    clearInterval(statsInterval)
+  }
+
   // 移除IPC监听器
   if (window.electron && window.electron.ipcRenderer) {
     window.electron.ipcRenderer.removeAllListeners('set-contact-data')
@@ -678,6 +851,13 @@ onUnmounted(async () => {
   margin: 0;
 }
 
+.connection-info {
+  text-align: center;
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+}
+
 .call-controls {
   display: flex;
   justify-content: center;
@@ -707,6 +887,11 @@ onUnmounted(async () => {
 
 .control-btn:hover {
   transform: scale(1.1);
+}
+
+.control-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .accept-btn {
