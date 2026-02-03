@@ -156,22 +156,20 @@ const initiateCall = async () => {
   webRtcStatus.value = '正在发起通话'
 
   try {
-    console.log('开始获取本地音视频流...')
-
-    // 先初始化PeerConnection，再获取本地流
     console.log('开始初始化PeerConnection...')
     await webrtcManager.initializePeerConnection()
     console.log('PeerConnection初始化成功')
 
-    // 获取本地音频流 - 现在PeerConnection已经存在，轨道会被正确添加
+    // 发送方也需要获取本地音频流以进行双向通话
+    console.log('发送方模式：获取本地音视频流...')
     await webrtcManager.getLocalStream({ audio: true, video: false })
     console.log('本地音视频流获取成功')
 
     console.log('开始创建Offer...')
-    // 创建Offer
+    // 创建Offer - 指定发送音频并接收音频
     const offer = await webrtcManager.createOffer({
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: false
+      offerToReceiveAudio: true, // 允许接收音频
+      offerToReceiveVideo: false // 不接收视频
     })
     console.log('Offer创建成功:', offer)
 
@@ -330,8 +328,18 @@ const handleWebrtcIceCandidate = async (data) => {
   console.log('收到ICE候选:', data)
 
   try {
+    // 将接收到的数据转换为RTCIceCandidateInit对象
+    const candidateInit = {
+      candidate: data.candidate.candidate || data.candidate, // 处理两种可能的数据格式
+      sdpMid: data.candidate.sdpMid,
+      sdpMLineIndex: data.candidate.sdpMLineIndex,
+      usernameFragment: data.candidate.usernameFragment
+    }
+
+    console.log('转换后的ICE候选:', candidateInit)
+
     // 添加ICE候选
-    await webrtcManager.addIceCandidate(data.candidate)
+    await webrtcManager.addIceCandidate(candidateInit)
   } catch (error) {
     console.error('处理ICE候选失败:', error)
   }
@@ -483,39 +491,59 @@ onMounted(() => {
     // 检查是否为音频轨道
     if (event.track.kind === 'audio') {
       console.log('检测到远程音频轨道:', event.track)
-      // 获取远程音频流
-      const remoteStream = new MediaStream([event.track])
+      console.log('音频轨道是否启用:', event.track.enabled)
+      console.log('音频轨道是否活跃:', event.track.readyState === 'live')
+
+      // 获取远程音频流 - 使用event.streams[0]而不是创建新的MediaStream
+      let remoteStream
+      if (event.streams && event.streams.length > 0) {
+        // 如果event包含streams数组，使用第一个流
+        remoteStream = event.streams[0]
+        console.log('使用event.streams[0]作为远程音频流')
+      } else {
+        // 否则创建一个新的MediaStream并添加轨道
+        remoteStream = new MediaStream([event.track])
+        console.log('创建新的MediaStream包含音频轨道')
+      }
 
       // 将远程音频流分配给音频元素
       if (audioRef.value) {
+        console.log('音频元素引用存在，准备设置srcObject')
         audioRef.value.srcObject = remoteStream
-        audioRef.value.play().catch((error) => {
-          console.error('播放远程音频失败:', error)
-        })
+
+        // 检查浏览器是否允许自动播放
+        const playPromise = audioRef.value.play()
+        playPromise
+          .then(() => {
+            console.log('远程音频播放成功')
+
+            // 额外的日志记录音频元素的状态
+            console.log('音频元素音量:', audioRef.value.volume)
+            console.log('音频元素静音状态:', audioRef.value.muted)
+            console.log('音频元素暂停状态:', audioRef.value.paused)
+          })
+          .catch((error) => {
+            console.error('播放远程音频失败:', error)
+          })
+      } else {
+        console.error('音频元素引用不存在')
       }
     }
   })
 
-  // 设置ICE候选处理
-  const pc = webrtcManager.getPeerConnection()
-  if (pc) {
-    pc.addEventListener('icecandidate', (event) => {
-      if (event.candidate) {
-        console.log('本地ICE候选生成:', event.candidate)
-        // 发送ICE候选给远端
-        if (window.contactData?.targetUserId && window.contactData?.callId) {
-          window.api.sendWebrtcIceCandidate({
-            targetUserId: window.contactData.targetUserId,
-            candidate: event.candidate,
-            callId: window.contactData.callId,
-            sessionId: window.contactData.sessionId
-          })
-        }
-      } else {
-        console.log('所有本地ICE候选已收集')
-      }
-    })
-  }
+  // 设置ICE候选处理 - 通过WebRTCManager的回调实现
+  webrtcManager.setOnIceCandidate((candidate) => {
+    console.log('本地ICE候选生成:', candidate)
+    // 发送ICE候选给远端
+    if (window.contactData?.targetUserId && window.contactData?.callId) {
+      window.api.sendWebrtcIceCandidate({
+        targetUserId: window.contactData.targetUserId,
+        candidate: candidate,
+        callId: window.contactData.callId,
+        sessionId: window.contactData.sessionId
+      })
+    }
+  })
 
   // 启动定期统计信息更新
   statsInterval = setInterval(updateConnectionStats, 2000)
@@ -665,8 +693,9 @@ onMounted(() => {
       handleWebrtcAnswer(data)
     })
 
-    window.electron.ipcRenderer.on('webrtc-ice-candidate', (event, data) => {
-      handleWebrtcIceCandidate(data)
+    window.electron.ipcRenderer.on('ice-candidate', (event, data) => {
+      console.log('收到ICE候选:', data)
+      handleWebrtcIceCandidate(data) // 复用现有的处理函数
     })
   }
 
@@ -778,7 +807,7 @@ onUnmounted(async () => {
     // 移除WebRTC信令监听器
     window.electron.ipcRenderer.removeAllListeners('webrtc-offer')
     window.electron.ipcRenderer.removeAllListeners('webrtc-answer')
-    window.electron.ipcRenderer.removeAllListeners('webrtc-ice-candidate')
+    window.electron.ipcRenderer.removeAllListeners('ice-candidate')
   }
 
   // 清理WebRTC资源

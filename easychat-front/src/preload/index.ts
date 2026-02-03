@@ -216,10 +216,6 @@ const api = {
     ipcRenderer.on('webrtc-answer', (_, data) => callback(data))
     return () => ipcRenderer.removeListener('webrtc-answer', callback)
   },
-  onWebrtcIceCandidate: (callback: (data: any) => void) => {
-    ipcRenderer.on('webrtc-ice-candidate', (_, data) => callback(data))
-    return () => ipcRenderer.removeListener('webrtc-ice-candidate', callback)
-  },
   sendWebrtcOffer: (data: any) => ipcRenderer.invoke('send-webrtc-offer', data),
   sendWebrtcAnswer: (data: any) => ipcRenderer.invoke('send-webrtc-answer', data),
   sendWebrtcIceCandidate: (data: any) => ipcRenderer.invoke('send-webrtc-ice-candidate', data),

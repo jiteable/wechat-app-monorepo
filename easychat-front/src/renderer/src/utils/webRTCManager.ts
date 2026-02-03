@@ -1,6 +1,7 @@
 export interface WebRTCConfig {
   stunServerUrls?: string[]
   iceServers?: RTCIceServer[]
+  onIceCandidate?: (candidate: RTCIceCandidate) => void // 添加ICE候选回调接口
 }
 
 export interface CallOptions {
@@ -14,6 +15,7 @@ class WebRTCManager {
   private localStream: MediaStream | null = null
   private config: WebRTCConfig
   private onRemoteTrackCallback: ((event: RTCTrackEvent) => void) | null = null
+  private onIceCandidateCallback: ((candidate: RTCIceCandidate) => void) | null = null // 添加ICE候选回调
 
   constructor(config?: WebRTCConfig) {
     this.config = {
@@ -26,6 +28,11 @@ class WebRTCManager {
   // 设置远程轨道回调
   public setOnRemoteTrack(callback: (event: RTCTrackEvent) => void) {
     this.onRemoteTrackCallback = callback
+  }
+
+  // 设置ICE候选回调
+  public setOnIceCandidate(callback: (candidate: RTCIceCandidate) => void) {
+    this.onIceCandidateCallback = callback
   }
 
   // 初始化PeerConnection
@@ -65,6 +72,20 @@ class WebRTCManager {
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         console.log('新的ICE候选:', event.candidate)
+
+        // 调用外部设置的ICE候选回调，确保传递可序列化的数据
+        if (this.onIceCandidateCallback) {
+          // 将RTCIceCandidate转换为可序列化的对象
+          const serializableCandidate = {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex,
+            usernameFragment: event.candidate.usernameFragment
+          }
+          console.log('序列化后的ICE候选:', serializableCandidate)
+          this.onIceCandidateCallback(serializableCandidate)
+        }
+
         // 检查候选类型，优先使用srflx和relay类型的候选
         if (event.candidate.candidate) {
           if (
@@ -78,6 +99,7 @@ class WebRTCManager {
         }
       } else {
         console.log('所有ICE候选收集完毕')
+        // 不发送空的候选，仅记录状态
       }
     }
 
@@ -210,6 +232,8 @@ class WebRTCManager {
       }
     )
 
+    console.log('this.peerConnection: ', this.peerConnection)
+
     console.log('Offer创建成功，正在设置本地描述...')
     await this.peerConnection.setLocalDescription(offer)
     console.log('本地描述设置成功')
@@ -224,7 +248,9 @@ class WebRTCManager {
     }
 
     console.log('正在创建Answer...')
+    console.log('createAnswer options: ', options)
     const answer = await this.peerConnection.createAnswer(options || {})
+    console.log('createAnswer options: ', answer)
 
     console.log('Answer创建成功，正在设置本地描述...')
     await this.peerConnection.setLocalDescription(answer)

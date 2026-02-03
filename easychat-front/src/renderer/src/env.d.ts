@@ -127,7 +127,6 @@ interface Window {
     onCallEnded: (callback: (data: any) => void) => () => void
     onWebrtcOffer: (callback: (data: any) => void) => () => void
     onWebrtcAnswer: (callback: (data: any) => void) => () => void
-    onWebrtcIceCandidate: (callback: (data: any) => void) => () => void
     sendWebrtcOffer: (data: any) => void
     sendWebrtcAnswer: (data: any) => void
     sendWebrtcIceCandidate: (data: any) => void
