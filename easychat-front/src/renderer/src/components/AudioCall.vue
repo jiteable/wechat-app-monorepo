@@ -102,6 +102,9 @@ const audioRef = ref(null)
 // 创建WebRTCManager实例时配置多个STUN服务器
 const webrtcManager = new WebRTCManager()
 
+// 存储待发送的ICE候选，直到获得callId后批量发送
+let pendingIceCandidates = []
+
 // 监听ICE连接状态变化
 watch(
   () => webrtcManager.getIceConnectionState(),
@@ -165,6 +168,26 @@ const initiateCall = async () => {
     await webrtcManager.getLocalStream({ audio: true, video: false })
     console.log('本地音视频流获取成功')
 
+    // 在创建Offer前，先设置ICE候选处理，但暂时缓存候选
+    console.log('设置ICE候选处理...')
+    webrtcManager.setOnIceCandidate((candidate) => {
+      console.log('本地ICE候选生成:', candidate)
+
+      // 如果已经获得了callId，则直接发送；否则暂存
+      if (window.contactData?.targetUserId && window.contactData?.callId) {
+        window.api.sendWebrtcIceCandidate({
+          targetUserId: window.contactData.targetUserId,
+          candidate: candidate,
+          callId: window.contactData.callId,
+          sessionId: window.contactData.sessionId
+        })
+      } else {
+        // 暂存ICE候选，等待callId
+        pendingIceCandidates.push(candidate)
+        console.log('暂存ICE候选，等待callId:', candidate)
+      }
+    })
+
     console.log('开始创建Offer...')
     // 创建Offer - 指定发送音频并接收音频
     const offer = await webrtcManager.createOffer({
@@ -200,6 +223,7 @@ const initiateCall = async () => {
         }
       }
 
+      // 发送通话请求
       window.api.sendMessage(callData)
       console.log('已发送通话发起请求:', callData)
     } else {
@@ -211,6 +235,28 @@ const initiateCall = async () => {
     webRtcStatus.value = '发起失败'
   } finally {
     isProcessingCall.value = false
+  }
+}
+
+const sendPendingIceCandidates = () => {
+  if (
+    pendingIceCandidates.length > 0 &&
+    window.contactData?.targetUserId &&
+    window.contactData?.callId
+  ) {
+    console.log('发送暂存的', pendingIceCandidates.length, '个ICE候选')
+
+    pendingIceCandidates.forEach((candidate) => {
+      window.api.sendWebrtcIceCandidate({
+        targetUserId: window.contactData.targetUserId,
+        candidate: candidate,
+        callId: window.contactData.callId,
+        sessionId: window.contactData.sessionId
+      })
+    })
+
+    // 清空暂存的候选
+    pendingIceCandidates = []
   }
 }
 
@@ -542,6 +588,12 @@ onMounted(() => {
         callId: window.contactData.callId,
         sessionId: window.contactData.sessionId
       })
+    } else {
+      console.warn('无法发送ICE候选：缺少targetUserId或callId', {
+        targetUserId: window.contactData?.targetUserId,
+        callId: window.contactData?.callId,
+        sessionId: window.contactData?.sessionId
+      })
     }
   })
 
@@ -568,25 +620,20 @@ onMounted(() => {
   console.log('AudioCall.vue中从路由参数获取的sessionId:', sessionId.value)
 
   if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.invoke('set-contact-data').then((contactData) => {
-      console.log('接收到主进程发送的contactData:', contactData)
-      window.contactData = contactData
-      callId.value = contactData.callId
-      isCaller.value = contactData.callerId ? false : true
-      console.log('isCaller: ', isCaller.value)
-      // 更新sessionId（如果之前没有获取到）
-      if (!sessionId.value && (contactData.sessionId || contactData.id)) {
-        sessionId.value = contactData.sessionId || contactData.id
-      }
-      setContactInfo(contactData)
+    // 首先注册所有必要的监听器，然后再处理初始数据
+    // 注册ICE候选监听器，确保在任何ICE候选消息到达时都能被处理
+    window.electron.ipcRenderer.on('ice-candidate', (event, data) => {
+      console.log('收到ICE候选:', data)
+      handleWebrtcIceCandidate(data) // 复用现有的处理函数
+    })
 
-      // 如果是发送方，在收到contactData后发起通话
-      if (isCaller.value) {
-        // 延迟一点时间再发起通话，确保数据完全加载
-        setTimeout(() => {
-          initiateCall()
-        }, 100) // 延迟100毫秒
-      }
+    // 监听其他WebRTC信令消息
+    window.electron.ipcRenderer.on('webrtc-offer', (event, data) => {
+      handleWebrtcOffer(data)
+    })
+
+    window.electron.ipcRenderer.on('webrtc-answer', (event, data) => {
+      handleWebrtcAnswer(data)
     })
 
     // 监听来自主进程的WebSocket消息
@@ -649,6 +696,14 @@ onMounted(() => {
       if (isCaller.value) {
         callStatus.value = '正在等待接听...'
         callId.value = data.callId
+
+        // 将callId添加到window.contactData中
+        if (window.contactData) {
+          window.contactData.callId = data.callId
+        }
+
+        // 如果有待发送的ICE候选，立即发送
+        sendPendingIceCandidates()
       }
     })
 
@@ -684,18 +739,26 @@ onMounted(() => {
       setTimeout(() => window.close(), 1000)
     })
 
-    // 监听WebRTC信令消息
-    window.electron.ipcRenderer.on('webrtc-offer', (event, data) => {
-      handleWebrtcOffer(data)
-    })
+    // 获取联系人数据并继续处理
+    window.electron.ipcRenderer.invoke('set-contact-data').then((contactData) => {
+      console.log('接收到主进程发送的contactData:', contactData)
+      window.contactData = contactData
+      callId.value = contactData.callId
+      isCaller.value = contactData.callerId ? false : true
+      console.log('isCaller: ', isCaller.value)
+      // 更新sessionId（如果之前没有获取到）
+      if (!sessionId.value && (contactData.sessionId || contactData.id)) {
+        sessionId.value = contactData.sessionId || contactData.id
+      }
+      setContactInfo(contactData)
 
-    window.electron.ipcRenderer.on('webrtc-answer', (event, data) => {
-      handleWebrtcAnswer(data)
-    })
-
-    window.electron.ipcRenderer.on('ice-candidate', (event, data) => {
-      console.log('收到ICE候选:', data)
-      handleWebrtcIceCandidate(data) // 复用现有的处理函数
+      // 如果是发送方，在收到contactData后发起通话
+      if (isCaller.value) {
+        // 延迟一点时间再发起通话，确保数据完全加载
+        setTimeout(() => {
+          initiateCall()
+        }, 100) // 延迟100毫秒
+      }
     })
   }
 
