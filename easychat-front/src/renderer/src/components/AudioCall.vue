@@ -265,7 +265,7 @@ const handleStoredIceCandidates = () => {
   if (window.electron && window.electron.ipcRenderer) {
     window.electron.ipcRenderer.invoke('get-stored-ice-candidates').then((storedCandidates) => {
       if (storedCandidates && storedCandidates.length > 0) {
-        console.log('处理暂存的', storedCandidates.length, '个ICE候选')
+        console.log('处理暂存的123', storedCandidates.length, '个ICE候选')
         storedCandidates.forEach((candidate) => {
           handleWebrtcIceCandidate(candidate)
         })
@@ -460,7 +460,7 @@ const declineCall = () => {
 
   // 关闭窗口
   setTimeout(() => {
-    window.close()
+    window.api.closeAudioCallWindow()
     isProcessingCall.value = false
   }, 500)
 }
@@ -489,13 +489,13 @@ const endCall = async () => {
 
     // 关闭窗口
     setTimeout(() => {
-      window.close()
+      window.api.closeAudioCallWindow()
       isProcessingCall.value = false
     }, 500)
   } catch (error) {
     console.error('结束通话失败:', error)
     setTimeout(() => {
-      window.close()
+      window.api.closeAudioCallWindow()
       isProcessingCall.value = false
     }, 500)
   }
@@ -758,19 +758,19 @@ onMounted(() => {
         callStatus.value = '通话被拒绝' // 接收方拒绝了通话
       }
 
-      // setTimeout(() => window.close(), 1000)
+      // setTimeout(() => window.api.closeAudioCallWindow(), 1000)
     })
 
     window.electron.ipcRenderer.on('call-ended', (event, data) => {
       console.log('收到call-ended消息:', data)
       callStatus.value = '通话已结束'
-      setTimeout(() => window.close(), 1000)
+      setTimeout(() => window.api.closeAudioCallWindow(), 1000)
     })
 
     window.electron.ipcRenderer.on('call-failed', (event, data) => {
       console.log('收到call-failed消息:', data)
       callStatus.value = '通话失败: ' + (data.message || '')
-      setTimeout(() => window.close(), 1000)
+      setTimeout(() => window.api.closeAudioCallWindow(), 1000)
     })
 
     // 获取联系人数据并继续处理
@@ -917,6 +917,11 @@ onUnmounted(async () => {
     await webrtcManager.closeConnection()
   } catch (error) {
     console.error('清理WebRTC资源失败:', error)
+  }
+
+  // 关闭音频通话窗口
+  if (window.api && typeof window.api.closeAudioCallWindow === 'function') {
+    window.api.closeAudioCallWindow()
   }
 })
 </script>

@@ -1588,6 +1588,7 @@ export function setupIpcHandlers(icon: string): void {
   })
   ipcMain.on('close-audio-call-window', () => {
     if (audioCallWindow) {
+      storedIceCandidates = []
       audioCallWindow.close()
       audioCallWindow = null
     }
