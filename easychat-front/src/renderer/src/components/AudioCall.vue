@@ -247,6 +247,7 @@ const sendPendingIceCandidates = () => {
     console.log('发送暂存的', pendingIceCandidates.length, '个ICE候选')
 
     pendingIceCandidates.forEach((candidate) => {
+      console.log('candidate: ', candidate)
       window.api.sendWebrtcIceCandidate({
         targetUserId: window.contactData.targetUserId,
         candidate: candidate,
@@ -257,6 +258,19 @@ const sendPendingIceCandidates = () => {
 
     // 清空暂存的候选
     pendingIceCandidates = []
+  }
+}
+
+const handleStoredIceCandidates = () => {
+  if (window.electron && window.electron.ipcRenderer) {
+    window.electron.ipcRenderer.invoke('get-stored-ice-candidates').then((storedCandidates) => {
+      if (storedCandidates && storedCandidates.length > 0) {
+        console.log('处理暂存的', storedCandidates.length, '个ICE候选')
+        storedCandidates.forEach((candidate) => {
+          handleWebrtcIceCandidate(candidate)
+        })
+      }
+    })
   }
 }
 
@@ -284,8 +298,20 @@ const acceptCall = async () => {
     } else {
       console.warn('没有找到远程Offer SDP')
       console.log('window.contactData内容:', JSON.stringify(window.contactData, null, 2))
-      // 如果没有offer SDP，可能需要等待
       throw new Error('缺少远程Offer SDP')
+    }
+
+    // 在接受通话时，处理所有暂存的ICE候选
+    if (pendingIceCandidates.length > 0) {
+      console.log('处理暂存的', pendingIceCandidates.length, '个ICE候选')
+
+      for (const candidate of pendingIceCandidates) {
+        await handleWebrtcIceCandidate(candidate)
+      }
+
+      // 清空暂存的候选
+      pendingIceCandidates = []
+      console.log('暂存的ICE候选已全部处理')
     }
 
     // 创建Answer
@@ -319,6 +345,34 @@ const acceptCall = async () => {
   }
 }
 
+const handleWebrtcIceCandidate = async (data) => {
+  console.log('收到ICE候选:', data)
+
+  try {
+    // 检查PeerConnection是否已初始化
+    if (!webrtcManager.getPeerConnection()) {
+      // 如果PeerConnection未初始化，将ICE候选暂存起来
+      pendingIceCandidates.push(data)
+      console.log('PeerConnection未初始化，暂存ICE候选，当前暂存数量:', pendingIceCandidates.length)
+      return
+    }
+
+    // 将接收到的数据转换为RTCIceCandidateInit对象
+    const candidateInit = {
+      candidate: data.candidate.candidate || data.candidate, // 处理两种可能的数据格式
+      sdpMid: data.candidate.sdpMid,
+      sdpMLineIndex: data.candidate.sdpMLineIndex,
+      usernameFragment: data.candidate.usernameFragment
+    }
+
+    console.log('转换后的ICE候选:', candidateInit)
+
+    // 添加ICE候选
+    await webrtcManager.addIceCandidate(candidateInit)
+  } catch (error) {
+    console.error('处理ICE候选失败:', error)
+  }
+}
 // 处理WebRTC信令消息
 const handleWebrtcOffer = async (data) => {
   console.log('收到WebRTC Offer:', data)
@@ -368,26 +422,6 @@ const handleWebrtcAnswer = async (data) => {
     console.log('通话已连接')
   } catch (error) {
     console.error('处理WebRTC Answer失败:', error)
-  }
-}
-const handleWebrtcIceCandidate = async (data) => {
-  console.log('收到ICE候选:', data)
-
-  try {
-    // 将接收到的数据转换为RTCIceCandidateInit对象
-    const candidateInit = {
-      candidate: data.candidate.candidate || data.candidate, // 处理两种可能的数据格式
-      sdpMid: data.candidate.sdpMid,
-      sdpMLineIndex: data.candidate.sdpMLineIndex,
-      usernameFragment: data.candidate.usernameFragment
-    }
-
-    console.log('转换后的ICE候选:', candidateInit)
-
-    // 添加ICE候选
-    await webrtcManager.addIceCandidate(candidateInit)
-  } catch (error) {
-    console.error('处理ICE候选失败:', error)
   }
 }
 // 拒绝通话
@@ -531,6 +565,7 @@ const updateConnectionStats = async () => {
 
 // 监听通话状态变化
 onMounted(() => {
+  pendingIceCandidates = []
   // 设置远程流处理
   webrtcManager.setOnRemoteTrack((event) => {
     console.log('远程轨道到达:', event)
@@ -623,7 +658,6 @@ onMounted(() => {
     // 首先注册所有必要的监听器，然后再处理初始数据
     // 注册ICE候选监听器，确保在任何ICE候选消息到达时都能被处理
     window.electron.ipcRenderer.on('ice-candidate', (event, data) => {
-      console.log('收到ICE候选:', data)
       handleWebrtcIceCandidate(data) // 复用现有的处理函数
     })
 
@@ -760,6 +794,9 @@ onMounted(() => {
         }, 100) // 延迟100毫秒
       }
     })
+
+    // 处理暂存的ICE候选
+    handleStoredIceCandidates()
   }
 
   // 请求主进程发送最新的会话列表数据
@@ -856,6 +893,8 @@ onUnmounted(async () => {
   if (statsInterval) {
     clearInterval(statsInterval)
   }
+
+  pendingIceCandidates = []
 
   // 移除IPC监听器
   if (window.electron && window.electron.ipcRenderer) {

@@ -20,6 +20,7 @@ let scaleFactor = 1.0
 let addFriendToGroupWindow: BrowserWindow | null = null
 let imageViewWindow: BrowserWindow | null = null
 let audioCallWindow: BrowserWindow | null = null
+let storedIceCandidates: any[] = [];
 
 let user_id: string | null = null
 
@@ -1075,6 +1076,7 @@ export function setupIpcHandlers(icon: string): void {
         },
         handleIceCandidate: (data) => {
           console.log('Received ice candidate (main process):', data)
+          storedIceCandidates.push(data)
           // Forward the ice candidate to all open windows
           if (mainWindow) {
             mainWindow.webContents.send('ice-candidate', data)
@@ -1189,6 +1191,14 @@ export function setupIpcHandlers(icon: string): void {
       console.error('处理联系人数据失败:', error)
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
+  })
+
+  // 添加获取存储的ICE候选的处理程序
+  ipcMain.handle('get-stored-ice-candidates', () => {
+    const candidates = [...storedIceCandidates]
+    storedIceCandidates = [] // 清空暂存的候选
+    console.log('返回暂存的', candidates.length, '个ICE候选')
+    return candidates
   })
 
   // 添加清空ChatSession的IPC处理程序

@@ -442,13 +442,12 @@ function handleIceCandidate(ws, data, clients) {
     return;
   }
 
-  // 发送candidate到目标用户
   broadcastToUser(clients, targetUserId, {
     type: 'ice_candidate',
-    callId,
-    candidate,
+    callId: callId,
+    candidate: candidate, // 只包含真正的ICE候选数据
     senderId: ws.userId,
-    sessionId
+    sessionId: sessionId
   });
 }
 
