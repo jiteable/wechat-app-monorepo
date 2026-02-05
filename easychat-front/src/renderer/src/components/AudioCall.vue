@@ -18,13 +18,6 @@
     <!-- 隐藏的音频元素用于播放远程音频流 -->
     <audio id="remoteAudio" ref="audioRef" autoplay playsinline style="display: none" />
 
-    <!-- 显示ICE连接状态 -->
-    <div class="connection-info">
-      <p>ICE状态: {{ iceConnectionState || '未连接' }}</p>
-      <p v-if="connectionStats">连接统计: {{ connectionStats }}</p>
-      <p>WebRTC状态: {{ webRtcStatus }}</p>
-    </div>
-
     <!-- 接收方的控制按钮 -->
     <div v-if="!isCaller" class="call-controls no-drag">
       <button
@@ -653,24 +646,24 @@ onMounted(() => {
 
   console.log('AudioCall.vue中从路由参数获取的sessionId:', sessionId.value)
 
-  if (window.electron && window.electron.ipcRenderer) {
+  if (window.api) {
     // 首先注册所有必要的监听器，然后再处理初始数据
     // 注册ICE候选监听器，确保在任何ICE候选消息到达时都能被处理
-    window.electron.ipcRenderer.on('ice-candidate', (event, data) => {
+    window.api.onWebrtcIceCandidate((data) => {
       handleWebrtcIceCandidate(data) // 复用现有的处理函数
     })
 
     // 监听其他WebRTC信令消息
-    window.electron.ipcRenderer.on('webrtc-offer', (event, data) => {
+    window.api.onWebrtcOffer((data) => {
       handleWebrtcOffer(data)
     })
 
-    window.electron.ipcRenderer.on('webrtc-answer', (event, data) => {
+    window.api.onWebrtcAnswer((data) => {
       handleWebrtcAnswer(data)
     })
 
     // 监听来自主进程的WebSocket消息
-    window.electron.ipcRenderer.on('incoming-call', (event, data) => {
+    window.api.onIncomingCall((data) => {
       console.log('收到incoming-call消息:', data)
       console.log('当前isCaller值:', isCaller.value)
       console.log('当前window.contactData:', window.contactData)
@@ -724,7 +717,7 @@ onMounted(() => {
       }
     })
 
-    window.electron.ipcRenderer.on('call-initiated', (event, data) => {
+    window.api.onCallInitiated((data) => {
       console.log('收到call-initiated消息:', data)
       if (isCaller.value) {
         callStatus.value = '正在等待接听...'
@@ -740,14 +733,14 @@ onMounted(() => {
       }
     })
 
-    window.electron.ipcRenderer.on('call-accepted', (event, data) => {
+    window.api.onCallAccepted((data) => {
       console.log('收到call-accepted消息:', data)
       callStatus.value = '通话中'
       callStarted.value = true
       callId.value = data.callId
     })
 
-    window.electron.ipcRenderer.on('call-rejected', (event, data) => {
+    window.api.onCallRejected((data) => {
       console.log('收到call-rejected消息:', data)
       //注: 这里应该通过  data.reason 判断是因什么原因拒绝的
 
@@ -760,13 +753,13 @@ onMounted(() => {
       setTimeout(() => window.api.closeAudioCallWindow(), 1000)
     })
 
-    window.electron.ipcRenderer.on('call-ended', (event, data) => {
+    window.api.onCallEnded((data) => {
       console.log('收到call-ended消息:', data)
       callStatus.value = '通话已结束'
       setTimeout(() => window.api.closeAudioCallWindow(), 1000)
     })
 
-    window.electron.ipcRenderer.on('call-failed', (event, data) => {
+    window.api.onCallFailed((data) => {
       console.log('收到call-failed消息:', data)
       callStatus.value = '通话失败: ' + (data.message || '')
       setTimeout(() => window.api.closeAudioCallWindow(), 1000)
@@ -799,7 +792,7 @@ onMounted(() => {
   }
 
   // 请求主进程发送最新的会话列表数据
-  if (window.electron && window.electron.ipcRenderer) {
+  if (window.api) {
     window.electron.ipcRenderer
       .invoke('request-session-list')
       .then((sessionList) => {
@@ -868,7 +861,7 @@ onMounted(() => {
         }
       })
   } else {
-    console.warn('未找到window.electron.ipcRenderer，无法请求会话列表')
+    console.warn('未找到window.api，无法请求会话列表')
     // 尝试使用window.contactData
     if (window.contactData) {
       setContactInfo(window.contactData)
@@ -894,22 +887,6 @@ onUnmounted(async () => {
   }
 
   pendingIceCandidates = []
-
-  // 移除IPC监听器
-  if (window.electron && window.electron.ipcRenderer) {
-    window.electron.ipcRenderer.removeAllListeners('set-contact-data')
-    window.electron.ipcRenderer.removeAllListeners('incoming-call')
-    window.electron.ipcRenderer.removeAllListeners('call-initiated')
-    window.electron.ipcRenderer.removeAllListeners('call-accepted')
-    window.electron.ipcRenderer.removeAllListeners('call-rejected')
-    window.electron.ipcRenderer.removeAllListeners('call-ended')
-    window.electron.ipcRenderer.removeAllListeners('call-failed')
-
-    // 移除WebRTC信令监听器
-    window.electron.ipcRenderer.removeAllListeners('webrtc-offer')
-    window.electron.ipcRenderer.removeAllListeners('webrtc-answer')
-    window.electron.ipcRenderer.removeAllListeners('ice-candidate')
-  }
 
   // 清理WebRTC资源
   try {
@@ -984,13 +961,6 @@ onUnmounted(async () => {
   font-size: 16px;
   color: #666;
   margin: 0;
-}
-
-.connection-info {
-  text-align: center;
-  margin-top: 10px;
-  color: #666;
-  font-size: 14px;
 }
 
 .call-controls {
