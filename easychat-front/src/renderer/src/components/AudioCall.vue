@@ -565,7 +565,6 @@ const updateConnectionStats = async () => {
 
 // 监听通话状态变化
 onMounted(() => {
-  pendingIceCandidates = []
   // 设置远程流处理
   webrtcManager.setOnRemoteTrack((event) => {
     console.log('远程轨道到达:', event)
@@ -758,7 +757,7 @@ onMounted(() => {
         callStatus.value = '通话被拒绝' // 接收方拒绝了通话
       }
 
-      // setTimeout(() => window.api.closeAudioCallWindow(), 1000)
+      setTimeout(() => window.api.closeAudioCallWindow(), 1000)
     })
 
     window.electron.ipcRenderer.on('call-ended', (event, data) => {

@@ -284,7 +284,7 @@ function handleCallReject(ws, data, clients) {
  * 结束通话
  */
 function handleCallEnd(ws, data, clients) {
-  const { callId } = data;
+  const { callId } = data.data; // 修改为从data.data中获取callId
 
   // 查找通话记录
   let callInfo = null;
