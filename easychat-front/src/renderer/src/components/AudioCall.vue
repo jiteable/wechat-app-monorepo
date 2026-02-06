@@ -536,7 +536,7 @@ const setContactInfo = (sessionData) => {
 
 // 添加响铃功能
 let ringtoneAudio = null
-
+let ringtoneInterval = null
 const triggerRingtone = () => {
   try {
     // 使用微信响铃音效
@@ -546,11 +546,33 @@ const triggerRingtone = () => {
 
       // 使用指定的微信响铃文件
       ringtoneAudio.src = '/src/assets/audio/wechat_ring.mp3'
-      ringtoneAudio.loop = true // 循环播放直到用户响应
     }
 
-    // 播放提示音
-    ringtoneAudio.play().catch((e) => console.log('响铃播放失败，可能是浏览器限制:', e))
+    // 清除之前的定时器（如果有）
+    if (ringtoneInterval) {
+      clearInterval(ringtoneInterval)
+      ringtoneInterval = null
+    }
+
+    // 定义播放响铃的函数
+    const playRingtone = () => {
+      // 重置音频到开始位置
+      ringtoneAudio.currentTime = 0
+
+      // 播放响铃
+      ringtoneAudio.play().catch((e) => console.log('响铃播放失败，可能是浏览器限制:', e))
+    }
+
+    // 立即播放一次
+    playRingtone()
+
+    // 每次音频播放结束后，等待0.5秒再播放
+    ringtoneAudio.onended = () => {
+      // 设置一个0.5秒的延迟后再播放
+      ringtoneInterval = setTimeout(() => {
+        playRingtone()
+      }, 500) // 0.5秒延迟
+    }
   } catch (error) {
     console.log('响铃功能初始化失败:', error)
   }
@@ -560,6 +582,15 @@ const stopRingtone = () => {
   if (ringtoneAudio) {
     ringtoneAudio.pause()
     ringtoneAudio.currentTime = 0
+
+    // 移除事件监听器
+    ringtoneAudio.onended = null
+  }
+
+  if (ringtoneInterval) {
+    clearTimeout(ringtoneInterval)
+    clearInterval(ringtoneInterval)
+    ringtoneInterval = null
   }
 }
 // 获取连接统计信息
@@ -693,64 +724,6 @@ onMounted(() => {
       handleWebrtcAnswer(data)
     })
 
-    // 监听来自主进程的WebSocket消息
-    window.api.onIncomingCall((data) => {
-      console.log('收到incoming-call消息:', data)
-      console.log('当前isCaller值:', isCaller.value)
-      console.log('当前window.contactData:', window.contactData)
-
-      // 更可靠的判断方式：检查是否有callerId来确定是否为接收方
-      const isReceiver = !!data.callerId
-      console.log('根据callerId判断是否为接收方:', isReceiver)
-
-      if (isReceiver) {
-        // 这是接收方
-        callStatus.value = '响铃中...'
-        callId.value = data.callId
-
-        // 触发响铃提醒
-        triggerRingtone()
-
-        // 如果有联系人信息，更新显示
-        if (data.callerName) {
-          contactName.value = data.callerName
-        }
-        if (data.callerAvatar) {
-          avatar.value = data.callerAvatar
-        }
-
-        // 存储Offer SDP（如果有的话）
-        if (data.offerSdp && data.offerSdp.sdp) {
-          window.contactData = window.contactData || {}
-          // 确保保存完整的contactData信息
-          Object.assign(window.contactData, {
-            contactName: data.callerName,
-            avatar: data.callerAvatar,
-            sessionId: data.sessionId,
-            callId: data.callId,
-            callerId: data.callerId,
-            callType: data.callType,
-            targetUserId: data.callerId,
-            offerSdp: {
-              type: data.offerSdp.type,
-              sdp: data.offerSdp.sdp
-            }
-          })
-
-          console.log('已存储远程Offer SDP:', {
-            type: data.offerSdp.type,
-            sdp_length: data.offerSdp.sdp.length
-          })
-          console.log('存储后的window.contactData:', window.contactData)
-        } else {
-          console.warn('收到的incoming-call消息中没有有效的offerSdp')
-          console.log('data.offerSdp值:', data.offerSdp)
-        }
-      } else {
-        console.log('忽略incoming-call消息，因为当前是发送方')
-      }
-    })
-
     window.api.onCallInitiated((data) => {
       console.log('收到call-initiated消息:', data)
       if (isCaller.value) {
@@ -818,6 +791,9 @@ onMounted(() => {
         setTimeout(() => {
           initiateCall()
         }, 100) // 延迟100毫秒
+      } else {
+        triggerRingtone()
+        callStatus.value = '响铃中...'
       }
     })
 
