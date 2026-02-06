@@ -496,16 +496,19 @@ const endCall = async () => {
 
 // 处理接受通话
 const handleAcceptCall = () => {
+  stopRingtone() // 停止响铃
   acceptCall()
 }
 
 // 处理拒绝通话
 const handleDeclineCall = () => {
+  stopRingtone() // 停止响铃
   declineCall()
 }
 
 // 处理结束通话
 const handleEndCall = () => {
+  stopRingtone() // 停止响铃
   endCall()
 }
 
@@ -531,6 +534,34 @@ const setContactInfo = (sessionData) => {
   }
 }
 
+// 添加响铃功能
+let ringtoneAudio = null
+
+const triggerRingtone = () => {
+  try {
+    // 使用微信响铃音效
+    if (!ringtoneAudio) {
+      // 创建音频元素用于播放响铃声
+      ringtoneAudio = new Audio()
+
+      // 使用指定的微信响铃文件
+      ringtoneAudio.src = '/src/assets/audio/wechat_ring.mp3'
+      ringtoneAudio.loop = true // 循环播放直到用户响应
+    }
+
+    // 播放提示音
+    ringtoneAudio.play().catch((e) => console.log('响铃播放失败，可能是浏览器限制:', e))
+  } catch (error) {
+    console.log('响铃功能初始化失败:', error)
+  }
+}
+
+const stopRingtone = () => {
+  if (ringtoneAudio) {
+    ringtoneAudio.pause()
+    ringtoneAudio.currentTime = 0
+  }
+}
 // 获取连接统计信息
 const updateConnectionStats = async () => {
   const pc = webrtcManager.getPeerConnection()
@@ -676,6 +707,9 @@ onMounted(() => {
         // 这是接收方
         callStatus.value = '响铃中...'
         callId.value = data.callId
+
+        // 触发响铃提醒
+        triggerRingtone()
 
         // 如果有联系人信息，更新显示
         if (data.callerName) {
@@ -887,6 +921,8 @@ onUnmounted(async () => {
   }
 
   pendingIceCandidates = []
+
+  stopRingtone()
 
   // 清理WebRTC资源
   try {
