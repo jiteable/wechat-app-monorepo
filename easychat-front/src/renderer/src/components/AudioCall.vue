@@ -12,6 +12,8 @@
       <div class="contact-info">
         <p class="contact-name">{{ contactName }}</p>
         <p class="call-status">{{ callStatus }}</p>
+        <!-- 显示通话时长 -->
+        <p v-if="callStarted" class="call-duration">{{ formattedDuration }}</p>
       </div>
     </div>
 
@@ -69,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { Phone, Close, PhoneFilled } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 import WebRTCManager from '@/utils/webRTCManager'
@@ -101,9 +103,43 @@ let pendingIceCandidates = []
 // 统计信息定时器
 let statsInterval = null
 
+let durationTimer = null
+const duration = ref(0) // 通话时长（秒）
+
 // 响铃功能
 let ringtoneAudio = null
 let ringtoneInterval = null
+
+// 格式化通话时长
+const formattedDuration = computed(() => {
+  const hours = Math.floor(duration.value / 3600)
+  const minutes = Math.floor((duration.value % 3600) / 60)
+  const seconds = duration.value % 60
+
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+})
+
+// 开始计时
+const startCallTimer = () => {
+  console.log('awd')
+  duration.value = 0
+
+  // 每秒更新一次时长
+  durationTimer = setInterval(() => {
+    duration.value++
+  }, 1000)
+}
+
+// 停止计时
+const stopCallTimer = () => {
+  if (durationTimer) {
+    clearInterval(durationTimer)
+    durationTimer = null
+  }
+}
 
 // 响铃功能实现
 const triggerRingtone = () => {
@@ -299,6 +335,10 @@ const acceptCall = async () => {
 
     callStatus.value = '通话中'
     callStarted.value = true
+
+    // 开始计时 - 在接受通话时启动计时器
+    console.log('acceptCall 被调用，准备开始计时')
+    startCallTimer()
   } catch (error) {
     console.error('接受通话失败:', error)
     callStatus.value = `接受通话失败: ${error.message}`
@@ -350,6 +390,9 @@ const handleWebrtcOffer = async (data) => {
       callId: data.callId,
       sessionId: data.sessionId
     })
+
+    // 当我们发送answer后，通话连接即将建立，可以准备计时
+    console.log('handleWebrtcOffer 被调用，通话即将建立')
   } catch (error) {
     console.error('处理WebRTC Offer失败:', error)
   }
@@ -360,6 +403,10 @@ const handleWebrtcAnswer = async (data) => {
     await webrtcManager.setRemoteDescription(data.sdp)
     callStatus.value = '通话中'
     callStarted.value = true
+
+    // 开始计时 - 在收到对方的answer后，通话连接建立
+    console.log('handleWebrtcAnswer 被调用，通话已建立，准备开始计时')
+    startCallTimer()
   } catch (error) {
     console.error('处理WebRTC Answer失败:', error)
   }
@@ -566,6 +613,10 @@ onMounted(() => {
       callStatus.value = '通话中'
       callStarted.value = true
       callId.value = data.callId
+
+      // 开始计时
+      console.log('onCallAccepted 被调用，准备开始计时')
+      startCallTimer()
     })
 
     window.api.onCallRejected((data) => {
@@ -574,16 +625,21 @@ onMounted(() => {
       } else if (data.reason === '接收方拒绝通话') {
         callStatus.value = '通话被拒绝'
       }
+
+      stopCallTimer()
+
       setTimeout(() => window.api.closeAudioCallWindow(), 1000)
     })
 
     window.api.onCallEnded((data) => {
       callStatus.value = '通话已结束'
+      stopCallTimer()
       setTimeout(() => window.api.closeAudioCallWindow(), 1000)
     })
 
     window.api.onCallFailed((data) => {
       callStatus.value = '通话失败: ' + (data.message || '')
+      stopCallTimer()
       setTimeout(() => window.api.closeAudioCallWindow(), 1000)
     })
 
@@ -614,6 +670,7 @@ onMounted(() => {
 // 组件卸载
 onUnmounted(async () => {
   if (statsInterval) clearInterval(statsInterval)
+  if (durationTimer) clearInterval(durationTimer)
   pendingIceCandidates = []
   stopRingtone()
 
@@ -688,6 +745,13 @@ onUnmounted(async () => {
   font-size: 16px;
   color: #666;
   margin: 0;
+}
+
+.call-duration {
+  font-size: 14px;
+  color: #888;
+  margin: 5px 0 0 0;
+  font-weight: normal;
 }
 
 .call-controls {
