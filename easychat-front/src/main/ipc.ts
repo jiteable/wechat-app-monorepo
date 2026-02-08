@@ -560,6 +560,7 @@ export function createAudioCallWindow(icon: string, contactData: any): void {
     frame: false,
     show: false,
     autoHideMenuBar: true,
+    resizable: false,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
