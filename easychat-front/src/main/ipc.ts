@@ -160,11 +160,6 @@ export function createSetWindow(icon: string): void {
     setWindow = null
   })
 
-  // 当设置窗口打开时，清空ChatSession表中的数据
-  databaseManager.clearChatSessions().catch((error) => {
-    console.error('清空ChatSession表失败:', error)
-  })
-
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     setWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/settings')

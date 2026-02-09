@@ -142,6 +142,22 @@ const handleStoreUpdate = (event) => {
   userSetStore.syncFromOtherWindows(event.detail)
 }
 
+const handleSettingsUpdated = () => {
+  console.log('设置已更新，当前设置为：', userSetStore.$state)
+  // 打印每个设置项的具体值
+  console.log('新消息通知是否有声音:', userSetStore.newMessageSound)
+  console.log('加我为朋友时是否需要验证:', userSetStore.needVerificationToAddFriend)
+  console.log('是否能够通过chatId搜索到我:', userSetStore.canBeSearchedByChatId)
+  console.log('是否能够通过邮箱搜索到我:', userSetStore.canBeSearchedByEmail)
+  console.log('是否能通过群聊添加我:', userSetStore.canAddFromGroup)
+  console.log('语言设置:', userSetStore.language)
+  console.log('字体大小设置:', userSetStore.fontSize)
+  console.log('是否以只读方式打开聊天中的文件:', userSetStore.openFileInReadonlyMode)
+  console.log('是否显示网络搜索历史:', userSetStore.showWebSearchHistory)
+  console.log('是否将聊天语音自动转成文字:', userSetStore.autoConvertVoiceToText)
+  console.log('文件下载路径:', userSetStore.StorageLocation)
+}
+
 // 监听localStorage变化（备用方案）
 const handleStorageChange = (event) => {
   if (event.key === 'userSetStoreUpdated') {
@@ -337,6 +353,11 @@ const handleLogout = () => {
     if (typeof window.api.closeCreateGroupWindow === 'function') {
       window.api.closeCreateGroupWindow()
     }
+
+    // 关闭音频通话窗口
+    if (typeof window.api.closeAudioCallWindow === 'function') {
+      window.api.closeAudioCallWindow()
+    }
   }
 
   // 通知主进程切换到登录窗口
@@ -373,6 +394,11 @@ onMounted(async () => {
   window.addEventListener('userSetStoreUpdated', handleStoreUpdate)
   window.addEventListener('storage', handleStorageChange)
 
+  // 添加监听设置更新事件
+  if (window.api && typeof window.api.onSettingsUpdated === 'function') {
+    window.api.onSettingsUpdated(handleSettingsUpdated)
+  }
+
   console.log('userSetting: ', userSettings)
   if (userInfo) {
     squareUrl.value = userInfo.avatar
@@ -397,6 +423,11 @@ onUnmounted(() => {
   // 移除新消息监听器
   if (window.api && typeof window.api.removeNewMessageListener === 'function') {
     window.api.removeNewMessageListener()
+  }
+
+  // 移除设置更新监听器
+  if (window.api && typeof window.api.removeSettingsUpdatedListener === 'function') {
+    window.api.removeSettingsUpdatedListener()
   }
 })
 
