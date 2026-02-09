@@ -18,16 +18,7 @@ async function handleChatMessage(ws, data, clients) {
       }));
       return;
     }
-
-    // 检查必要的参数
-    if (!data.sessionId) {
-      ws.send(JSON.stringify({
-        type: 'error',
-        message: '缺少会话ID'
-      }));
-      return;
-    }
-
+    
     // 获取数据库中的完整消息记录
     const newMessage = await db.unifiedMessage.findUnique({
       where: { id: data.messageId || data.data?.id }, // 支持不同格式的ID
