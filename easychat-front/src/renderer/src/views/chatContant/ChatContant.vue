@@ -150,7 +150,10 @@
                       {{ message.senderName }}
                     </div>
                     <div class="message-bubble">
-                      <div class="message-content">
+                      <div
+                        class="message-content"
+                        :style="{ fontSize: userSetStore.fontSize + 'px' }"
+                      >
                         {{ message.content }}
                       </div>
                     </div>
@@ -406,6 +409,15 @@ const updateInputEmptyState = () => {
   // 检查是否只有空白字符
   isInputEmpty.value = (!textContent || textContent.trim().length === 0) && !hasImages
 }
+
+// 添加对字体大小变化的监听
+watch(
+  () => userSetStore.fontSize,
+  (newSize) => {
+    console.log('字体大小设置:', newSize)
+  },
+  { immediate: true }
+)
 
 const showMessageContextMenu = (event, message) => {
   // 只对非时间戳和非系统消息显示右键菜单
@@ -2960,7 +2972,7 @@ const AudioCall = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
     // 如果成功获取到流，说明有权限，可以关闭流并继续打开通话窗口
-    stream.getTracks().forEach(track => track.stop())
+    stream.getTracks().forEach((track) => track.stop())
 
     // 获取当前会话的信息
     const contactData = contactStore.selectedContact
@@ -3446,7 +3458,6 @@ const formatDuration = (seconds) => {
 
 /* 消息内容 */
 .message-content {
-  font-size: 14px;
   line-height: 1.4;
   word-break: break-word;
   white-space: pre-wrap;
