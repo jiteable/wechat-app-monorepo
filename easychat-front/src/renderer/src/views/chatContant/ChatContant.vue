@@ -142,11 +142,10 @@
                   </div>
                   <div class="message-bubble">
                     <div
+                      :ref="(el) => setMessageContentRef(el, message.id)"
                       class="message-content"
                       :style="{ fontSize: userSetStore.fontSize + 'px' }"
-                    >
-                      {{ message.content }}
-                    </div>
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -343,6 +342,8 @@ const route = useRoute()
 const contactStore = userContactStore()
 const userStore = useUserStore()
 const userSetStore = useUserSetStore()
+
+const messageContentRefs = ref(new Map())
 
 const drawer = ref(false)
 const richInputObserver = ref(null)
@@ -3245,6 +3246,71 @@ const formatDuration = (seconds) => {
 
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
+
+const setMessageContentRef = (el, messageId) => {
+  if (el) {
+    messageContentRefs.value.set(messageId, el)
+    // 立即处理内容
+    processMessageContent(messageId, el)
+  }
+}
+
+const formatMessageContent = (content) => {
+  if (!content) return ''
+
+  // 使用正则表达式匹配URL链接
+  const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/gi
+
+  // 将URL替换为带有样式的链接
+  return content.replace(urlRegex, (url) => {
+    return `<a href="#" class="message-link" onclick="event.preventDefault(); window.open('${url}', '_blank');">${url}</a>`
+  })
+}
+
+// 处理消息内容，将其转换为包含链接的HTML
+const processMessageContent = (messageId, element) => {
+  if (!element) return
+
+  const message = messages.value.find((msg) => msg.id === messageId)
+  if (!message || !message.content) {
+    element.textContent = ''
+    return
+  }
+
+  // 使用格式化后的HTML内容
+  element.innerHTML = formatMessageContent(message.content)
+
+  // 为所有链接添加点击事件监听器
+  const links = element.querySelectorAll('.message-link')
+  links.forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault()
+      const url = decodeURIComponent(e.target.getAttribute('data-url'))
+      // 使用Electron的shell模块或其他API打开外部链接
+      if (window.api && typeof window.api.openExternalUrl === 'function') {
+        window.api.openExternalUrl(url)
+      } else {
+        // 如果没有对应的API，使用标准方法
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+    })
+  })
+}
+
+watch(
+  messages,
+  async (newMessages) => {
+    await nextTick()
+    // 重新处理所有消息内容
+    newMessages.forEach((message) => {
+      const element = messageContentRefs.value.get(message.id)
+      if (element) {
+        processMessageContent(message.id, element)
+      }
+    })
+  },
+  { deep: true }
+)
 </script>
 <style scoped>
 .top {
@@ -3467,6 +3533,19 @@ const formatDuration = (seconds) => {
   line-height: 1.4;
   word-break: break-word;
   white-space: pre-wrap;
+}
+
+.message-link {
+  color: rgb(97, 175, 239) !important;
+  /* 蓝色 */
+  text-decoration: none !important;
+  /* 去掉下划线 */
+  cursor: pointer;
+}
+
+.message-link:hover {
+  color: rgb(77, 155, 219);
+  /* 稍微深一点的颜色 */
 }
 
 /* 时间戳样式 */
