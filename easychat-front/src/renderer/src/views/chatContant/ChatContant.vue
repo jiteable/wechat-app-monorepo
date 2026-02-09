@@ -17,248 +17,238 @@
     </WindowControls>
     <div class="chat-contant">
       <div v-if="route.params.id" class="chat-id">
-        <el-splitter layout="vertical">
-          <el-splitter-panel size="60%">
-            <div ref="messagesContainer" class="chat-messages-container" @scroll="handleScroll">
-              <!-- 使用 v-for 渲染消息列表 -->
-              <div v-for="message in messages" :key="message.id" class="message-item">
-                <!-- 时间戳 -->
-                <div v-if="message.type === 'timestamp'" class="message-timestamp">
-                  {{ formatDate(message.content) }}
-                </div>
-
-                <!-- 系统消息 -->
-                <div v-else-if="message.type === 'system'" class="system-message">
-                  {{ message.content }}
-                </div>
-
-                <!-- 图片消息 -->
-                <div
-                  v-else-if="message.type === 'image'"
-                  :class="
-                    message.senderId === userStore.userId ? 'sent-message' : 'received-message'
-                  "
-                  @contextmenu.prevent="showMessageContextMenu($event, message)"
-                >
-                  <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
-                  <div class="box">
-                    <div v-if="shouldShowSenderName(message)" class="message-sender">
-                      {{ message.senderName }}
-                    </div>
-                    <!-- 移除消息气泡容器，直接显示图片 -->
-                    <div
-                      :class="
-                        message.senderId === userStore.userId
-                          ? 'sender-image-container'
-                          : 'receive-image-container'
-                      "
-                    >
-                      <img
-                        :src="message.imageUrl"
-                        :alt="message.fileName || '图片'"
-                        class="image-preview"
-                        @click="previewImage(message.imageUrl)"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 文件消息 -->
-                <div
-                  v-else-if="message.type === 'file'"
-                  :class="
-                    message.senderId === userStore.userId ? 'sent-message' : 'received-message'
-                  "
-                  @contextmenu.prevent="showMessageContextMenu($event, message)"
-                >
-                  <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
-                  <div class="box">
-                    <div v-if="shouldShowSenderName(message)" class="message-sender">
-                      {{ message.senderName }}
-                    </div>
-                    <div
-                      class="message-bubble file-message-bubble"
-                      @click="handleFileDownload(message)"
-                    >
-                      <div class="file-container">
-                        <div class="file-icon">
-                          <img
-                            :src="getFileIconPath(message.fileExtension)"
-                            :alt="message.fileExtension + ' file icon'"
-                            class="file-extension-icon"
-                          />
-                        </div>
-                        <div class="file-info">
-                          <div class="file-name">{{ message.content }}</div>
-                          <div class="file-size">{{ message.size || '未知大小' }}</div>
-                        </div>
-                        <div class="file-extension-overlay">
-                          {{ message.fileExtension }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!--视频消息-->
-                <div
-                  v-else-if="message.type === 'video'"
-                  :class="
-                    message.senderId === userStore.userId ? 'sent-message' : 'received-message'
-                  "
-                  @contextmenu.prevent="showMessageContextMenu($event, message)"
-                >
-                  <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
-                  <div class="box">
-                    <div v-if="shouldShowSenderName(message)" class="message-sender">
-                      {{ message.senderName }}
-                    </div>
-                    <div class="message-bubble video-message-bubble">
-                      <div class="video-container" @click="playVideo(message.mediaUrl)">
-                        <img
-                          v-if="message.thumbnailUrl"
-                          :src="message.thumbnailUrl"
-                          :alt="message.content"
-                          class="video-thumbnail"
-                        />
-                        <div class="video-overlay">
-                          <span class="icon iconfont icon-play"></span>
-                        </div>
-                        <!-- 添加视频时长显示 -->
-                        <div
-                          v-if="message.videoInfo && message.videoInfo.duration"
-                          class="video-duration-overlay"
-                        >
-                          {{ formatDuration(message.videoInfo.duration) }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 普通消息 -->
-                <div
-                  v-else
-                  :class="
-                    message.senderId === userStore.userId ? 'sent-message' : 'received-message'
-                  "
-                  @contextmenu.prevent="showMessageContextMenu($event, message)"
-                >
-                  <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
-                  <div class="box">
-                    <div v-if="shouldShowSenderName(message)" class="message-sender">
-                      {{ message.senderName }}
-                    </div>
-                    <div class="message-bubble">
-                      <div
-                        class="message-content"
-                        :style="{ fontSize: userSetStore.fontSize + 'px' }"
-                      >
-                        {{ message.content }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <div class="chat-message">
+          <div ref="messagesContainer" class="chat-messages-container" @scroll="handleScroll">
+            <!-- 使用 v-for 渲染消息列表 -->
+            <div v-for="message in messages" :key="message.id" class="message-item">
+              <!-- 时间戳 -->
+              <div v-if="message.type === 'timestamp'" class="message-timestamp">
+                {{ formatDate(message.content) }}
               </div>
 
-              <!-- 加载更多提示 -->
-              <div v-if="loadingMore" class="loading-more">
-                <span>加载中...</span>
+              <!-- 系统消息 -->
+              <div v-else-if="message.type === 'system'" class="system-message">
+                {{ message.content }}
               </div>
-            </div>
-          </el-splitter-panel>
-          <el-splitter-panel :min="185" :max="380">
-            <div class="demo-panel">
-              <div class="chat-input-area">
-                <div class="input-icons">
-                  <el-popover
-                    placement="top"
-                    :width="300"
-                    trigger="click"
-                    popper-class="emoji-popover"
-                  >
-                    <template #reference>
-                      <el-button type="text">
-                        <span class="icon iconfont icon-xiaolian"></span>
-                      </el-button>
-                    </template>
 
-                    <div class="emoji-container">
-                      <!-- 表情分类 -->
-                      <div
-                        v-for="(category, categoryName) in emojiData"
-                        :key="categoryName"
-                        class="emoji-category"
-                      >
-                        <h4>{{ categoryName === 'recent' ? '最近使用' : categoryName }}</h4>
-                        <div class="emoji-grid">
-                          <el-tooltip
-                            v-for="emoji in category"
-                            :key="emoji.id"
-                            :content="emoji.desc"
-                            placement="top"
-                            :show-after="500"
-                          >
-                            <div class="emoji-item" @click="insertEmoji(emoji.char)">
-                              {{ emoji.char }}
-                            </div>
-                          </el-tooltip>
-                        </div>
-                      </div>
-
-                      <!-- 底部快捷栏 -->
-                      <div class="emoji-footer">
-                        <div class="emoji-shortcuts">
-                          <div
-                            v-for="shortcut in shortcuts"
-                            :key="shortcut.name"
-                            class="shortcut-item"
-                            @click="showCategory(shortcut.category)"
-                          >
-                            {{ shortcut.icon }}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </el-popover>
-                  <el-button type="text" @click="triggerFileSelect">
-                    <span class="icon iconfont icon-wenjian"></span>
-                  </el-button>
-                  <el-button v-if="!isGroupChat" @click="AudioCall">
-                    <el-icon>
-                      <Phone />
-                    </el-icon>
-                  </el-button>
-                  <!-- 隐藏的文件输入框 -->
-                  <input
-                    ref="fileInput"
-                    type="file"
-                    style="display: none"
-                    @change="handleFileUpload"
-                  />
-                </div>
-
-                <div class="input-content">
+              <!-- 图片消息 -->
+              <div
+                v-else-if="message.type === 'image'"
+                :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'"
+                @contextmenu.prevent="showMessageContextMenu($event, message)"
+              >
+                <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
+                <div class="box">
+                  <div v-if="shouldShowSenderName(message)" class="message-sender">
+                    {{ message.senderName }}
+                  </div>
+                  <!-- 移除消息气泡容器，直接显示图片 -->
                   <div
-                    ref="messageInputRef"
-                    class="rich-input"
-                    contenteditable="true"
-                    placeholder="输入消息..."
-                    @keydown="handleInputKeydown"
-                    @input="debouncedUpdateInputEmptyState"
-                    @paste="handlePaste"
-                  ></div>
+                    :class="
+                      message.senderId === userStore.userId
+                        ? 'sender-image-container'
+                        : 'receive-image-container'
+                    "
+                  >
+                    <img
+                      :src="message.imageUrl"
+                      :alt="message.fileName || '图片'"
+                      class="image-preview"
+                      @click="previewImage(message.imageUrl)"
+                    />
+                  </div>
                 </div>
+              </div>
 
-                <div class="input-actions">
-                  <el-button type="primary" :disabled="isInputEmpty" @click="sendMessageHandler">
-                    发送(S)
-                  </el-button>
+              <!-- 文件消息 -->
+              <div
+                v-else-if="message.type === 'file'"
+                :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'"
+                @contextmenu.prevent="showMessageContextMenu($event, message)"
+              >
+                <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
+                <div class="box">
+                  <div v-if="shouldShowSenderName(message)" class="message-sender">
+                    {{ message.senderName }}
+                  </div>
+                  <div
+                    class="message-bubble file-message-bubble"
+                    @click="handleFileDownload(message)"
+                  >
+                    <div class="file-container">
+                      <div class="file-icon">
+                        <img
+                          :src="getFileIconPath(message.fileExtension)"
+                          :alt="message.fileExtension + ' file icon'"
+                          class="file-extension-icon"
+                        />
+                      </div>
+                      <div class="file-info">
+                        <div class="file-name">{{ message.content }}</div>
+                        <div class="file-size">{{ message.size || '未知大小' }}</div>
+                      </div>
+                      <div class="file-extension-overlay">
+                        {{ message.fileExtension }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!--视频消息-->
+              <div
+                v-else-if="message.type === 'video'"
+                :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'"
+                @contextmenu.prevent="showMessageContextMenu($event, message)"
+              >
+                <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
+                <div class="box">
+                  <div v-if="shouldShowSenderName(message)" class="message-sender">
+                    {{ message.senderName }}
+                  </div>
+                  <div class="message-bubble video-message-bubble">
+                    <div class="video-container" @click="playVideo(message.mediaUrl)">
+                      <img
+                        v-if="message.thumbnailUrl"
+                        :src="message.thumbnailUrl"
+                        :alt="message.content"
+                        class="video-thumbnail"
+                      />
+                      <div class="video-overlay">
+                        <span class="icon iconfont icon-play"></span>
+                      </div>
+                      <!-- 添加视频时长显示 -->
+                      <div
+                        v-if="message.videoInfo && message.videoInfo.duration"
+                        class="video-duration-overlay"
+                      >
+                        {{ formatDuration(message.videoInfo.duration) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 普通消息 -->
+              <div
+                v-else
+                :class="message.senderId === userStore.userId ? 'sent-message' : 'received-message'"
+                @contextmenu.prevent="showMessageContextMenu($event, message)"
+              >
+                <el-avatar shape="square" :size="35" :src="message.senderAvatar" class="avatar" />
+                <div class="box">
+                  <div v-if="shouldShowSenderName(message)" class="message-sender">
+                    {{ message.senderName }}
+                  </div>
+                  <div class="message-bubble">
+                    <div
+                      class="message-content"
+                      :style="{ fontSize: userSetStore.fontSize + 'px' }"
+                    >
+                      {{ message.content }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </el-splitter-panel>
-        </el-splitter>
+
+            <!-- 加载更多提示 -->
+            <div v-if="loadingMore" class="loading-more">
+              <span>加载中...</span>
+            </div>
+          </div>
+        </div>
+        <div class="chat-chat">
+          <div class="demo-panel">
+            <div class="chat-input-area">
+              <div class="input-icons">
+                <el-popover
+                  placement="top"
+                  :width="300"
+                  trigger="click"
+                  popper-class="emoji-popover"
+                >
+                  <template #reference>
+                    <el-button type="text">
+                      <span class="icon iconfont icon-xiaolian"></span>
+                    </el-button>
+                  </template>
+
+                  <div class="emoji-container">
+                    <!-- 表情分类 -->
+                    <div
+                      v-for="(category, categoryName) in emojiData"
+                      :key="categoryName"
+                      class="emoji-category"
+                    >
+                      <h4>{{ categoryName === 'recent' ? '最近使用' : categoryName }}</h4>
+                      <div class="emoji-grid">
+                        <el-tooltip
+                          v-for="emoji in category"
+                          :key="emoji.id"
+                          :content="emoji.desc"
+                          placement="top"
+                          :show-after="500"
+                        >
+                          <div class="emoji-item" @click="insertEmoji(emoji.char)">
+                            {{ emoji.char }}
+                          </div>
+                        </el-tooltip>
+                      </div>
+                    </div>
+
+                    <!-- 底部快捷栏 -->
+                    <div class="emoji-footer">
+                      <div class="emoji-shortcuts">
+                        <div
+                          v-for="shortcut in shortcuts"
+                          :key="shortcut.name"
+                          class="shortcut-item"
+                          @click="showCategory(shortcut.category)"
+                        >
+                          {{ shortcut.icon }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </el-popover>
+                <el-button type="text" @click="triggerFileSelect">
+                  <span class="icon iconfont icon-wenjian"></span>
+                </el-button>
+                <el-button v-if="!isGroupChat" @click="AudioCall">
+                  <el-icon>
+                    <Phone />
+                  </el-icon>
+                </el-button>
+                <!-- 隐藏的文件输入框 -->
+                <input
+                  ref="fileInput"
+                  type="file"
+                  style="display: none"
+                  @change="handleFileUpload"
+                />
+              </div>
+
+              <div class="input-content">
+                <div
+                  ref="messageInputRef"
+                  class="rich-input"
+                  contenteditable="true"
+                  placeholder="输入消息..."
+                  @keydown="handleInputKeydown"
+                  @input="debouncedUpdateInputEmptyState"
+                  @paste="handlePaste"
+                ></div>
+              </div>
+
+              <div class="input-actions">
+                <el-button type="primary" :disabled="isInputEmpty" @click="sendMessageHandler">
+                  发送(S)
+                </el-button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div v-else class="empty-chat">
         <el-icon :size="100" color="#c0c4cc">
@@ -3300,13 +3290,15 @@ const formatDuration = (seconds) => {
 .chat-contant {
   flex: 1;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
+  height: calc(100% - 80px);
 }
 
 .chat-id {
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .empty-chat {
@@ -3322,14 +3314,30 @@ const formatDuration = (seconds) => {
   font-size: 16px;
 }
 
+.chat-message {
+  flex: 0 0 65%;
+  /* 占70%的高度 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-bottom: 1px solid rgb(213, 213, 213);
+}
+
+.chat-chat {
+  flex: 0 0 35%;
+  /* 占30%的高度 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .chat-messages-container {
-  height: 100%;
+  flex: 1;
   background-color: rgb(237, 237, 237);
   display: flex;
   flex-direction: column-reverse;
   padding: 15px;
   overflow-y: scroll;
-  /* 始终显示滚动条 */
 }
 
 .loading-more {
@@ -3369,7 +3377,6 @@ const formatDuration = (seconds) => {
   align-items: flex-start;
   width: 100%;
   padding-left: 5px;
-  /* 确保容器占满宽度 */
 }
 
 .received-message .box {
@@ -3415,7 +3422,6 @@ const formatDuration = (seconds) => {
 
 .sent-message .box {
   width: calc(100% - 43px);
-  /* 减去头像宽度和间距 */
 }
 
 .sent-message .avatar {
@@ -3486,11 +3492,11 @@ const formatDuration = (seconds) => {
 
 /* 聊天输入区域样式 */
 .chat-input-area {
-  height: 100%;
-  background-color: rgb(237, 237, 237);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  background-color: rgb(237, 237, 237);
+  border-radius: 8px;
+  height: 100%;
 }
 
 .input-icons {
@@ -3505,11 +3511,22 @@ const formatDuration = (seconds) => {
   min-width: auto;
   border: none;
   background: transparent;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-icons .el-icon {
   font-size: 24px;
   color: #606266;
+  margin-right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-icons .iconfont {
@@ -3519,14 +3536,18 @@ const formatDuration = (seconds) => {
 
 .input-content {
   flex: 1;
-  height: 100%;
-  display: flex;
-  align-items: center;
+  min-height: 80px;
+  border-radius: 4px;
+  outline: none;
+  overflow-y: auto;
 }
-
 .input-content .el-textarea {
   flex: 1;
   height: 100%;
+}
+
+.rich-input:focus {
+  border-color: #409eff;
 }
 
 .rich-input {
@@ -3580,8 +3601,6 @@ const formatDuration = (seconds) => {
 .input-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  align-items: center;
 }
 
 .input-actions .el-button {
@@ -3607,6 +3626,8 @@ const formatDuration = (seconds) => {
 
 .demo-panel {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 弹窗整体样式 */
@@ -3945,19 +3966,20 @@ const formatDuration = (seconds) => {
 /* 右键菜单样式 */
 .context-menu {
   position: fixed;
-  background-color: white;
+  background: white;
+  border: 1px solid #dcdfe6;
   border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  z-index: 9999;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
   min-width: 120px;
-  padding: 5px 0;
 }
 
 .context-menu-item {
   padding: 8px 16px;
   cursor: pointer;
   font-size: 14px;
-  color: #606266;
+  display: flex;
+  align-items: center;
 }
 
 .context-menu-item:hover {
