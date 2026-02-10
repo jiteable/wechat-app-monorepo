@@ -307,7 +307,6 @@ const handleSessionRemarkUpdated = (event) => {
 
 // 点击会话跳转
 const handleClickSession = async (session) => {
-  console.log('sessionawwww: ', session)
   // 隐藏右键菜单
   contextMenuVisible.value = false
 
@@ -603,6 +602,8 @@ const handleNewMessage = async (data) => {
     // 如果消息来自非当前会话，增加未读计数
     if (selectedSessionId.value !== data.data.sessionId) {
       updatedSession.unreadCount = (updatedSession.unreadCount || 0) + 1
+
+      playNotificationSound()
     }
 
     // 更新会话列表中的该项
@@ -616,6 +617,39 @@ const handleNewMessage = async (data) => {
     console.log('未找到对应会话，可能需要刷新会话列表')
     // 如果没找到对应会话，可能是新增的会话，需要刷新整个会话列表
     fetchSessions()
+  }
+}
+
+// 播放提示音的函数
+const playNotificationSound = () => {
+  // 检查是否启用了新消息声音
+  if (window.userSetStore && window.userSetStore.newMessageSound !== undefined) {
+    // 如果有用户设置store并且启用了声音
+    if (window.userSetStore.newMessageSound) {
+      playSound()
+    }
+  } else if (typeof useUserSetStore === 'function') {
+    // 如果在当前组件作用域内可以访问用户设置store
+    const userSetStore = useUserSetStore()
+    if (userSetStore.newMessageSound) {
+      playSound()
+    }
+  } else {
+    // 默认播放声音
+    playSound()
+  }
+}
+
+// 实际播放声音的函数
+const playSound = () => {
+  try {
+    const audio = new Audio('/src/assets/audio/wechat_ringtone.mp3')
+    audio.volume = 0.5 // 设置音量
+    audio.play().catch((error) => {
+      console.log('提示音播放失败:', error)
+    })
+  } catch (error) {
+    console.log('提示音初始化失败:', error)
   }
 }
 
