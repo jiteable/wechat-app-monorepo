@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, shell } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { initWs, sendMessage } from './wsClient'
@@ -1571,6 +1571,18 @@ export function setupIpcHandlers(icon: string): void {
       return { success: true, data: messages }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  // 系统默认浏览器中打开外部链接
+  ipcMain.handle('open-external-url', async (_, url) => {
+    try {
+      console.log('awwww: ', url)
+      await shell.openExternal(url)
+      return true
+    } catch (error) {
+      console.error('Failed to open external URL:', error)
+      return false
     }
   })
 

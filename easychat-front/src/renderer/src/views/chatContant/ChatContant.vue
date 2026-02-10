@@ -3263,7 +3263,8 @@ const formatMessageContent = (content) => {
 
   // 将URL替换为带有样式的链接
   return content.replace(urlRegex, (url) => {
-    return `<a href="#" class="message-link" onclick="event.preventDefault(); window.open('${url}', '_blank');">${url}</a>`
+    const encodedUrl = encodeURIComponent(url)
+    return `<a href="#" class="message-link" data-url="${encodedUrl}">${url}</a>`
   })
 }
 
@@ -3536,9 +3537,9 @@ watch(
 }
 
 .message-link {
-  color: rgb(97, 175, 239) !important;
+  color: rgb(97, 175, 239);
   /* 蓝色 */
-  text-decoration: none !important;
+  text-decoration: none;
   /* 去掉下划线 */
   cursor: pointer;
 }

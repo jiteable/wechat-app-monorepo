@@ -235,8 +235,11 @@ const api = {
 
   // 添加获取图片消息的API
   getImageMessagesBySessionId: (sessionId: string): Promise<any> =>
-    ipcRenderer.invoke('get-image-messages-by-session-id', sessionId)
+    ipcRenderer.invoke('get-image-messages-by-session-id', sessionId),
+
+  openExternalUrl: (url: string): Promise<any> => ipcRenderer.invoke('open-external-url', url)
 }
+
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
