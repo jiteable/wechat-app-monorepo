@@ -1,19 +1,19 @@
 <template>
   <div class="set-remark-and-tag-container drag">
-    <h3 class="title">设置备注和标签</h3>
+    <h3 class="title">{{ i18nText.page.title }}</h3>
 
     <!-- 备注名 -->
     <div class="form-item no-drag">
-      <label class="label">备注名</label>
-      <el-input v-model="remark" placeholder="请输入备注名" />
+      <label class="label">{{ i18nText.page.remarkLabel }}</label>
+      <el-input v-model="remark" :placeholder="i18nText.placeholders.remark" />
     </div>
 
     <!-- 标签 -->
     <div class="form-item no-drag">
-      <label class="label">标签</label>
+      <label class="label">{{ i18nText.page.tagLabel }}</label>
       <el-select
         v-model="selectedLabels"
-        placeholder="请选择或创建标签..."
+        :placeholder="i18nText.select.tagPlaceholder"
         multiple
         filterable
         remote
@@ -29,25 +29,32 @@
 
     <!-- 其他字段保持不变 -->
     <div class="form-item no-drag">
-      <label class="label">电话</label>
-      <div class="add-phone-btn" @click="addPhone"><i class="el-icon-plus"></i> 添加电话</div>
+      <label class="label">{{ i18nText.page.phoneLabel }}</label>
+      <div class="add-phone-btn" @click="addPhone">
+        <i class="el-icon-plus"></i> {{ i18nText.page.addPhoneBtn }}
+      </div>
     </div>
 
     <div class="form-item no-drag">
-      <label class="label">描述</label>
-      <el-input v-model="description" type="textarea" :rows="3" placeholder="添加更多备注信息" />
+      <label class="label">{{ i18nText.page.descriptionLabel }}</label>
+      <el-input
+        v-model="description"
+        type="textarea"
+        :rows="3"
+        :placeholder="i18nText.page.addDescPlaceholder"
+      />
     </div>
 
     <div class="form-item no-drag">
       <div class="add-image-btn" @click="addImage">
         <i class="el-icon-plus"></i>
-        <span>添加图片</span>
+        <span>{{ i18nText.page.addImageBtn }}</span>
       </div>
     </div>
 
     <div class="action-buttons no-drag">
-      <el-button class="cancel-btn" @click="cancel">取消</el-button>
-      <el-button class="confirm-btn" @click="confirm">完成</el-button>
+      <el-button class="cancel-btn" @click="cancel">{{ i18nText.buttons.cancel }}</el-button>
+      <el-button class="confirm-btn" @click="confirm">{{ i18nText.buttons.confirm }}</el-button>
     </div>
   </div>
 </template>
@@ -72,6 +79,41 @@ const labelOptions = ref([])
 // 搜索关键词
 // const searchKeyword = ref('')
 
+const i18nText = computed(() => {
+  const isEn = userSetStore.language === 'en'
+  return {
+    // 页面标题和标签
+    page: {
+      title: isEn ? 'Set Remark and Tags' : '设置备注和标签',
+      remarkLabel: isEn ? 'Remark Name' : '备注名',
+      tagLabel: isEn ? 'Tags' : '标签',
+      phoneLabel: isEn ? 'Phone' : '电话',
+      descriptionLabel: isEn ? 'Description' : '描述',
+      addPhoneBtn: isEn ? 'Add Phone' : '添加电话',
+      addDescPlaceholder: isEn ? 'Add more remarks' : '添加更多备注信息',
+      addImageBtn: isEn ? 'Add Image' : '添加图片'
+    },
+    // 输入框提示
+    placeholders: {
+      remark: isEn ? 'Please enter a remark name' : '请输入备注名'
+    },
+    // 按钮文本
+    buttons: {
+      cancel: isEn ? 'Cancel' : '取消',
+      confirm: isEn ? 'Complete' : '完成'
+    },
+    // 选择框提示
+    select: {
+      tagPlaceholder: isEn ? 'Select or create tags...' : '请选择或创建标签...'
+    },
+    // 消息提示
+    messages: {
+      success: isEn ? 'Friend information set successfully' : '好友信息设置成功',
+      error: isEn ? 'Failed to set friend information' : '设置信息失败',
+      networkError: isEn ? 'Network error, please try again' : '网络错误，请重试'
+    }
+  }
+})
 // 模拟远程搜索（实际可调用 API）
 const handleRemoteMethod = (query) => {
   if (!query) {
