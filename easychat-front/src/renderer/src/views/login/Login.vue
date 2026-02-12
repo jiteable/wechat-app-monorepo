@@ -6,8 +6,8 @@
           <Close />
         </el-icon>
       </el-button>
-      <h2>EasyChat</h2>
-      <h3 v-if="!isLogin" class="form-title">注册</h3>
+      <h2>{{ i18nText.brand }}</h2>
+      <h3 v-if="!isLogin" class="form-title">{{ i18nText.formTitle }}</h3>
 
       <!-- 登录表单 -->
       <el-form
@@ -17,12 +17,12 @@
         :rules="loginRules"
         @submit.prevent
       >
-        <el-form-item label="" prop="email">
+        <el-form-item :label="i18nText.labels.email" prop="email">
           <el-input
             v-model.trim="loginFormData.email"
             class="no-drag"
             clearable
-            placeholder="请输入邮箱"
+            :placeholder="i18nText.placeholders.email"
           >
             <template #prefix>
               <el-icon>
@@ -32,12 +32,12 @@
           </el-input>
         </el-form-item>
 
-        <el-form-item label="" prop="password">
+        <el-form-item :label="i18nText.labels.password" prop="password">
           <el-input
             v-model.trim="loginFormData.password"
             class="no-drag"
             clearable
-            placeholder="请输入密码"
+            :placeholder="i18nText.placeholders.password"
             type="password"
           >
             <template #prefix>
@@ -49,7 +49,9 @@
         </el-form-item>
 
         <el-form-item>
-          <button class="login-button no-drag" @click="handleLogin">登录</button>
+          <button class="login-button no-drag" @click="handleLogin">
+            {{ i18nText.buttons.login }}
+          </button>
         </el-form-item>
       </el-form>
 
@@ -61,12 +63,12 @@
         :rules="registerRules"
         @submit.prevent
       >
-        <el-form-item label="" prop="email">
+        <el-form-item :label="i18nText.labels.email" prop="email">
           <el-input
             v-model.trim="registerFormData.email"
             class="no-drag"
             clearable
-            placeholder="请输入邮箱"
+            :placeholder="i18nText.placeholders.email"
           >
             <template #prefix>
               <el-icon>
@@ -76,12 +78,12 @@
           </el-input>
         </el-form-item>
 
-        <el-form-item label="" prop="username">
+        <el-form-item :label="i18nText.labels.username" prop="username">
           <el-input
             v-model.trim="registerFormData.username"
             class="no-drag"
             clearable
-            placeholder="请输入用户名"
+            :placeholder="i18nText.placeholders.username"
           >
             <template #prefix>
               <el-icon>
@@ -91,12 +93,12 @@
           </el-input>
         </el-form-item>
 
-        <el-form-item label="" prop="password">
+        <el-form-item :label="i18nText.labels.password" prop="password">
           <el-input
             v-model.trim="registerFormData.password"
             class="no-drag"
             clearable
-            placeholder="请输入密码"
+            :placeholder="i18nText.placeholders.password"
             type="password"
           >
             <template #prefix>
@@ -107,12 +109,12 @@
           </el-input>
         </el-form-item>
 
-        <el-form-item label="" prop="confirmPassword">
+        <el-form-item :label="i18nText.labels.confirmPassword" prop="confirmPassword">
           <el-input
             v-model.trim="registerFormData.confirmPassword"
             class="no-drag"
             clearable
-            placeholder="请再次输入密码"
+            :placeholder="i18nText.placeholders.confirmPassword"
             type="password"
           >
             <template #prefix>
@@ -123,13 +125,13 @@
           </el-input>
         </el-form-item>
 
-        <el-form-item label="" prop="verifyCode">
+        <el-form-item :label="i18nText.labels.verifyCode" prop="verifyCode">
           <div style="display: flex; gap: 10px">
             <el-input
               v-model.trim="registerFormData.verifyCode"
               class="no-drag"
               clearable
-              placeholder="请输入验证码"
+              :placeholder="i18nText.placeholders.verifyCode"
             >
               <template #prefix>
                 <el-icon>
@@ -144,12 +146,14 @@
         </el-form-item>
 
         <el-form-item>
-          <button class="register-button no-drag" @click="handleRegister">注册</button>
+          <button class="register-button no-drag" @click="handleRegister">
+            {{ i18nText.buttons.register }}
+          </button>
         </el-form-item>
       </el-form>
 
       <el-button link class="no-drag" style="float: right; color: blue" @click="toggleForm">
-        {{ isLogin ? '没有账号? 去注册' : '已有账号? 去登录' }}
+        {{ isLogin ? i18nText.buttons.toggle.login : i18nText.buttons.toggle.register }}
       </el-button>
     </div>
   </div>
@@ -160,6 +164,7 @@ import { reactive, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { login, sendVerifyCode, register } from '@/api/login'
+import { useUserSetStore } from '@/store/userSetStore'
 
 const router = useRouter()
 const formDataRef = ref()
@@ -167,6 +172,59 @@ const registerFormRef = ref()
 const isLogin = ref(true)
 const isCountingDown = ref(false)
 const countDownTime = ref(60)
+
+// 获取用户设置store实例
+const userSetStore = useUserSetStore()
+
+// 计算属性：根据当前语言返回相应的文本
+const i18nText = computed(() => {
+  const isEn = userSetStore.language === 'en'
+  return {
+    // 页面标题和品牌
+    brand: 'EasyChat',
+    // 表单标题
+    formTitle: isEn ? 'Sign Up' : '注册',
+    // 输入框占位符
+    placeholders: {
+      email: isEn ? 'Please enter your email' : '请输入邮箱',
+      username: isEn ? 'Please enter your username' : '请输入用户名',
+      password: isEn ? 'Please enter your password' : '请输入密码',
+      confirmPassword: isEn ? 'Please enter your password again' : '请再次输入密码',
+      verifyCode: isEn ? 'Please enter verification code' : '请输入验证码'
+    },
+    // 按钮文本
+    buttons: {
+      login: isEn ? 'Login' : '登录',
+      register: isEn ? 'Sign Up' : '注册',
+      toggle: {
+        login: isEn ? 'No account? Sign up' : '没有账号? 去注册',
+        register: isEn ? 'Have account? Log in' : '已有账号? 去登录'
+      },
+      sendCode: isEn ? 'Send Code' : '发送验证码',
+      resend: isEn ? `Resend (${countDownTime.value}s)` : `重新发送(${countDownTime.value}s)`
+    },
+    // 表单标签
+    labels: {
+      email: isEn ? 'Email' : '邮箱',
+      username: isEn ? 'Username' : '用户名',
+      password: isEn ? 'Password' : '密码',
+      confirmPassword: isEn ? 'Confirm Password' : '确认密码',
+      verifyCode: isEn ? 'Verification Code' : '验证码'
+    },
+    // 验证错误消息
+    errors: {
+      emailRequired: isEn ? 'Please enter your email address' : '请输入邮箱地址',
+      emailFormat: isEn ? 'Please enter a valid email address' : '请输入正确的邮箱地址',
+      usernameRequired: isEn ? 'Please enter your username' : '请输入用户名',
+      usernameLength: isEn ? 'Username must be at least 3 characters' : '用户名长度至少为3位',
+      passwordRequired: isEn ? 'Please enter your password' : '请输入密码',
+      passwordLength: isEn ? 'Password must be at least 6 characters' : '密码长度至少为6位',
+      confirmPasswordRequired: isEn ? 'Please enter your password again' : '请再次输入密码',
+      confirmPasswordMatch: isEn ? 'Passwords do not match' : '两次输入的密码不一致',
+      verifyCodeRequired: isEn ? 'Please enter the verification code' : '请输入验证码'
+    }
+  }
+})
 
 // 登录表单数据
 const loginFormData = reactive({
@@ -183,204 +241,239 @@ const registerFormData = reactive({
   verifyCode: ''
 })
 
+// 密码确认验证器
+function validateConfirmPassword(rule, value, callback) {
+  if (value !== registerFormData.password) {
+    callback(new Error(i18nText.value.errors.confirmPasswordMatch))
+  } else {
+    callback()
+  }
+}
+
 // 登录表单规则
 const loginRules = reactive({
   email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+    { required: true, message: i18nText.value.errors.emailRequired, trigger: 'blur' },
+    { type: 'email', message: i18nText.value.errors.emailFormat, trigger: ['blur', 'change'] }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度至少为6位', trigger: 'blur' }
+    { required: true, message: i18nText.value.errors.passwordRequired, trigger: 'blur' },
+    { min: 6, message: i18nText.value.errors.passwordLength, trigger: 'blur' }
   ]
 })
 
 // 注册表单规则
 const registerRules = reactive({
   email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+    { required: true, message: i18nText.value.errors.emailRequired, trigger: 'blur' },
+    { type: 'email', message: i18nText.value.errors.emailFormat, trigger: ['blur', 'change'] }
   ],
   username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, message: '用户名长度至少为3位', trigger: 'blur' }
+    { required: true, message: i18nText.value.errors.usernameRequired, trigger: 'blur' },
+    { min: 3, message: i18nText.value.errors.usernameLength, trigger: 'blur' }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度至少为6位', trigger: 'blur' }
+    { required: true, message: i18nText.value.errors.passwordRequired, trigger: 'blur' },
+    { min: 6, message: i18nText.value.errors.passwordLength, trigger: 'blur' }
   ],
   confirmPassword: [
-    { required: true, message: '请再次输入密码', trigger: 'blur' },
+    { required: true, message: i18nText.value.errors.confirmPasswordRequired, trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' }
   ],
-  verifyCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+  verifyCode: [
+    { required: true, message: i18nText.value.errors.verifyCodeRequired, trigger: 'blur' }
+  ]
 })
 
-// 验证确认密码
-function validateConfirmPassword(rule, value, callback) {
-  if (value === '') {
-    callback(new Error('请再次输入密码'))
-  } else if (value !== registerFormData.password) {
-    callback(new Error('两次输入的密码不一致'))
-  } else {
-    callback()
-  }
-}
-
-// 倒计时文本计算属性
+// 计算倒计时文本
 const countDownText = computed(() => {
-  return isCountingDown.value ? `${countDownTime.value}秒后重新发送` : '发送验证码'
+  return isCountingDown.value
+    ? userSetStore.language === 'en'
+      ? `Resend (${countDownTime.value}s)`
+      : `重新发送(${countDownTime.value}s)`
+    : i18nText.value.buttons.sendCode
 })
 
-const handleClose = () => {
-  // 通知主进程关闭登录窗口
-  if (window.api) {
-    window.api.closeLoginWindow()
+// 发送验证码处理函数
+const sendVerifyCodeHandler = async () => {
+  // 验证邮箱格式
+  if (!registerFormData.email) {
+    ElMessage.error(i18nText.value.errors.emailRequired)
+    return
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerFormData.email)) {
+    ElMessage.error(i18nText.value.errors.emailFormat)
+    return
+  }
+
+  try {
+    const response = await sendVerifyCode(registerFormData.email)
+    if (response.success) {
+      ElMessage.success(
+        response.message ||
+          (userSetStore.language === 'en'
+            ? 'Verification code sent successfully'
+            : '验证码发送成功')
+      )
+      startCountdown()
+    } else {
+      ElMessage.error(
+        response.message ||
+          (userSetStore.language === 'en' ? 'Failed to send verification code' : '发送验证码失败')
+      )
+    }
+  } catch (error) {
+    console.error('发送验证码失败:', error)
+    ElMessage.error(
+      error.message ||
+        (userSetStore.language === 'en' ? 'Failed to send verification code' : '发送验证码失败')
+    )
   }
 }
 
-// 启动倒计时
-const startCountDown = () => {
+// 开始倒计时
+const startCountdown = () => {
   isCountingDown.value = true
-  countDownTime.value = 60
-
-  const timer = setInterval(() => {
+  const countdown = setInterval(() => {
     countDownTime.value--
     if (countDownTime.value <= 0) {
-      clearInterval(timer)
+      clearInterval(countdown)
       isCountingDown.value = false
       countDownTime.value = 60
     }
   }, 1000)
 }
 
-//登录
+// 登录处理函数
 const handleLogin = async () => {
-  if (formDataRef.value) {
-    try {
-      await formDataRef.value.validate()
+  if (!formDataRef.value) return
 
-      // 调用登录API
-      const response = await login({
-        email: loginFormData.email,
-        password: loginFormData.password
-      })
+  // 验证表单
+  await formDataRef.value.validate((valid) => {
+    if (valid) {
+      // 执行登录逻辑
+      login(loginFormData.email, loginFormData.password)
+        .then((response) => {
+          if (response.success) {
+            // 登录成功，保存token到localStorage
+            localStorage.setItem('TOKEN', response.token)
 
-      console.log('response', response)
+            // 跳转到主页
+            router.push('/home')
+            ElMessage.success(
+              response.message || (userSetStore.language === 'en' ? 'Login successful' : '登录成功')
+            )
+          } else {
+            ElMessage.error(
+              response.message || (userSetStore.language === 'en' ? 'Login failed' : '登录失败')
+            )
+          }
+        })
+        .catch((error) => {
+          console.error('登录失败:', error)
+          ElMessage.error(
+            error.message || (userSetStore.language === 'en' ? 'Login failed' : '登录失败')
+          )
+        })
+    }
+  })
+}
 
-      // 保存 token 到 localStorage
-      localStorage.setItem('TOKEN', response.token)
+// 注册处理函数
+const handleRegister = async () => {
+  if (!registerFormRef.value) return
 
-      // 通知主进程用户已登录，并传递用户ID
-      console.log('About to send user-logged-in IPC message with userId:', response.user.id)
-      if (window.api) {
-        console.log('Sending user-logged-in IPC message with userId:', response.user.id)
-        window.api.userLoggedIn(response.user.id)
-      } else {
-        console.log('electron ipcRenderer not available')
-        // 如果IPC通信不可用，则尝试直接跳转到主页
-        router.push('/')
+  // 验证表单
+  await registerFormRef.value.validate((valid) => {
+    if (valid) {
+      // 检查密码是否匹配
+      if (registerFormData.password !== registerFormData.confirmPassword) {
+        ElMessage.error(i18nText.value.errors.confirmPasswordMatch)
+        return
       }
 
-      console.log('Message sent')
-      // 注意：这里不再进行页面跳转，而是完全依赖IPC通信切换窗口
-    } catch (error) {
-      console.error('登录失败:', error)
-      ElMessage({
-        message: error.response?.data?.message || '登录失败，请检查邮箱和密码',
-        type: 'error'
-      })
+      // 执行注册逻辑
+      register(registerFormData)
+        .then((response) => {
+          if (response.success) {
+            ElMessage.success(
+              response.message ||
+                (userSetStore.language === 'en' ? 'Registration successful' : '注册成功')
+            )
+
+            // 注册成功后自动切换到登录页面
+            setTimeout(() => {
+              isLogin.value = true
+            }, 1500)
+          } else {
+            ElMessage.error(
+              response.message ||
+                (userSetStore.language === 'en' ? 'Registration failed' : '注册失败')
+            )
+          }
+        })
+        .catch((error) => {
+          console.error('注册失败:', error)
+          ElMessage.error(
+            error.message || (userSetStore.language === 'en' ? 'Registration failed' : '注册失败')
+          )
+        })
     }
-  }
+  })
 }
 
-// 发送验证码
-const sendVerifyCodeHandler = async () => {
-  if (!registerFormData.email) {
-    ElMessage({
-      message: '请输入邮箱地址',
-      type: 'warning'
-    })
-    return
-  }
-
-  // 验证邮箱格式
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(registerFormData.email)) {
-    ElMessage({
-      message: '请输入正确的邮箱地址',
-      type: 'warning'
-    })
-    return
-  }
-
-  try {
-    // 调用发送验证码API
-    await sendVerifyCode({ email: registerFormData.email })
-
-    ElMessage({
-      message: '验证码已发送，请查收邮箱',
-      type: 'success'
-    })
-
-    // 启动倒计时
-    startCountDown()
-  } catch (error) {
-    console.error('发送验证码失败:', error)
-    ElMessage({
-      message: error.response?.data?.message || '发送验证码失败',
-      type: 'error'
-    })
-  }
-}
-
-// 处理注册
-const handleRegister = async () => {
-  try {
-    if (registerFormRef.value) {
-      await registerFormRef.value.validate()
-
-      // 调用注册API
-      const response = await register({
-        email: registerFormData.email,
-        username: registerFormData.username,
-        password: registerFormData.password,
-        verifyCode: registerFormData.verifyCode
-      })
-
-      ElMessage({
-        message: response.message || '注册成功，请登录',
-        type: 'success'
-      })
-
-      // 注册成功后切换到登录表单
-      isLogin.value = true
-
-      // 清空注册表单
-      Object.keys(registerFormData).forEach((key) => {
-        registerFormData[key] = ''
-      })
-    }
-  } catch (error) {
-    console.error('注册失败:', error)
-    ElMessage({
-      message: error.response?.data?.message || '注册失败',
-      type: 'error'
-    })
-  }
-}
-
-// 切换登录/注册表单
+// 切换表单类型
 const toggleForm = () => {
   isLogin.value = !isLogin.value
 }
 
-// 监听isLogin的变化并通过IPC通知主进程调整窗口大小
-watch(isLogin, (newVal) => {
-  if (window.api) {
-    window.api.toggleLoginForm(newVal)
+// 关闭登录窗口
+const handleClose = () => {
+  if (window.api && typeof window.api.closeLoginWindow === 'function') {
+    window.api.closeLoginWindow()
   }
-})
+}
+
+// 监听语言变化并更新验证规则
+watch(
+  () => userSetStore.language,
+  () => {
+    // 重新定义规则以更新错误消息
+    Object.assign(loginRules, {
+      email: [
+        { required: true, message: i18nText.value.errors.emailRequired, trigger: 'blur' },
+        { type: 'email', message: i18nText.value.errors.emailFormat, trigger: ['blur', 'change'] }
+      ],
+      password: [
+        { required: true, message: i18nText.value.errors.passwordRequired, trigger: 'blur' },
+        { min: 6, message: i18nText.value.errors.passwordLength, trigger: 'blur' }
+      ]
+    })
+
+    Object.assign(registerRules, {
+      email: [
+        { required: true, message: i18nText.value.errors.emailRequired, trigger: 'blur' },
+        { type: 'email', message: i18nText.value.errors.emailFormat, trigger: ['blur', 'change'] }
+      ],
+      username: [
+        { required: true, message: i18nText.value.errors.usernameRequired, trigger: 'blur' },
+        { min: 3, message: i18nText.value.errors.usernameLength, trigger: 'blur' }
+      ],
+      password: [
+        { required: true, message: i18nText.value.errors.passwordRequired, trigger: 'blur' },
+        { min: 6, message: i18nText.value.errors.passwordLength, trigger: 'blur' }
+      ],
+      confirmPassword: [
+        { required: true, message: i18nText.value.errors.confirmPasswordRequired, trigger: 'blur' },
+        { validator: validateConfirmPassword, trigger: 'blur' }
+      ],
+      verifyCode: [
+        { required: true, message: i18nText.value.errors.verifyCodeRequired, trigger: 'blur' }
+      ]
+    })
+  }
+)
 </script>
 
 <style scoped lang="scss">
