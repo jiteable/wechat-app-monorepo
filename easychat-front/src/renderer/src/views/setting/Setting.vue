@@ -1,7 +1,7 @@
 <template>
   <div class="setting-window">
     <div class="window-header drag">
-      <div class="header-title">设置</div>
+      <div class="header-title">{{ i18nText.page.title }}</div>
       <div class="window-controls no-drag">
         <button class="control-button close" @click="closeWindow">
           <i class="iconfont icon-close"></i>
@@ -12,16 +12,18 @@
     <div class="setting-content">
       <el-tabs v-model="activeTab" class="setting-tabs">
         <!-- 账户设置 -->
-        <el-tab-pane label="账户与存储" name="account">
+        <el-tab-pane :label="i18nText.tabs.account" name="account">
           <div class="tab-content">
-            <h3>账户与存储</h3>
+            <h3>{{ i18nText.tabs.account }}</h3>
 
             <!-- 头像设置 -->
             <div class="setting-item">
               <div class="avatar-container">
-                <span>头像:</span>
+                <span>{{ i18nText.account.avatar }}</span>
                 <el-avatar :src="avatar" shape="square" :size="60" />
-                <el-button size="small" @click="changeAvatar">更改头像</el-button>
+                <el-button size="small" @click="changeAvatar">{{
+                  i18nText.account.changeAvatar
+                }}</el-button>
                 <input
                   ref="avatarInput"
                   type="file"
@@ -34,25 +36,25 @@
 
             <!-- 用户名设置 -->
             <div class="setting-item">
-              <span>用户名:</span>
+              <span>{{ i18nText.account.username }}</span>
               <el-input v-model="username" size="small" style="width: 200px" />
             </div>
 
             <!-- 聊天ID设置 -->
             <div class="setting-item">
-              <span>聊天ID:</span>
+              <span>{{ i18nText.account.chatId }}</span>
               <el-input v-model="chatId" size="small" style="width: 200px" />
             </div>
           </div>
         </el-tab-pane>
 
         <!-- 通用设置 -->
-        <el-tab-pane label="通用设置" name="general">
+        <el-tab-pane :label="i18nText.tabs.general" name="general">
           <div class="tab-content">
-            <h3>通用设置</h3>
+            <h3>{{ i18nText.tabs.general }}</h3>
             <div class="setting-item">
               <div class="setting-label">
-                <span>语言设置</span>
+                <span>{{ i18nText.general.language }}</span>
               </div>
               <el-select
                 v-model="settings.language"
@@ -60,14 +62,14 @@
                 class="setting-select"
                 @change="onSettingChange"
               >
-                <el-option label="中文" value="zh" />
-                <el-option label="English" value="en" />
+                <el-option :label="i18nText.languages.chinese" value="zh" />
+                <el-option :label="i18nText.languages.english" value="en" />
               </el-select>
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
-                <span>字体大小</span>
+                <span>{{ i18nText.general.fontSize }}</span>
               </div>
               <el-select
                 v-model="settings.fontSize"
@@ -75,16 +77,16 @@
                 class="setting-select"
                 @change="onSettingChange"
               >
-                <el-option label="小 (12px)" :value="12" />
-                <el-option label="中 (14px)" :value="14" />
-                <el-option label="大 (16px)" :value="16" />
+                <el-option :label="i18nText.general.smallFont" :value="12" />
+                <el-option :label="i18nText.general.mediumFont" :value="14" />
+                <el-option :label="i18nText.general.largeFont" :value="16" />
               </el-select>
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
-                <span>是否以只读方式打开聊天中的文件</span>
-                <el-tooltip content="开启后，聊天中收到的文件将以只读方式打开" placement="top">
+                <span>{{ i18nText.general.readonlyFile }}</span>
+                <el-tooltip :content="i18nText.general.readonlyFileTip" placement="top">
                   <i class="iconfont icon-question"></i>
                 </el-tooltip>
               </div>
@@ -93,14 +95,14 @@
 
             <div class="setting-item">
               <div class="setting-label">
-                <span>是否显示网络搜索历史</span>
+                <span>{{ i18nText.general.searchHistory }}</span>
               </div>
               <el-switch v-model="settings.showWebSearchHistory" @change="onSettingChange" />
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
-                <span>是否将聊天语音自动转成文字</span>
+                <span>{{ i18nText.general.voiceToText }}</span>
               </div>
               <el-switch v-model="settings.autoConvertVoiceToText" @change="onSettingChange" />
             </div>
@@ -108,34 +110,34 @@
         </el-tab-pane>
 
         <!-- 好友设置 -->
-        <el-tab-pane label="好友设置" name="friends">
+        <el-tab-pane :label="i18nText.tabs.friends" name="friends">
           <div class="tab-content">
-            <h3>好友设置</h3>
+            <h3>{{ i18nText.tabs.friends }}</h3>
 
             <div class="setting-item">
               <div class="setting-label">
-                <span>加我为朋友时是否需要验证</span>
+                <span>{{ i18nText.friends.needVerify }}</span>
               </div>
               <el-switch v-model="settings.needVerificationToAddFriend" @change="onSettingChange" />
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
-                <span>是否能够通过chatId搜索到我</span>
+                <span>{{ i18nText.friends.searchByChatId }}</span>
               </div>
               <el-switch v-model="settings.canBeSearchedByChatId" @change="onSettingChange" />
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
-                <span>是否能够通过邮箱搜索到我</span>
+                <span>{{ i18nText.friends.searchByEmail }}</span>
               </div>
               <el-switch v-model="settings.canBeSearchedByEmail" @change="onSettingChange" />
             </div>
 
             <div class="setting-item">
               <div class="setting-label">
-                <span>是否能通过群聊添加我</span>
+                <span>{{ i18nText.friends.addFromGroup }}</span>
               </div>
               <el-switch v-model="settings.canAddFromGroup" @change="onSettingChange" />
             </div>
@@ -143,13 +145,13 @@
         </el-tab-pane>
 
         <!-- 通知设置 -->
-        <el-tab-pane label="通知设置" name="notifications">
+        <el-tab-pane :label="i18nText.tabs.notifications" name="notifications">
           <div class="tab-content">
-            <h3>通知设置</h3>
+            <h3>{{ i18nText.tabs.notifications }}</h3>
 
             <div class="setting-item">
               <div class="setting-label">
-                <span>新消息通知是否有声音</span>
+                <span>{{ i18nText.notification.sound }}</span>
               </div>
               <el-switch v-model="settings.newMessageSound" @change="onSettingChange" />
             </div>
@@ -157,13 +159,13 @@
         </el-tab-pane>
 
         <!-- 关于 -->
-        <el-tab-pane label="关于" name="about">
+        <el-tab-pane :label="i18nText.tabs.about" name="about">
           <div class="tab-content">
-            <h3>关于 EasyChat</h3>
+            <h3>{{ i18nText.about.title }}</h3>
             <div class="about-content">
-              <p>版本: 1.0.0</p>
-              <p>EasyChat 是一个现代化的即时通讯应用</p>
-              <p>© 2025 EasyChat. 保留所有权利.</p>
+              <p>{{ i18nText.about.version }}</p>
+              <p>{{ i18nText.about.description }}</p>
+              <p>{{ i18nText.about.copyright }}</p>
             </div>
           </div>
         </el-tab-pane>
@@ -171,7 +173,7 @@
 
       <!-- 确定修改按钮 -->
       <div v-if="hasChanges" class="apply-changes-bar">
-        <el-button type="primary" @click="applyChanges">确定修改</el-button>
+        <el-button type="primary" @click="applyChanges">{{ i18nText.page.save }}</el-button>
       </div>
     </div>
   </div>
@@ -407,6 +409,83 @@ const applyChanges = async () => {
     ElMessage.error('保存设置失败')
   }
 }
+
+const i18nText = computed(() => {
+  const isEn = userSetStore.language === 'en'
+  return {
+    // 页面标题和按钮
+    page: {
+      title: isEn ? 'Settings' : '设置',
+      close: isEn ? 'Close' : '关闭',
+      save: isEn ? 'Save Changes' : '确定修改'
+    },
+    // 标签页名称
+    tabs: {
+      account: isEn ? 'Account & Storage' : '账户与存储',
+      general: isEn ? 'General Settings' : '通用设置',
+      friends: isEn ? 'Friend Settings' : '好友设置',
+      notifications: isEn ? 'Notification Settings' : '通知设置',
+      about: isEn ? 'About' : '关于'
+    },
+    // 账户与存储标签页
+    account: {
+      avatar: isEn ? 'Avatar:' : '头像:',
+      changeAvatar: isEn ? 'Change Avatar' : '更改头像',
+      username: isEn ? 'Username:' : '用户名:',
+      chatId: isEn ? 'Chat ID:' : '聊天ID:'
+    },
+    // 通用设置标签页
+    general: {
+      language: isEn ? 'Language' : '语言设置',
+      fontSize: isEn ? 'Font Size' : '字体大小',
+      readonlyFile: isEn
+        ? 'Open files in read-only mode in chat'
+        : '是否以只读方式打开聊天中的文件',
+      readonlyFileTip: isEn
+        ? 'When enabled, received files in chat will be opened in read-only mode'
+        : '开启后，聊天中收到的文件将以只读方式打开',
+      searchHistory: isEn ? 'Show web search history' : '是否显示网络搜索历史',
+      voiceToText: isEn ? 'Auto convert voice to text in chat' : '是否将聊天语音自动转成文字',
+      smallFont: isEn ? 'Small (12px)' : '小 (12px)',
+      mediumFont: isEn ? 'Medium (14px)' : '中 (14px)',
+      largeFont: isEn ? 'Large (16px)' : '大 (16px)'
+    },
+    // 好友设置标签页
+    friends: {
+      needVerify: isEn
+        ? 'Require verification when adding me as friend'
+        : '加我为朋友时是否需要验证',
+      searchByChatId: isEn ? 'Allow to be searched by chatId' : '是否能够通过chatId搜索到我',
+      searchByEmail: isEn ? 'Allow to be searched by email' : '是否能够通过邮箱搜索到我',
+      addFromGroup: isEn ? 'Allow to be added via group chat' : '是否能通过群聊添加我'
+    },
+    // 通知设置标签页
+    notification: {
+      sound: isEn ? 'Enable sound for new message notifications' : '新消息通知是否有声音'
+    },
+    // 关于标签页
+    about: {
+      title: isEn ? 'About EasyChat' : '关于 EasyChat',
+      version: isEn ? 'Version: 1.0.0' : '版本: 1.0.0',
+      description: isEn
+        ? 'EasyChat is a modern instant messaging application'
+        : 'EasyChat 是一个现代化的即时通讯应用',
+      copyright: isEn ? '© 2025 EasyChat. All rights reserved.' : '© 2025 EasyChat. 保留所有权利.'
+    },
+    // 语言选项
+    languages: {
+      chinese: isEn ? 'Chinese' : '中文',
+      english: isEn ? 'English' : 'English'
+    },
+    // 提示消息
+    messages: {
+      allSaved: isEn ? 'All settings have been saved' : '所有设置已保存',
+      saveFailed: isEn ? 'Failed to save settings' : '保存设置失败',
+      processingFailed: isEn ? 'Failed to process avatar, please try again' : '处理头像失败,请重试',
+      selectImage: isEn ? 'Please select an image file' : '请选择图片文件'
+    }
+  }
+})
 </script>
 
 <style scoped lang="scss">
