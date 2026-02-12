@@ -8,7 +8,7 @@
           </el-icon>
           <input
             v-model="searchText"
-            placeholder="搜索"
+            :placeholder="i18nText.page.searchPlaceholder"
             class="search-input"
             @input="handleSearch"
           />
@@ -52,17 +52,17 @@
       </div>
       <div class="selected-contacts-container">
         <div class="selected-header">
-          <span class="title">发起群聊</span>
-          <span class="count">已选择{{ selectedContacts.length }}个联系人</span>
+          <span class="title">{{ i18nText.page.title }}</span>
+          <span class="count">{{ i18nText.page.count(selectedContacts.length) }}</span>
         </div>
 
         <!-- 群聊头像设置 -->
         <div class="group-avatar-setting">
           <div class="avatar-container">
-            <span>群聊头像:</span>
+            <span>{{ i18nText.page.groupAvatarLabel }}</span>
             <el-avatar v-if="groupAvatar" :src="groupAvatar" shape="square" :size="60" />
             <el-button size="small" @click="changeGroupAvatar">{{
-              groupAvatar ? '更改头像' : '设置头像'
+              groupAvatar ? i18nText.page.changeAvatar : i18nText.page.setAvatar
             }}</el-button>
             <input
               ref="groupAvatarInput"
@@ -75,7 +75,11 @@
         </div>
 
         <div class="group-name-input">
-          <input v-model="groupName" placeholder="请输入群聊名称" class="group-name-field" />
+          <input
+            v-model="groupName"
+            :placeholder="i18nText.page.groupNamePlaceholder"
+            class="group-name-field"
+          />
         </div>
         <div class="selected-list">
           <div v-for="contact in selectedContacts" :key="contact.id" class="selected-contact-item">
@@ -93,8 +97,12 @@
           </div>
         </div>
         <div class="action-buttons">
-          <button class="complete-button" @click="completeGroupCreation">完成</button>
-          <button class="cancel-button" @click="cancelGroupCreation">取消</button>
+          <button class="complete-button" @click="completeGroupCreation">
+            {{ i18nText.page.completeButton }}
+          </button>
+          <button class="cancel-button" @click="cancelGroupCreation">
+            {{ i18nText.page.cancelButton }}
+          </button>
         </div>
       </div>
     </div>
@@ -110,6 +118,7 @@ import { createGroup } from '@/api/create'
 import { ElMessage } from 'element-plus'
 import { compressImage } from '@/utils/img'
 import { uploadAvatar } from '@/api/upload'
+import { useUserSetStore } from '@/store/userSetStore'
 
 // 定义联系人类型
 interface Contact {
@@ -134,6 +143,46 @@ export default defineComponent({
     const groupAvatarFile = ref<File | null>(null) // 保存头像文件引用
     const groupAvatarInput = ref<HTMLInputElement | null>(null) // 群聊头像输入框引用
     const loading = ref(false)
+
+    // 获取用户设置store实例
+    const userSetStore = useUserSetStore()
+
+    // 计算属性：根据当前语言返回相应的文本
+    const i18nText = computed(() => {
+      const isEn = userSetStore.language === 'en'
+      return {
+        // 页面元素
+        page: {
+          searchPlaceholder: isEn ? 'Search' : '搜索',
+          title: isEn ? 'Initiate Group Chat' : '发起群聊',
+          count: (num: number) => (isEn ? `Selected ${num} contacts` : `已选择${num}个联系人`),
+          groupAvatarLabel: isEn ? 'Group Avatar:' : '群聊头像:',
+          setAvatar: isEn ? 'Set Avatar' : '设置头像',
+          changeAvatar: isEn ? 'Change Avatar' : '更改头像',
+          groupNamePlaceholder: isEn ? 'Please enter group name' : '请输入群聊名称',
+          completeButton: isEn ? 'Complete' : '完成',
+          cancelButton: isEn ? 'Cancel' : '取消'
+        },
+        // 消息提示
+        messages: {
+          warning: {
+            groupName: isEn ? 'Please enter group name' : '请输入群聊名称',
+            minMembers: isEn ? 'At least 2 contacts must be selected' : '至少需要选择2个联系人'
+          },
+          success: {
+            groupCreated: isEn ? 'Group chat created successfully' : '群聊创建成功'
+          },
+          error: {
+            groupCreated: isEn ? 'Failed to create group chat' : '创建群聊失败',
+            imageType: isEn ? 'Please select an image file' : '请选择图片文件',
+            avatarProcessing: isEn
+              ? 'Failed to process avatar, please try again'
+              : '处理头像失败,请重试',
+            avatarUpload: isEn ? 'Failed to upload avatar, please try again' : '上传头像失败,请重试'
+          }
+        }
+      }
+    })
 
     // 联系人数据
     const contacts = ref<Contact[]>([])
@@ -277,7 +326,7 @@ export default defineComponent({
 
       // 检查文件类型
       if (!file.type.startsWith('image/')) {
-        ElMessage.error('请选择图片文件')
+        ElMessage.error(i18nText.value.messages.error.imageType)
         return
       }
 
@@ -299,7 +348,7 @@ export default defineComponent({
         target.value = ''
       } catch (error) {
         console.error('处理头像失败:', error)
-        ElMessage.error('处理头像失败,请重试')
+        ElMessage.error(i18nText.value.messages.error.avatarProcessing)
       }
     }
 
@@ -319,7 +368,7 @@ export default defineComponent({
         return response.avatarUrl
       } catch (error) {
         console.error('上传头像失败:', error)
-        ElMessage.error('上传头像失败,请重试')
+        ElMessage.error(i18nText.value.messages.error.avatarUpload)
         throw error
       }
     }
@@ -327,12 +376,12 @@ export default defineComponent({
     // 完成群组创建
     const completeGroupCreation = async () => {
       if (!groupName.value.trim()) {
-        ElMessage.warning('请输入群聊名称')
+        ElMessage.warning(i18nText.value.messages.warning.groupName)
         return
       }
 
       if (selectedContacts.value.length < 2) {
-        ElMessage.warning('至少需要选择2个联系人')
+        ElMessage.warning(i18nText.value.messages.warning.minMembers)
         return
       }
 
@@ -351,13 +400,13 @@ export default defineComponent({
         })
 
         if (response.success) {
-          ElMessage.success('群聊创建成功')
+          ElMessage.success(i18nText.value.messages.success.groupCreated)
           window.api.closeCreateGroupWindow()
         } else {
-          ElMessage.error(response.message || '创建群聊失败')
+          ElMessage.error(response.message || i18nText.value.messages.error.groupCreated)
         }
       } catch (error) {
-        ElMessage.error('创建群聊失败')
+        ElMessage.error(i18nText.value.messages.error.groupCreated)
         console.error('创建群聊失败:', error)
       }
     }
@@ -381,6 +430,7 @@ export default defineComponent({
       contactGroups,
       selectedContacts,
       loading,
+      i18nText, // 添加国际化文本
       handleSearch,
       toggleContactSelection,
       removeContact,
