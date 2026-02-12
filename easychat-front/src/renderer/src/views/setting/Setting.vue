@@ -529,7 +529,5 @@ const applyChanges = async () => {
   background: white;
   padding: 15px 0 10px;
   text-align: center;
-  border-top: 1px solid #eee;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
 }
 </style>

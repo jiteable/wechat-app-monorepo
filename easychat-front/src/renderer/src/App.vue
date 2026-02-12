@@ -7,16 +7,12 @@ import '@/assets/cust-elementplus.scss'
 import '@/assets/icon/iconfont.css'
 import '@/assets/base.scss'
 import '@/assets/iconfont/iconfont.css'
+import { useUserSetStore } from '@/store/userSetStore'
 
 // 控制语言的响应式变量
 const locale = ref(zhCn)
 
-// const config = reactive({
-//   max: 1
-// })
-
-// 可以通过监听存储或其他方式来保持语言设置
-// 示例：从localStorage读取语言设置
+// 初始化时从localStorage读取语言设置
 const savedLocale = localStorage.getItem('locale')
 if (savedLocale === 'en') {
   locale.value = en
@@ -24,8 +20,26 @@ if (savedLocale === 'en') {
   locale.value = zhCn
 }
 
-// 监听语言变化并保存到localStorage
+// 获取用户设置store实例
+const userSetStore = useUserSetStore()
+
+// 监听用户设置store中的语言变化
+watch(
+  () => userSetStore.language,
+  (newLanguage) => {
+    if (newLanguage === 'en') {
+      locale.value = en
+    } else {
+      locale.value = zhCn
+    }
+    console.log('改语言', locale.value)
+    localStorage.setItem('locale', newLanguage)
+  }
+)
+
+// 监听locale变化并保存到localStorage
 watch(locale, (newLocale) => {
+  console.log('改语言', newLocale)
   localStorage.setItem('locale', newLocale === en ? 'en' : 'zhCn')
 })
 </script>

@@ -13,6 +13,7 @@
           <el-button
             class="box no-drag first-box"
             :class="{ active: currentView === 'chat' }"
+            :title="i18nText.icons.chat"
             @click="goToChat"
           >
             <i class="iconfont icon-chat2" :class="{ active: currentView === 'chat' }"></i>
@@ -20,6 +21,7 @@
           <el-button
             class="box no-drag"
             :class="{ active: currentView === 'contact' }"
+            :title="i18nText.icons.contacts"
             @click="goToContact"
           >
             <i class="iconfont icon-user" :class="{ active: currentView === 'contact' }"></i>
@@ -33,11 +35,19 @@
               popper-class="grid-popover"
             >
               <div class="popover-menu no-drag">
-                <el-button class="menu-button" @click="handleChatFiles">聊天文件</el-button>
-                <el-button class="menu-button" @click="handleChatHistory">聊天记录管理</el-button>
-                <el-button class="menu-button" @click="handleSettings">设置</el-button>
+                <el-button class="menu-button" @click="handleChatFiles">{{
+                  i18nText.menu.chatFiles
+                }}</el-button>
+                <el-button class="menu-button" @click="handleChatHistory">{{
+                  i18nText.menu.chatHistory
+                }}</el-button>
+                <el-button class="menu-button" @click="handleSettings">{{
+                  i18nText.menu.settings
+                }}</el-button>
                 <!-- 添加退出登录按钮 -->
-                <el-button class="menu-button" @click="handleLogout">退出登录</el-button>
+                <el-button class="menu-button" @click="handleLogout">{{
+                  i18nText.menu.logout
+                }}</el-button>
               </div>
 
               <template #reference>
@@ -68,13 +78,22 @@
     </el-container>
 
     <!-- 加载历史聊天记录对话框 -->
-    <el-dialog v-model="chatHistoryDialogVisible" title="加载聊天记录" width="300px" center>
-      <span>是否加载历史聊天记录？</span>
-      <div style="margin-top: 10px; font-size: 12px; color: #999">注意：只能加载7天内的记录</div>
+    <el-dialog
+      v-model="chatHistoryDialogVisible"
+      :title="i18nText.dialog.title"
+      width="300px"
+      center
+    >
+      <span>{{ i18nText.dialog.content }}</span>
+      <div style="margin-top: 10px; font-size: 12px; color: #999">{{ i18nText.dialog.note }}</div>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="chatHistoryDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmLoadChatHistory">确认</el-button>
+          <el-button @click="chatHistoryDialogVisible = false">{{
+            i18nText.dialog.cancel
+          }}</el-button>
+          <el-button type="primary" @click="confirmLoadChatHistory">{{
+            i18nText.dialog.confirm
+          }}</el-button>
         </span>
       </template>
     </el-dialog>
@@ -436,6 +455,32 @@ const handleAvatarError = () => {
   squareUrl.value = defaultAvatar.value
   return true
 }
+
+const i18nText = computed(() => {
+  const isEn = userSetStore.language === 'en'
+  return {
+    // 菜单按钮文本
+    menu: {
+      chatFiles: isEn ? 'Chat Files' : '聊天文件',
+      chatHistory: isEn ? 'Chat History' : '聊天记录管理',
+      settings: isEn ? 'Settings' : '设置',
+      logout: isEn ? 'Logout' : '退出登录'
+    },
+    // 对话框文本
+    dialog: {
+      title: isEn ? 'Load Chat History' : '加载聊天记录',
+      content: isEn ? 'Do you want to load chat history?' : '是否加载历史聊天记录？',
+      note: isEn ? 'Note: Only records within 7 days can be loaded' : '注意：只能加载7天内的记录',
+      cancel: isEn ? 'Cancel' : '取消',
+      confirm: isEn ? 'Confirm' : '确认'
+    },
+    // 图标提示文本
+    icons: {
+      chat: isEn ? 'Chat' : '聊天',
+      contacts: isEn ? 'Contacts' : '联系人'
+    }
+  }
+})
 </script>
 
 <style scoped lang="scss">
