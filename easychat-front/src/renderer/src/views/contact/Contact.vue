@@ -5,7 +5,7 @@
         <el-input
           v-model="searchText"
           class="no-drag search-input"
-          placeholder="搜索"
+          :placeholder="i18nText.page.searchPlaceholder"
           clearable
           prefix-icon="Search"
         />
@@ -14,7 +14,7 @@
     <div class="chat-left-content no-drag">
       <button class="contact-button" @click="openContactManagement">
         <i class="iconfont icon-user"></i>
-        通讯录管理
+        {{ i18nText.page.contactManagement }}
       </button>
 
       <!-- 新的朋友 -->
@@ -24,7 +24,7 @@
         @click="showContactApply"
       >
         <i class="iconfont icon-user"></i>
-        新的朋友
+        {{ i18nText.page.newFriend }}
       </button>
 
       <!-- 群聊 -->
@@ -33,7 +33,7 @@
           <el-icon>
             <component :is="buttonStates[1] ? 'ArrowDown' : 'ArrowRight'" />
           </el-icon>
-          群聊
+          {{ i18nText.page.group }}
         </button>
         <div v-show="buttonStates[1]" class="sub-list">
           <button
@@ -58,7 +58,7 @@
           <el-icon>
             <component :is="buttonStates[2] ? 'ArrowDown' : 'ArrowRight'" />
           </el-icon>
-          联系人
+          {{ i18nText.page.contacts }}
         </button>
         <div v-show="buttonStates[2]" class="sub-list">
           <div
@@ -91,42 +91,42 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import convertToPinyinInitials from '@/utils/changeChinese'
-import { getContact, getGroup } from '@/api/getRelationship'
-import { getGroupInfo } from '@/api/chatSession'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { userContactStore } from '@/store/userContactStore'
-import { useContactExpandStore } from '@/store/contactExpandStore'
+import { useUserStore } from '@/store/userStore'
+import { getContact, getGroup } from '@/api/getRelationship'
+import { ElMessage } from 'element-plus'
+import convertToPinyinInitials from '@/utils/changeChinese'
+import { useUserSetStore } from '@/store/userSetStore'
+
+const contactStore = userContactStore()
+const router = useRouter()
+const userSetStore = useUserSetStore()
 
 const searchText = ref('')
-const hoveredContact = ref(null)
 const hoveredGroup = ref(null)
+const hoveredContact = ref(null)
 const selectedItemId = ref(null)
-const selectedItemType = ref(null) // 'contact', 'group', 或 'newFriend'
-const contactStore = userContactStore()
-const contactExpandStore = useContactExpandStore()
-const router = useRouter()
+const selectedItemType = ref(null)
 
-const openContactManagement = () => {
-  if (window.api) {
-    window.api.openContactWindow()
+// 计算属性：根据当前语言返回相应的文本
+const i18nText = computed(() => {
+  const isEn = userSetStore.language === 'en'
+  return {
+    // 页面元素
+    page: {
+      searchPlaceholder: isEn ? 'Search' : '搜索',
+      contactManagement: isEn ? 'Contacts Management' : '通讯录管理',
+      newFriend: isEn ? 'New Friend' : '新的朋友',
+      group: isEn ? 'Group' : '群聊',
+      contacts: isEn ? 'Contacts' : '联系人'
+    }
   }
-}
-
-// 显示新朋友页面
-const showContactApply = () => {
-  selectedItemId.value = 'newFriend'
-  selectedItemType.value = 'newFriend'
-  router.push('/contact/apply')
-}
+})
 
 // 按钮状态管理，使用新的展开状态store
-const buttonStates = reactive([
-  false,
-  contactExpandStore.groupExpanded,
-  contactExpandStore.contactsExpanded
-])
+const buttonStates = reactive([false, contactStore.groupExpanded, contactStore.contactsExpanded])
 
 // 群聊数据
 const groups = ref([])
@@ -213,24 +213,28 @@ onUnmounted(() => {
 const fetchContacts = async () => {
   try {
     const response = await getContact()
-    console.log('fetchContacts', response.contacts)
     if (response && response.contacts) {
       // 将后端返回的数据转换为前端需要的格式
       contacts.value = response.contacts.map((contact) => ({
         id: contact.id,
-        chatId: contact.chatId,
         name: contact.username || contact.chatId,
         avatar:
           contact.avatar ||
           'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
-        // 添加备注和标签字段
-        remark: contact.remark || null,
-        labels: contact.labels || null, // 标签字段
-        signature: contact.signature || null,
-        source: contact.source || null,
-        groupCount: contact.groupCount || 0
+        remark: contact.remark || '',
+        labels: contact.labels || [],
+        chatId: contact.chatId,
+        signature: contact.signature,
+        source: contact.source
       }))
-      console.log('fetchCon', contacts.value)
+
+      // 更新选中用户的详细信息
+      if (contactStore.selectedUser) {
+        const updatedContact = contacts.value.find((c) => c.id === contactStore.selectedUser.id)
+        if (updatedContact) {
+          contactStore.selectedUser = { ...contactStore.selectedUser, ...updatedContact }
+        }
+      }
     }
   } catch (error) {
     console.error('获取联系人失败:', error)
@@ -248,7 +252,8 @@ const fetchGroups = async () => {
         name: group.name,
         avatar:
           group.image ||
-          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg'
+          'https://file-dev.document-ai.top/avatar/chatImage/%E9%BB%98%E8%AE%A4%E5%A4%B4%E5%83%8F.jpg',
+        memberIds: group.memberIds || []
       }))
     }
   } catch (error) {
@@ -256,139 +261,132 @@ const fetchGroups = async () => {
   }
 }
 
-// 过滤群聊列表
-const filteredGroups = computed(() => {
-  if (!searchText.value) {
-    return groups.value
+// 切换按钮展开状态
+const toggleButton = (index) => {
+  buttonStates[index] = !buttonStates[index]
+
+  // 更新 store 中的状态
+  if (index === 1) {
+    contactStore.setGroupExpanded(buttonStates[1])
+  } else if (index === 2) {
+    contactStore.setContactsExpanded(buttonStates[2])
   }
-  return groups.value.filter((group) =>
-    group.name.toLowerCase().includes(searchText.value.toLowerCase())
+}
+
+// 检查项目是否被选中
+const isItemSelected = (id, type) => {
+  return selectedItemId.value === id && selectedItemType.value === type
+}
+
+// 计算属性：过滤后的群组
+const filteredGroups = computed(() => {
+  if (!searchText.value) return groups.value
+  const keyword = searchText.value.toLowerCase()
+  return groups.value.filter(
+    (group) =>
+      group.name.toLowerCase().includes(keyword) ||
+      (group.remark && group.remark.toLowerCase().includes(keyword))
   )
 })
 
-// 计算属性：按名称首字符排序的联系人列表（带标题）
+// 计算属性：过滤后的联系人
+const filteredContacts = computed(() => {
+  if (!searchText.value) return contacts.value
+  const keyword = searchText.value.toLowerCase()
+  return contacts.value.filter(
+    (contact) =>
+      contact.name.toLowerCase().includes(keyword) ||
+      (contact.remark && contact.remark.toLowerCase().includes(keyword))
+  )
+})
+
+// 计算属性：排序后的联系人列表（带字母标题）
 const sortedContactsWithHeaders = computed(() => {
-  // 先过滤联系人
-  let filteredContacts = contacts.value
-  if (searchText.value) {
-    filteredContacts = contacts.value.filter((contact) =>
-      contact.name.toLowerCase().includes(searchText.value.toLowerCase())
-    )
-  }
+  const filtered = filteredContacts.value
 
-  // 再按名称首字符排序
-  const sorted = [...filteredContacts].sort((a, b) => {
-    // 获取姓名的拼音首字母
-    const pinyinA = convertToPinyinInitials(a.name).charAt(0).toLowerCase()
-    const pinyinB = convertToPinyinInitials(b.name).charAt(0).toLowerCase()
+  // 按姓名拼音首字母排序
+  const sorted = [...filtered].sort((a, b) => {
+    const nameA = a.remark || a.name
+    const nameB = b.remark || b.name
+    const pinyinA = convertToPinyinInitials(nameA).charAt(0).toLowerCase()
+    const pinyinB = convertToPinyinInitials(nameB).charAt(0).toLowerCase()
 
-    // 判断字符是否为数字
     const isDigitA = /\d/.test(pinyinA)
     const isDigitB = /\d/.test(pinyinB)
 
-    // 数字优先于字母
     if (isDigitA && !isDigitB) return -1
     if (!isDigitA && isDigitB) return 1
 
-    // 如果都是数字或都是字母，按字符编码排序
     return pinyinA.localeCompare(pinyinB)
   })
 
-  // 添加标题
-  const result = []
-  const addedHeaders = new Set()
-
+  // 按首字母分组
+  const grouped = {}
   sorted.forEach((contact) => {
-    // 使用拼音首字母作为标题
-    const firstChar = convertToPinyinInitials(contact.name).charAt(0).toLowerCase()
-    const header = firstChar.match(/\d/) ? firstChar : firstChar.toUpperCase()
+    const name = contact.remark || contact.name
+    const initial = convertToPinyinInitials(name).charAt(0).toUpperCase()
+    const key = /\d/.test(initial) ? '0-9' : initial
 
-    // 如果还没有添加过这个标题，则添加标题
-    if (!addedHeaders.has(header)) {
-      result.push({
-        isHeader: true,
-        header: header,
-        id: `header-${header}`
-      })
-      addedHeaders.add(header)
+    if (!grouped[key]) {
+      grouped[key] = []
     }
-
-    // 添加联系人
-    result.push(contact)
+    grouped[key].push(contact)
   })
+
+  // 转换为带标题的对象数组
+  const result = []
+  Object.keys(grouped)
+    .sort((a, b) => {
+      if (a === '0-9') return -1
+      if (b === '0-9') return 1
+      return a.localeCompare(b)
+    })
+    .forEach((initial) => {
+      // 添加标题
+      result.push({ header: initial, isHeader: true })
+      // 添加该组的联系人
+      result.push(...grouped[initial])
+    })
 
   return result
 })
 
-// 切换按钮状态
-const toggleButton = (index) => {
-  buttonStates[index] = !buttonStates[index]
+// 选择群组
+const selectGroup = (group) => {
+  selectedItemId.value = group.id
+  selectedItemType.value = 'group'
 
-  // 更新展开状态store中的状态
-  if (index === 1) {
-    // 群聊展开状态
-    contactExpandStore.setExpandStates({ groupExpanded: buttonStates[1] })
-  } else if (index === 2) {
-    // 联系人展开状态
-    contactExpandStore.setExpandStates({ contactsExpanded: buttonStates[2] })
-  }
+  // 更新 store 中的选中用户
+  contactStore.setSelectedContact({
+    ...group,
+    sessionType: 'group'
+  })
 }
 
-// 通用选择函数
-const selectItem = (item, type) => {
-  selectedItemId.value = item.id || item
-  selectedItemType.value = type
-  console.log(`Selected ${type}:`, item)
-  // 可以在这里添加处理选择项目的逻辑
-}
-
-// 检查项目是否被选中
-const isItemSelected = (itemId, type) => {
-  return selectedItemId.value === itemId && selectedItemType.value === type
-}
-
+// 选择联系人
 const selectContact = (contact) => {
   selectedItemId.value = contact.id
   selectedItemType.value = 'contact'
-  console.log('contact', contact)
 
-  contactStore.setSelectedUser(contact)
-
-  router.push('/contact')
+  // 更新 store 中的选中用户
+  contactStore.setSelectedContact({
+    ...contact,
+    sessionType: 'private'
+  })
 }
 
-const selectGroup = async (group) => {
-  selectItem(group, 'group')
-
-  // 获取完整的群组信息
-  try {
-    const response = await getGroupInfo(group.id)
-    if (response && response.success) {
-      // 确保群组信息包含 sessionType 字段
-      const groupInfo = {
-        ...response.data,
-        sessionType: 'group'
-      }
-      // 设置完整的群组信息
-      contactStore.setSelectedUser(groupInfo)
-    } else {
-      // 如果获取失败，使用基本信息并添加 sessionType
-      contactStore.setSelectedUser({
-        ...group,
-        sessionType: 'group'
-      })
-    }
-  } catch (error) {
-    console.error('获取群组信息失败:', error)
-    // 如果获取失败，使用基本信息并添加 sessionType
-    contactStore.setSelectedUser({
-      ...group,
-      sessionType: 'group'
-    })
+// 打开联系人管理窗口
+const openContactManagement = () => {
+  if (window.api) {
+    window.api.openContactWindow()
   }
+}
 
-  // 导航回联系人详情页面
-  router.push('/contact')
+// 显示新朋友页面
+const showContactApply = () => {
+  selectedItemId.value = 'newFriend'
+  selectedItemType.value = 'newFriend'
+  router.push('/contact/apply')
 }
 </script>
 
