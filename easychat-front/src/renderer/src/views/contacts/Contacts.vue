@@ -4,20 +4,20 @@
       <el-splitter class="no-drag">
         <el-splitter-panel size="30%" :min="160" class="content-left">
           <div class="panel-content">
-            <div class="left-header drag">通讯录管理</div>
+            <div class="left-header drag">{{ i18nText.page.title }}</div>
             <div class="left-content">
               <el-button
                 class="button"
                 :class="{ active: activeButton === 'all' }"
                 @click="handleButtonClick('all')"
               >
-                <span class="button-text1">全部({{ tableData.length }})</span>
+                <span class="button-text1">{{ i18nText.page.allContacts(tableData.length) }}</span>
               </el-button>
               <div class="filter-section">
-                <div class="filter-label">筛选</div>
+                <div class="filter-label">{{ i18nText.page.filter }}</div>
 
                 <el-button class="button no-active" @click="toggleIcon('label')">
-                  <span class="button-text1">标签</span>
+                  <span class="button-text1">{{ i18nText.page.labels }}</span>
                   <el-icon class="arrow-icon">
                     <component :is="iconStates.label ? 'ArrowDown' : 'ArrowRight'" />
                   </el-icon>
@@ -41,7 +41,7 @@
                     class="button label-item-button"
                     @click="showNewLabelInputAndFocus"
                   >
-                    <span class="button-text2">+ 新建标签</span>
+                    <span class="button-text2">{{ i18nText.page.newLabel }}</span>
                   </el-button>
 
                   <!-- 新建标签输入框 -->
@@ -49,7 +49,7 @@
                     <el-input
                       ref="newLabelInputRef"
                       v-model="newLabelName"
-                      placeholder="输入标签名称"
+                      :placeholder="i18nText.page.newLabel"
                       size="small"
                       @blur="createNewLabel"
                       @keyup.enter="createNewLabel"
@@ -59,7 +59,7 @@
                 </div>
 
                 <el-button class="button no-active" @click="toggleIcon('group')">
-                  <span class="button-text1">最近群聊</span>
+                  <span class="button-text1">{{ i18nText.page.recentGroups }}</span>
                   <el-icon class="arrow-icon">
                     <component :is="iconStates.group ? 'ArrowDown' : 'ArrowRight'" />
                   </el-icon>
@@ -88,7 +88,7 @@
               <div class="header-search">
                 <el-input
                   v-model="searchKeyword"
-                  placeholder="搜索联系人"
+                  :placeholder="i18nText.page.searchContacts"
                   clearable
                   class="no-drag"
                   style="width: 200px; height: 30px; margin-left: 10px; margin-top: 5px"
@@ -125,7 +125,11 @@
                 @selection-change="handleSelectionChange"
               >
                 <el-table-column type="selection" width="40" />
-                <el-table-column label="名称" width="140" show-overflow-tooltip>
+                <el-table-column
+                  :label="i18nText.tableHeaders.name"
+                  width="140"
+                  show-overflow-tooltip
+                >
                   <template #default="scope">
                     <div style="display: flex; align-items: center">
                       <img
@@ -136,8 +140,17 @@
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="备注" width="140" show-overflow-tooltip />
-                <el-table-column label="标签" width="140" show-overflow-tooltip>
+                <el-table-column
+                  prop="remark"
+                  :label="i18nText.tableHeaders.remark"
+                  width="140"
+                  show-overflow-tooltip
+                />
+                <el-table-column
+                  :label="i18nText.tableHeaders.labels"
+                  width="140"
+                  show-overflow-tooltip
+                >
                   <template #default="scope">
                     <div
                       class="label-cell"
@@ -147,7 +160,7 @@
                       <span v-if="hasLabels(scope.row.label)">
                         {{ formatLabels(scope.row.label) }}
                       </span>
-                      <span v-else class="add-label-text">添加标签</span>
+                      <span v-else class="add-label-text">{{ i18nText.page.addLabel }}</span>
                     </div>
                   </template>
                 </el-table-column>
@@ -158,12 +171,12 @@
                 v-else-if="activeButton.startsWith('label-') && filteredTableData.length === 0"
                 class="empty-state-center"
               >
-                <div class="empty-text">当前标签暂无成员</div>
+                <div class="empty-text">{{ i18nText.page.emptyGroup }}</div>
                 <el-button
                   v-if="!activeButton.startsWith('label-0')"
                   class="add-button"
                   @click="showAddContactDialog"
-                  >添加</el-button
+                  >{{ i18nText.page.add }}</el-button
                 >
               </div>
 
@@ -175,7 +188,11 @@
                 @selection-change="handleSelectionChange"
               >
                 <el-table-column type="selection" width="40" />
-                <el-table-column label="名称" width="140" show-overflow-tooltip>
+                <el-table-column
+                  :label="i18nText.tableHeaders.name"
+                  width="140"
+                  show-overflow-tooltip
+                >
                   <template #default="scope">
                     <div style="display: flex; align-items: center">
                       <img
@@ -186,8 +203,18 @@
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="remark" label="备注" width="120" show-overflow-tooltip />
-                <el-table-column prop="label" label="标签" width="120" show-overflow-tooltip />
+                <el-table-column
+                  prop="remark"
+                  :label="i18nText.tableHeaders.remark"
+                  width="120"
+                  show-overflow-tooltip
+                />
+                <el-table-column
+                  prop="label"
+                  :label="i18nText.tableHeaders.labels"
+                  width="120"
+                  show-overflow-tooltip
+                />
               </el-table>
               <div v-else>右侧内容区域</div>
             </div>
@@ -200,27 +227,29 @@
     <div v-if="selectedRows.length > 0" class="bottom-drawer">
       <div class="drawer-content">
         <div class="selected-info">
-          <span>已选择 {{ selectedRows.length }} 人</span>
-          <span class="cancel-select" @click="clearSelection">取消选择</span>
+          <span>{{ i18nText.page.selected(selectedRows.length) }}</span>
+          <span class="cancel-select" @click="clearSelection">{{
+            i18nText.page.cancelSelection
+          }}</span>
         </div>
         <div class="action-buttons">
           <button class="action-btn modify-permission" @click="modifyPermission">
             <el-icon>
               <Lock />
             </el-icon>
-            <span>修改权限</span>
+            <span>{{ i18nText.page.modifyPermission }}</span>
           </button>
           <div class="set-label-dropdown">
             <button class="action-btn set-label" @click="toggleLabelDropdown">
               <el-icon>
                 <CollectionTag />
               </el-icon>
-              <span>设置标签</span>
+              <span>{{ i18nText.page.setLabel }}</span>
             </button>
             <div v-if="showLabelDropdown" class="label-dropdown-menu">
               <el-select
                 v-model="selectedLabels"
-                placeholder="请选择标签"
+                :placeholder="i18nText.page.setLabel"
                 multiple
                 filterable
                 style="width: 100%"
@@ -234,8 +263,12 @@
                 />
               </el-select>
               <div class="dropdown-actions">
-                <el-button size="small" @click="cancelLabelChange">取消</el-button>
-                <el-button type="primary" size="small" @click="confirmLabelChange">确定</el-button>
+                <el-button size="small" @click="cancelLabelChange">{{
+                  i18nText.buttons.cancel
+                }}</el-button>
+                <el-button type="primary" size="small" @click="confirmLabelChange">{{
+                  i18nText.buttons.ok
+                }}</el-button>
               </div>
             </div>
           </div>
@@ -243,7 +276,7 @@
             <el-icon>
               <Delete />
             </el-icon>
-            <span>删除</span>
+            <span>{{ i18nText.page.delete }}</span>
           </button>
         </div>
       </div>
@@ -251,7 +284,7 @@
 
     <el-dialog
       v-model="showAddContactDialogVisible"
-      title="添加联系人"
+      :title="i18nText.dialog.title"
       width="600px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -260,7 +293,7 @@
         <div class="search-box">
           <el-input
             v-model="addContactDialogSearchKeyword"
-            placeholder="搜索联系人"
+            :placeholder="i18nText.page.searchContacts"
             clearable
             style="width: 200px; height: 30px; margin-bottom: 10px"
           >
@@ -280,7 +313,7 @@
           @selection-change="handleDialogSelectionChange"
         >
           <el-table-column type="selection" width="50" />
-          <el-table-column label="名称" width="200">
+          <el-table-column :label="i18nText.tableHeaders.name" width="200">
             <template #default="scope">
               <div style="display: flex; align-items: center">
                 <img
@@ -291,11 +324,16 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="remark" label="备注" width="150" show-overflow-tooltip />
-          <el-table-column label="当前标签" show-overflow-tooltip>
+          <el-table-column
+            prop="remark"
+            :label="i18nText.tableHeaders.remark"
+            width="150"
+            show-overflow-tooltip
+          />
+          <el-table-column :label="i18nText.tableHeaders.currentLabel" show-overflow-tooltip>
             <template #default="scope">
               <span v-if="hasLabels(scope.row.label)">{{ formatLabels(scope.row.label) }}</span>
-              <span v-else class="no-label-text">无标签</span>
+              <span v-else class="no-label-text">{{ i18nText.page.noLabel }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -303,8 +341,10 @@
 
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="cancelAddContactToLabel">取消</el-button>
-          <el-button type="primary" @click="confirmAddContactToLabel">确定</el-button>
+          <el-button @click="cancelAddContactToLabel">{{ i18nText.buttons.cancel }}</el-button>
+          <el-button type="primary" @click="confirmAddContactToLabel">{{
+            i18nText.buttons.ok
+          }}</el-button>
         </span>
       </template>
     </el-dialog>
@@ -318,8 +358,10 @@ import { getContact, getGroup } from '@/api/getRelationship'
 import { useUserStore } from '@/store/userStore'
 import { getUserLabels, addUserLabel, setFriendInfo } from '@/api/setFriendInfo'
 import { ElMessage } from 'element-plus' // 添加消息提示组件
+import { useUserSetStore } from '@/store/userSetStore'
 
 const userStore = useUserStore()
+const userSetStore = useUserSetStore()
 
 const activeButton = ref('all')
 const searchKeyword = ref('')
@@ -358,6 +400,63 @@ const selectedLabels = ref([])
 const showAddContactDialogVisible = ref(false)
 const selectedContactsToAdd = ref([])
 const allContacts = ref([])
+
+// 计算属性：根据当前语言返回相应的文本
+const i18nText = computed(() => {
+  const isEn = userSetStore.language === 'en'
+  return {
+    // 页面标题和标签
+    page: {
+      title: isEn ? 'Contacts Management' : '通讯录管理',
+      allContacts: (count) => isEn ? `All(${count})` : `全部(${count})`,
+      filter: isEn ? 'Filter' : '筛选',
+      labels: isEn ? 'Labels' : '标签',
+      newLabel: isEn ? '+ New Label' : '+ 新建标签',
+      recentGroups: isEn ? 'Recent Groups' : '最近群聊',
+      searchContacts: isEn ? 'Search Contacts' : '搜索联系人',
+      selected: (count) => isEn ? `${count} selected` : `已选择 ${count} 人`,
+      cancelSelection: isEn ? 'Cancel Selection' : '取消选择',
+      modifyPermission: isEn ? 'Modify Permission' : '修改权限',
+      setLabel: isEn ? 'Set Label' : '设置标签',
+      delete: isEn ? 'Delete' : '删除',
+      add: isEn ? 'Add' : '添加',
+      noLabel: isEn ? 'No Label' : '无标签',
+      addLabel: isEn ? 'Add Label' : '添加标签',
+      emptyGroup: isEn ? 'No members in current label' : '当前标签暂无成员'
+    },
+    // 按钮文本
+    buttons: {
+      ok: isEn ? 'OK' : '确定',
+      cancel: isEn ? 'Cancel' : '取消',
+      delete: isEn ? 'Delete' : '删除'
+    },
+    // 对话框标题
+    dialog: {
+      title: isEn ? 'Add Contact' : '添加联系人'
+    },
+    // 消息提示
+    messages: {
+      warning: {
+        noContactSelected: isEn ? 'Please select at least one contact' : '请至少选择一个联系人',
+        labelExists: isEn ? 'Label already exists' : '标签已存在'
+      },
+      success: {
+        addContacts: (count) => isEn ? `Successfully added ${count} contacts to label` : `已成功为 ${count} 位联系人添加标签`,
+        labelSet: isEn ? 'Label set successfully' : '标签设置成功'
+      },
+      error: {
+        labelSet: isEn ? 'Failed to set label' : '设置标签失败'
+      }
+    },
+    // 表格列标题
+    tableHeaders: {
+      name: isEn ? 'Name' : '名称',
+      remark: isEn ? 'Remark' : '备注',
+      labels: isEn ? 'Labels' : '标签',
+      currentLabel: isEn ? 'Current Label' : '当前标签'
+    }
+  }
+})
 
 const fetchAllContacts = async () => {
   try {
@@ -419,7 +518,7 @@ const confirmAddContactToLabel = async () => {
   console.log('准备添加联系人数量:', selectedContactsToAdd.value.length) // 调试信息
   if (selectedContactsToAdd.value.length === 0) {
     ElMessage({
-      message: '请至少选择一个联系人',
+      message: i18nText.value.messages.warning.noContactSelected,
       type: 'warning',
       duration: 2000,
       center: true
@@ -433,7 +532,7 @@ const confirmAddContactToLabel = async () => {
 
   if (!currentLabel) {
     ElMessage({
-      message: '当前标签不存在',
+      message: i18nText.value.page.noLabel,
       type: 'error',
       duration: 2000,
       center: true
@@ -497,7 +596,7 @@ const confirmAddContactToLabel = async () => {
 
   // 显示成功消息
   ElMessage({
-    message: `已成功为 ${selectedContactsToAdd.value.length} 位联系人添加标签`,
+    message: i18nText.value.messages.success.addContacts(selectedContactsToAdd.value.length),
     type: 'success',
     duration: 2000,
     center: true
@@ -614,12 +713,12 @@ const fetchLabels = async () => {
       }))
 
       // 添加"无标签"选项
-      labelList.value.unshift({ id: 0, name: '无标签' })
+      labelList.value.unshift({ id: 0, name: i18nText.value.page.noLabel })
     }
   } catch (error) {
     console.error('获取标签失败:', error)
     // 出错时至少保留"无标签"选项
-    labelList.value = [{ id: 0, name: '无标签' }]
+    labelList.value = [{ id: 0, name: i18nText.value.page.noLabel }]
   }
 }
 
@@ -630,7 +729,7 @@ const getLabelCount = (labelId) => {
   const label = labelList.value.find((item) => item.id === labelId)
   if (!label) return 0
 
-  if (label.name === '无标签') {
+  if (label.name === i18nText.value.page.noLabel) {
     // 计算没有标签的联系人数量
     return tableData.value.filter((contact) => {
       // 检查标签字段是否为空
@@ -685,13 +784,13 @@ const createNewLabel = async () => {
   if (existingLabel) {
     // 如果标签已存在，显示提示
     ElMessage({
-      message: '标签已存在',
+      message: i18nText.value.messages.warning.labelExists,
       type: 'warning',
       duration: 2000,
       center: true
     })
     showNewLabelInput.value = false
-    newLabelName.value = '未命名标签'
+    newLabelName.value = i18nText.value.page.newLabel.split(' ')[1] || '未命名标签'
     return
   }
 
@@ -699,14 +798,14 @@ const createNewLabel = async () => {
     const response = await addUserLabel({ label: newLabelName.value.trim() })
     if (response && response.success) {
       labelList.value = [
-        { id: 0, name: '无标签' },
+        { id: 0, name: i18nText.value.page.noLabel },
         ...response.labels.map((label, index) => ({
           id: index + 1,
           name: label
         }))
       ]
       showNewLabelInput.value = false
-      newLabelName.value = '未命名标签'
+      newLabelName.value = i18nText.value.page.newLabel.split(' ')[1] || '未命名标签'
     } else {
       console.error('创建标签失败:', response?.error || '未知错误')
     }
@@ -718,7 +817,7 @@ const createNewLabel = async () => {
 // 取消创建NewLabel
 const cancelNewLabel = () => {
   showNewLabelInput.value = false
-  newLabelName.value = '未命名标签'
+  newLabelName.value = i18nText.value.page.newLabel.split(' ')[1] || '未命名标签'
 }
 
 // 显示新建标签输入框并自动聚焦
@@ -790,7 +889,7 @@ const filteredTableData = computed(() => {
       // 根据标签筛选
       const label = labelList.value.find((item) => item.id === id)
       if (label) {
-        if (label.name === '无标签') {
+        if (label.name === i18nText.value.page.noLabel) {
           // 筛选无标签的数据（即label字段为空数组或不存在或为空字符串）
           data = data.filter((item) => {
             // 检查标签字段是否为空
