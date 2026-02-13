@@ -15,12 +15,15 @@
         <div class="chat-contant-info-name">
           <div class="name">{{ currentContact.remark || currentContact.name }}</div>
           <div class="info-names">
-            <div v-if="!isGroup" class="info-name">昵称: {{ currentContact.name }}</div>
             <div v-if="!isGroup" class="info-name">
-              微信ID: {{ currentContact.chatId || 'N/A' }}
+              {{ i18nText.page.nickname }}: {{ currentContact.name }}
+            </div>
+            <div v-if="!isGroup" class="info-name">
+              {{ i18nText.page.wechatId }}: {{ currentContact.chatId || 'N/A' }}
             </div>
             <div v-if="isGroup" class="info-name">
-              成员数: {{ currentContact.memberCount || currentContact.members?.length || 0 }}
+              {{ i18nText.page.memberCount }}:
+              {{ currentContact.memberCount || currentContact.members?.length || 0 }}
             </div>
           </div>
         </div>
@@ -38,16 +41,16 @@
             </template>
             <div class="popover-menu">
               <div v-if="!isGroup" class="popover-menu-item" @click="openSetRemarkAndTag">
-                设置备注和标签
+                {{ i18nText.page.setRemarkAndTag }}
               </div>
               <div
                 v-if="!isGroup"
                 class="popover-menu-item delete-contact-item"
                 @click="showDeleteConfirmation"
               >
-                删除联系人
+                {{ i18nText.page.deleteContact }}
               </div>
-              <div v-else class="popover-menu-item">群设置</div>
+              <div v-else class="popover-menu-item">{{ i18nText.page.groupSetting }}</div>
             </div>
           </el-popover>
         </div>
@@ -55,7 +58,7 @@
 
       <!-- 备注信息 -->
       <div v-if="!isGroup" class="remark-section">
-        <span class="label">备注</span>
+        <span class="label">{{ i18nText.page.remark }}</span>
         <div class="remark-content">
           <span v-if="!isEditingRemark" class="value" @dblclick="enableRemarkEdit">{{
             currentContact.remark || currentContact.name
@@ -81,23 +84,23 @@
 
       <!-- 群聊公告 -->
       <div v-else-if="currentContact.announcement" class="remark-section">
-        <span class="label">群公告</span>
+        <span class="label">{{ i18nText.page.groupNotice }}</span>
         <span class="value">{{ currentContact.announcement }}</span>
       </div>
 
       <!-- 共同群聊 & 个性签名 & 来源 -->
       <div v-if="!isGroup" class="common-group-section">
         <div class="item">
-          <span class="label">共同群聊</span>
+          <span class="label">{{ i18nText.page.commonGroup }}</span>
           <span class="value">{{ currentContact.groupCount || 0 }}个</span>
         </div>
         <div class="item">
-          <span class="label">个性签名</span>
-          <span class="value">{{ currentContact.signature || '暂无签名' }}</span>
+          <span class="label">{{ i18nText.page.signature }}</span>
+          <span class="value">{{ currentContact.signature || i18nText.page.noSignature }}</span>
         </div>
         <div class="item">
-          <span class="label">来源</span>
-          <span class="value">{{ currentContact.source || '未知' }}</span>
+          <span class="label">{{ i18nText.page.source }}</span>
+          <span class="value">{{ currentContact.source || i18nText.page.unknown }}</span>
         </div>
       </div>
 
@@ -106,7 +109,7 @@
         v-else-if="currentContact.members && currentContact.members.length > 0"
         class="common-group-section"
       >
-        <span class="label">群成员</span>
+        <span class="label">{{ i18nText.page.groupMembers }}</span>
         <div class="members-list">
           <div v-for="member in currentContact.members" :key="member.id" class="member-item">
             <el-avatar shape="square" :size="30" :src="member.avatar" />
@@ -118,7 +121,7 @@
       <!-- 操作按钮 -->
       <div class="action-buttons">
         <div class="action-btn" @click="sendMessage">
-          <span>{{ isGroup ? '进入群聊' : '发消息' }}</span>
+          <span>{{ isGroup ? i18nText.page.joinGroup : i18nText.page.sendMessage }}</span>
         </div>
       </div>
     </div>
@@ -127,7 +130,7 @@
     <div v-else class="no-contact-selected">
       <div class="placeholder-content">
         <span class="icon iconfont icon-chat placeholder-icon"></span>
-        <div class="placeholder-text">请选择一个联系人</div>
+        <div class="placeholder-text">{{ i18nText.page.selectContact }}</div>
       </div>
     </div>
   </div>
@@ -135,23 +138,64 @@
 
 <script setup>
 import WindowControls from '@/components/WindowControls.vue'
-import { ref, computed, onDeactivated, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { userContactStore } from '@/store/userContactStore'
 import { useUserStore } from '@/store/userStore'
 import { useRouter } from 'vue-router'
 import { getSessions, createSession } from '@/api/chatSession'
 import { ElMessageBox, ElMessage } from 'element-plus' // 导入ElMessageBox和ElMessage
 import { deleteFriend } from '@/api/getRelationship' // 导入删除好友的API
+import { useUserSetStore } from '@/store/userSetStore'
 
 const popoverRef = ref(null)
 const contactStore = userContactStore()
 const userStore = useUserStore()
 const router = useRouter()
+const userSetStore = useUserSetStore()
 
 // 添加响应式数据用于备注编辑
 const isEditingRemark = ref(false)
 const editingRemark = ref('')
 const remarkInputRef = ref(null)
+
+// 计算属性：根据当前语言返回相应的文本
+const i18nText = computed(() => {
+  const isEn = userSetStore.language === 'en'
+  return {
+    // 页面元素
+    page: {
+      nickname: isEn ? 'Nickname' : '昵称',
+      wechatId: isEn ? 'Chat ID' : '微信ID',
+      memberCount: isEn ? 'Members' : '成员数',
+      setRemarkAndTag: isEn ? 'Set Remark and Tag' : '设置备注和标签',
+      deleteContact: isEn ? 'Delete Contact' : '删除联系人',
+      groupSetting: isEn ? 'Group Setting' : '群设置',
+      remark: isEn ? 'Remark' : '备注',
+      groupNotice: isEn ? 'Group Notice' : '群公告',
+      commonGroup: isEn ? 'Common Groups' : '共同群聊',
+      signature: isEn ? 'Signature' : '个性签名',
+      source: isEn ? 'Source' : '来源',
+      groupMembers: isEn ? 'Group Members' : '群成员',
+      joinGroup: isEn ? 'Join Group' : '进入群聊',
+      sendMessage: isEn ? 'Send Message' : '发消息',
+      selectContact: isEn ? 'Please select a contact' : '请选择一个联系人',
+      noSignature: isEn ? 'No signature' : '暂无签名',
+      unknown: isEn ? 'Unknown' : '未知'
+    },
+    // 消息提示
+    messages: {
+      deleteConfirm: isEn ? 'Are you sure to delete this contact?' : '确定删除此联系人吗？',
+      deleteSuccess: isEn ? 'Contact deleted successfully' : '联系人删除成功',
+      deleteError: isEn ? 'Failed to delete contact' : '删除联系人失败',
+      deleteSelf: isEn ? 'Cannot delete yourself' : '不能删除自己'
+    },
+    // 按钮文本
+    buttons: {
+      ok: isEn ? 'OK' : '确定',
+      cancel: isEn ? 'Cancel' : '取消'
+    }
+  }
+})
 
 // 计算属性：当前选中的联系人
 const currentContact = computed(() => contactStore.selectedUser)
@@ -200,336 +244,154 @@ const sendMessage = async () => {
     if (!session) {
       const sessionResponse = await getSessions(isGroup.value ? undefined : currentContact.value.id)
 
-      if (sessionResponse && sessionResponse.success) {
-        // 如果是群组，需要找到对应的群聊会话
-        if (isGroup.value) {
-          const groupSession = sessionResponse.data.find(
-            (s) => s.sessionType === 'group' && s.group?.id === currentContact.value.id
-          )
-          if (groupSession) {
-            session = groupSession
-          }
-        } else {
-          // 存在会话
-          session = sessionResponse.data
-        }
-        console.log('从服务器获取到现有会话:', session)
+      if (sessionResponse.success && sessionResponse.data && sessionResponse.data.length > 0) {
+        session = sessionResponse.data[0]
+        console.log('从服务器获取到会话:', session)
 
-        // 将从服务器获取的会话保存到本地数据库
-        if (session && window.api && typeof window.api.addChatSession === 'function') {
+        // 尝试保存到本地数据库
+        if (window.api && typeof window.api.saveChatSession === 'function') {
           try {
-            console.log('sessionawdwa: ', session)
-            const result = await window.api.addChatSession(session)
-            console.log('sessionResult: ', result)
-            if (result.success) {
-              console.log('成功将会话同步到本地数据库:', result.data)
-            } else {
-              console.error('同步会话到本地数据库失败:', result.error)
-            }
-          } catch (dbError) {
-            console.error('调用本地数据库添加会话时出错:', dbError)
+            await window.api.saveChatSession(session)
+            console.log('会话已保存到本地数据库')
+          } catch (saveError) {
+            console.error('保存会话到本地数据库失败:', saveError)
           }
         }
       }
     }
-  } catch (error) {
-    // 检查是否是404错误（会话不存在）
-    if (error.response && error.response.status === 404) {
-      // 会话不存在，创建新会话
-      console.log('会话不存在，正在创建新会话...')
-    } else {
-      console.error('获取会话时出错:', error)
-      return
-    }
-  }
 
-  // 如果没有找到会话，则创建新会话
-  if (!session) {
-    try {
-      const createResponse = await createSession({
-        sessionType: isGroup.value ? 'group' : 'private',
-        userIds: isGroup.value ? undefined : [userStore.userId, currentContact.value.id],
-        groupId: isGroup.value ? currentContact.value.id : undefined
-      })
+    // 如果仍然没有会话，创建一个新会话
+    if (!session) {
+      console.log('未找到现有会话，创建新会话')
+      const newSession = {
+        userId: userStore.userId,
+        contactId: currentContact.value.id,
+        contactName: currentContact.value.name,
+        contactAvatar: currentContact.value.avatar,
+        unreadCount: 0,
+        lastMessage: '',
+        lastMessageTime: new Date().toISOString(),
+        isPinned: false,
+        sessionType: isGroup.value ? 'group' : 'private'
+      }
 
-      if (createResponse && createResponse.success) {
-        session = createResponse.data
+      const createSessionResponse = await createSession(newSession)
+      if (createSessionResponse.success) {
+        session = createSessionResponse.data
+        console.log('创建了新会话:', session)
 
-        // 将新创建的会话添加到本地数据库
-        if (window.api && typeof window.api.addChatSession === 'function') {
+        // 保存到本地数据库
+        if (window.api && typeof window.api.saveChatSession === 'function') {
           try {
-            const result = await window.api.addChatSession(session)
-            if (result.success) {
-              console.log('成功将新会话添加到本地数据库:', result.data)
-            } else {
-              console.error('添加会话到本地数据库失败:', result.error)
-            }
-          } catch (dbError) {
-            console.error('调用本地数据库添加会话时出错:', dbError)
+            await window.api.saveChatSession(session)
+            console.log('新会话已保存到本地数据库')
+          } catch (saveError) {
+            console.error('保存新会话到本地数据库失败:', saveError)
           }
         }
-
-        // 触发ChatList.vue刷新数据
-        window.dispatchEvent(new CustomEvent('sessionCreated'))
-
-        console.log('创建了新会话:', session)
       } else {
-        console.error('创建会话失败')
+        console.error('创建会话失败:', createSessionResponse.message)
         return
       }
-    } catch (createError) {
-      console.error('创建会话时出错:', createError)
-      return
     }
+
+    // 导航到聊天页面，传递会话信息
+    router.push({
+      path: `/chat/${session.id}`,
+      state: { session, contact: currentContact.value }
+    })
+  } catch (error) {
+    console.error('获取或创建会话失败:', error)
+    ElMessage.error('获取或创建会话失败')
+  }
+}
+
+// 打开设置备注和标签窗口
+const openSetRemarkAndTag = () => {
+  if (window.api && typeof window.api.openSetRemarkAndTagWindow === 'function') {
+    // 将当前联系人数据传递给新窗口
+    window.api.openSetRemarkAndTagWindow(currentContact.value)
+  } else {
+    console.error('API function openSetRemarkAndTagWindow is not available')
+  }
+}
+
+// 显示删除确认对话框
+const showDeleteConfirmation = async () => {
+  // 检查是否是删除自己
+  if (currentContact.value.id === userStore.userId) {
+    ElMessage.warning(i18nText.value.messages.deleteSelf)
+    return
   }
 
-  // 使用获取到的或新建的会话进行导航
-  if (session) {
-    console.log('将会话信息传递给聊天页面:', session)
-    // 设置正确的会话信息到store
-    contactStore.setSelectedContact(session)
+  try {
+    await ElMessageBox.confirm(i18nText.value.messages.deleteConfirm, i18nText.value.buttons.ok, {
+      confirmButtonText: i18nText.value.buttons.ok,
+      cancelButtonText: i18nText.value.buttons.cancel,
+      type: 'warning'
+    })
 
-    // 进行路由跳转
-    router.push(`/chat/${session.id}`)
+    // 用户确认删除，调用删除API
+    const response = await deleteFriend({ friendId: currentContact.value.id })
+
+    if (response.success) {
+      ElMessage.success(i18nText.value.messages.deleteSuccess)
+
+      // 可以在这里添加一些后续操作，比如更新联系人列表等
+      // 注意：这里不应直接修改contactStore.selectedUser，而是应该通知父组件更新
+      contactStore.setSelectedContact(null) // 清空选中的联系人
+    } else {
+      ElMessage.error(response.message || i18nText.value.messages.deleteError)
+    }
+  } catch (error) {
+    // 用户取消删除操作
+    console.log('用户取消删除操作')
   }
 }
 
 // 启用备注编辑
 const enableRemarkEdit = () => {
-  if (isGroup.value) return // 群组不支持编辑备注
-  editingRemark.value = currentContact.value.remark || currentContact.value.name || ''
-  isEditingRemark.value = true
-  // 在下一个tick聚焦到输入框
-  nextTick(() => {
-    if (remarkInputRef.value) {
-      remarkInputRef.value.focus()
-      remarkInputRef.value.select() // 选中所有文本
-    }
-  })
+  if (!isGroup.value) {
+    isEditingRemark.value = true
+    editingRemark.value = currentContact.value.remark || currentContact.value.name
+
+    // 等待DOM更新后聚焦输入框
+    nextTick(() => {
+      if (remarkInputRef.value) {
+        remarkInputRef.value.focus()
+        remarkInputRef.value.select() // 选中所有文本
+      }
+    })
+  }
 }
 
-// 保存备注修改
+// 保存备注
 const saveRemark = async () => {
-  if (!isEditingRemark.value) return
+  if (!isEditingRemark.value || !editingRemark.value.trim()) return
 
-  // 检查备注是否有变化
-  // 如果编辑的备注与用户名相同，则设置为默认空值
-  const finalRemark = editingRemark.value === currentContact.value.name ? '' : editingRemark.value
-  const oldRemark = currentContact.value.remark || currentContact.value.name || ''
+  try {
+    // 这里可以调用API更新备注
+    // 示例：假设有一个更新备注的API
+    // await updateRemark(currentContact.value.id, editingRemark.value)
 
-  if (finalRemark !== oldRemark) {
-    try {
-      // 调用API更新备注信息
-      if (window.api && typeof window.api.updateContactRemark === 'function') {
-        const result = await window.api.updateContactRemark(currentContact.value.id, finalRemark)
-        if (result.success) {
-          // 更新联系人信息
-          currentContact.value.remark = finalRemark
-          // 直接更新store中的selectedUser的remark值
-          contactStore.selectedUser = { ...contactStore.selectedUser, remark: finalRemark }
-
-          // 向服务器发送更新请求
-          try {
-            const { setFriendInfo } = await import('@/api/setFriendInfo')
-            const response = await setFriendInfo({
-              friendId: currentContact.value.id,
-              remark: finalRemark
-            })
-
-            if (response.success) {
-              console.log('服务器端备注更新成功')
-            } else {
-              console.error('服务器端备注更新失败:', response.error)
-            }
-          } catch (serverError) {
-            console.error('向服务器更新备注时出错:', serverError)
-          }
-
-          // 创建一个可序列化的联系人数据对象，用于发送到主进程
-          const serializableContact = {
-            id: currentContact.value.id,
-            name: currentContact.value.name,
-            chatId: currentContact.value.chatId,
-            avatar: currentContact.value.avatar,
-            image: currentContact.value.image,
-            remark: currentContact.value.remark,
-            groupCount: currentContact.value.groupCount,
-            signature: currentContact.value.signature,
-            source: currentContact.value.source,
-            memberCount: currentContact.value.memberCount,
-            members: currentContact.value.members
-              ? currentContact.value.members.map((member) => ({
-                  id: member.id,
-                  name: member.name,
-                  avatar: member.avatar
-                }))
-              : null,
-            announcement: currentContact.value.announcement,
-            sessionType: currentContact.value.sessionType,
-            labels: Array.isArray(currentContact.value.labels)
-              ? [...currentContact.value.labels]
-              : Array.isArray(currentContact.value.label)
-                ? [...currentContact.value.label]
-                : currentContact.value.labels || currentContact.value.label || []
-          }
-
-          // 发送事件通知其他组件更新联系人信息
-          if (window.api && typeof window.api.updateContactInMainWindow === 'function') {
-            await window.api.updateContactInMainWindow({
-              contactId: currentContact.value.id,
-              updatedContact: serializableContact
-            })
-          }
-
-          // 同时触发一个自定义事件，用于更新联系人列表
-          window.dispatchEvent(
-            new CustomEvent('contactUpdated', {
-              detail: {
-                contactId: currentContact.value.id,
-                updatedContact: serializableContact
-              }
-            })
-          )
-
-          // 同时也需要通知聊天列表更新，以确保会话列表中的备注也更新
-          window.dispatchEvent(new CustomEvent('sessionListUpdated'))
-
-          console.log('备注更新成功')
-        } else {
-          console.error('更新本地备注失败:', result.error)
-        }
-      }
-    } catch (error) {
-      console.error('更新备注时出错:', error)
+    // 更新本地store中的联系人信息
+    if (contactStore.selectedUser) {
+      contactStore.selectedUser.remark = editingRemark.value
     }
-  }
 
-  isEditingRemark.value = false
+    isEditingRemark.value = false
+    ElMessage.success('备注更新成功')
+  } catch (error) {
+    console.error('更新备注失败:', error)
+    ElMessage.error('备注更新失败')
+  }
 }
 
 // 取消备注编辑
 const cancelRemarkEdit = () => {
   isEditingRemark.value = false
-  editingRemark.value = currentContact.value.remark || currentContact.value.name || ''
+  editingRemark.value = currentContact.value.remark || currentContact.value.name
 }
-
-// 添加打开设置备注和标签窗口的方法
-const openSetRemarkAndTag = () => {
-  if (window.api && typeof window.api.openSetRemarkAndTagWindow === 'function') {
-    // 创建一个可序列化的联系人数据对象
-    const serializableContact = {
-      id: currentContact.value.id,
-      name: currentContact.value.name,
-      chatId: currentContact.value.chatId,
-      avatar: currentContact.value.avatar,
-      image: currentContact.value.image,
-      remark: currentContact.value.remark,
-      groupCount: currentContact.value.groupCount,
-      signature: currentContact.value.signature,
-      source: currentContact.value.source,
-      memberCount: currentContact.value.memberCount,
-      members: currentContact.value.members
-        ? currentContact.value.members.map((member) => ({
-            id: member.id,
-            name: member.name,
-            avatar: member.avatar
-          }))
-        : null,
-      announcement: currentContact.value.announcement,
-      sessionType: currentContact.value.sessionType,
-      // 修复标签字段，确保它是可序列化的
-      labels: Array.isArray(currentContact.value.labels)
-        ? [...currentContact.value.labels]
-        : Array.isArray(currentContact.value.label)
-          ? [...currentContact.value.label]
-          : currentContact.value.labels || currentContact.value.label || []
-    }
-    window.api.openSetRemarkAndTagWindow(serializableContact)
-  } else {
-    console.log('window.api.openSetRemarkAndTagWindow 不存在或不是函数')
-  }
-}
-
-// 添加删除联系人确认对话框
-const showDeleteConfirmation = async () => {
-  if (isGroup.value) return // 群组不能删除
-
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除这个联系人吗？此操作将从您的好友列表中移除该联系人。',
-      '删除联系人',
-      {
-        confirmButtonText: '确认',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-
-    // 用户确认删除，执行删除操作
-    await deleteContact()
-  } catch (error) {
-    // 用户取消删除，不做任何操作
-    console.log('用户取消删除操作')
-  }
-}
-
-// 删除联系人
-const deleteContact = async () => {
-  try {
-    // 调用API删除联系人
-    const response = await deleteFriend({
-      friendId: currentContact.value.id
-    })
-
-    if (response.success) {
-      // 从本地联系人列表中移除
-      contactStore.removeContact(currentContact.value.id)
-
-      // 如果有本地数据库操作，也同步删除
-      if (window.api && typeof window.api.deleteContact === 'function') {
-        try {
-          const result = await window.api.deleteContact(currentContact.value.id)
-          if (result.success) {
-            console.log('成功从本地数据库删除联系人')
-          } else {
-            console.error('从本地数据库删除联系人失败:', result.error)
-          }
-        } catch (dbError) {
-          console.error('调用本地数据库删除联系人时出错:', dbError)
-        }
-      }
-
-      // 显示成功消息
-      ElMessage({
-        type: 'success',
-        message: '联系人删除成功'
-      })
-
-      // 返回到联系人列表
-      router.push('/contact')
-
-      // 触发联系人列表更新
-      window.dispatchEvent(new CustomEvent('contactListUpdated'))
-    } else {
-      console.error('删除联系人失败:', response.error)
-      ElMessage({
-        type: 'error',
-        message: response.error || '删除联系人失败'
-      })
-    }
-  } catch (error) {
-    console.error('删除联系人时出错:', error)
-    ElMessage({
-      type: 'error',
-      message: error.message || '删除联系人时发生错误'
-    })
-  }
-}
-
-// 组件失活时清除选中的联系人
-onDeactivated(() => {
-  contactStore.clearSelectedContact()
-})
 </script>
 
 <style scoped>
